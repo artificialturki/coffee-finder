@@ -3,145 +3,106 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Coffee Finder</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <title>Coffee Finder Pro</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      background: #fafafa;
-      color: #333;
-    }
-    header {
-      background: #3c2f2f;
-      color: white;
-      text-align: center;
-      padding: 1rem;
-    }
-    header h1 {
-      margin: 0;
-      font-size: 1.8rem;
-    }
-    #searchBar {
-      display: flex;
-      justify-content: center;
-      padding: 1rem;
-      background: #fff;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    #searchBar input {
-      padding: 0.5rem;
-      margin-right: 0.5rem;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      width: 250px;
-    }
-    #searchBar button {
-      background: #3c2f2f;
-      color: white;
-      border: none;
-      padding: 0.6rem 1.2rem;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    #searchBar button:hover {
-      background: #5a4444;
-    }
-    #map {
-      height: 60vh;
-      width: 100%;
-    }
-    #results {
-      padding: 1rem;
-      background: #fff;
-    }
-    .place {
-      border-bottom: 1px solid #eee;
-      padding: 0.5rem 0;
-    }
-    .place:last-child {
-      border-bottom: none;
-    }
+    body { margin:0; font-family: Arial, sans-serif; display:flex; flex-direction:column; height:100vh; }
+    header { background:#3c2f2f; color:#fff; padding:1rem; text-align:center; }
+    #searchBar { display:flex; padding:1rem; gap:0.5rem; background:#fafafa; }
+    #searchBar input { flex:1; padding:0.6rem; border:1px solid #ccc; border-radius:4px; }
+    #searchBar button { background:#3c2f2f; color:#fff; border:none; padding:0.6rem 1.2rem; border-radius:4px; cursor:pointer; }
+    #searchBar button:hover { background:#5a4444; }
+    #container { flex:1; display:flex; }
+    #map { flex:2; }
+    #results { flex:1; overflow-y:auto; border-left:1px solid #ccc; padding:1rem; background:#fff; }
+    .place { margin-bottom:1rem; padding-bottom:1rem; border-bottom:1px solid #eee; }
+    .place h3 { margin:0; font-size:1.1rem; }
+    .place p { margin:0.2rem 0; color:#555; }
   </style>
 </head>
 <body>
   <header>
-    <h1>☕ Coffee Finder</h1>
-    <p>Find cafés near any city in the world 🌍</p>
+    <h1>☕ Coffee Finder Pro</h1>
+    <p>Search cafés anywhere in the world 🌍</p>
   </header>
 
-  <section id="searchBar">
-    <input type="text" id="locationInput" placeholder="Enter city and country (e.g. Riyadh, Saudi Arabia)">
+  <div id="searchBar">
+    <input type="text" id="locationInput" placeholder="Enter city, country (e.g. Riyadh, Saudi Arabia)">
     <button onclick="searchCoffee()">Search</button>
-  </section>
+  </div>
 
-  <div id="map"></div>
-  <div id="results"><h2>Results</h2><div id="list"></div></div>
+  <div id="container">
+    <div id="map"></div>
+    <div id="results"><h2>Results</h2><div id="list"></div></div>
+  </div>
 
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
-    // Initialize map
-    const map = L.map('map').setView([20, 0], 2);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
-
-    let markers = [];
-
-    async function searchCoffee() {
-      const location = document.getElementById("locationInput").value;
-      if (!location) {
-        alert("Please enter a city and country!");
-        return;
-      }
-
-      // 1. Convert location to coordinates using Nominatim
-      const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location)}`);
-      const geoData = await geoRes.json();
-      if (geoData.length === 0) {
-        alert("Location not found. Try again.");
-        return;
-      }
-      const { lat, lon } = geoData[0];
-      map.setView([lat, lon], 14);
-
-      // Clear old markers
-      markers.forEach(m => map.removeLayer(m));
-      markers = [];
-
-      // 2. Query nearby cafes using Overpass API
-      const query = `
-        [out:json];
-        node["amenity"="cafe"](around:3000,${lat},${lon});
-        out;
-      `;
-      const overRes = await fetch("https://overpass-api.de/api/interpreter", {
-        method: "POST",
-        body: query
+    let map, service, geocoder, infowindow;
+    function initMap() {
+      map = new google.maps.Map(document.getElementById("map"), {
+        center: { lat: 20, lng: 0 }, zoom: 2
       });
-      const overData = await overRes.json();
+      geocoder = new google.maps.Geocoder();
+      infowindow = new google.maps.InfoWindow();
+    }
 
-      const resultsDiv = document.getElementById("list");
-      resultsDiv.innerHTML = "";
+    function searchCoffee() {
+      const location = document.getElementById("locationInput").value;
+      if (!location) { alert("Enter a city and country!"); return; }
 
-      if (overData.elements.length === 0) {
-        resultsDiv.innerHTML = "<p>No cafés found nearby.</p>";
-        return;
-      }
+      geocoder.geocode({ address: location }, (results, status) => {
+        if (status !== "OK" || !results[0]) {
+          alert("Location not found.");
+          return;
+        }
+        map.setCenter(results[0].geometry.location);
+        map.setZoom(14);
 
-      // 3. Show results on map + list
-      overData.elements.forEach(place => {
-        const name = place.tags.name || "Unnamed Café";
-        const marker = L.marker([place.lat, place.lon]).addTo(map).bindPopup(`<b>${name}</b>`);
-        markers.push(marker);
+        const request = {
+          location: results[0].geometry.location,
+          radius: 3000,
+          type: ["cafe"],
+          keyword: "coffee"
+        };
 
-        const div = document.createElement("div");
-        div.className = "place";
-        div.innerHTML = `<b>${name}</b><br>Lat: ${place.lat}, Lon: ${place.lon}`;
-        resultsDiv.appendChild(div);
+        service = new google.maps.places.PlacesService(map);
+        service.nearbySearch(request, displayResults);
       });
     }
+
+    function displayResults(results, status) {
+      const listDiv = document.getElementById("list");
+      listDiv.innerHTML = "";
+      if (status !== google.maps.places.PlacesServiceStatus.OK || !results) {
+        listDiv.innerHTML = "<p>No cafés found.</p>";
+        return;
+      }
+
+      results.forEach(place => {
+        // Marker
+        const marker = new google.maps.Marker({
+          map, position: place.geometry.location, title: place.name
+        });
+        marker.addListener("click", () => {
+          infowindow.setContent(`<b>${place.name}</b><br>${place.vicinity || ""}`);
+          infowindow.open(map, marker);
+        });
+
+        // Sidebar
+        const div = document.createElement("div");
+        div.className = "place";
+        div.innerHTML = `
+          <h3>${place.name}</h3>
+          <p>${place.vicinity || "No address available"}</p>
+          <p>⭐ ${place.rating || "N/A"} (${place.user_ratings_total || 0} reviews)</p>
+        `;
+        listDiv.appendChild(div);
+      });
+    }
+  </script>
+
+  <!-- Replace YOUR_API_KEY with your real Google Maps API Key -->
+  <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places&callback=initMap">
   </script>
 </body>
 </html>
