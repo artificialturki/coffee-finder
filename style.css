@@ -1,0 +1,17 @@
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, sans-serif; background: #faf8f6; color: #222; }
+header { background: #3b2f2f; color: #fff; padding: 16px; text-align: center; }
+header h1 { margin: 0; }
+.controls { padding: 16px; display: grid; gap: 8px; }
+#zipRow { display: flex; gap: 8px; }
+#zipRow input { flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 6px; }
+button { padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+#locBtn { background: #eee; }
+#searchBtn { background: #3b2f2f; color: #fff; }
+#status { color: #b03a2e; font-weight: bold; }
+.map-list { display: grid; gap: 10px; padding: 0 16px 16px; }
+#map { height: 360px; border: 1px solid #ccc; border-radius: 6px; }
+#list { list-style: none; padding: 0; margin: 0; }
+#list li { background: #fff; border: 1px solid #ccc; border-radius: 6px; padding: 8px; margin-top: 4px;
+  display: flex; justify-content: space-between; align-items: center; }
+footer { padding: 12px; font-size: 12px; text-align: center; color: #555; }
