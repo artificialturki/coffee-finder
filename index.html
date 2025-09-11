@@ -1,56 +1,146 @@
-<!DOCTYPE html>https://github.com/artificialturki/coffee-finder/tree/main
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Coffee Finder</title>
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#3b2f2f">
-  <link rel="icon" href="icons/icon-192.png">
-  <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    crossorigin=""
-  />
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #fafafa;
+      color: #333;
+    }
+    header {
+      background: #3c2f2f;
+      color: white;
+      text-align: center;
+      padding: 1rem;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.8rem;
+    }
+    #searchBar {
+      display: flex;
+      justify-content: center;
+      padding: 1rem;
+      background: #fff;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    #searchBar input {
+      padding: 0.5rem;
+      margin-right: 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      width: 250px;
+    }
+    #searchBar button {
+      background: #3c2f2f;
+      color: white;
+      border: none;
+      padding: 0.6rem 1.2rem;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    #searchBar button:hover {
+      background: #5a4444;
+    }
+    #map {
+      height: 60vh;
+      width: 100%;
+    }
+    #results {
+      padding: 1rem;
+      background: #fff;
+    }
+    .place {
+      border-bottom: 1px solid #eee;
+      padding: 0.5rem 0;
+    }
+    .place:last-child {
+      border-bottom: none;
+    }
+  </style>
 </head>
 <body>
   <header>
     <h1>☕ Coffee Finder</h1>
-    <p>Find cafés near you or by ZIP/postal code.</p>
+    <p>Find cafés near any city in the world 🌍</p>
   </header>
 
-  <section class="controls">
-    <label>
-      <input type="checkbox" id="useZip"> Use ZIP/Postal Code
-    </label>
-    <div id="zipRow" hidden>
-      <input id="zipInput" placeholder="Postal/ZIP">
-      <input id="countryInput" placeholder="Country (e.g., US, SA)" maxlength="2">
-    </div>
-    <button id="locBtn">Use My Location</button>
-    <button id="searchBtn">Search Coffee</button>
-    <p id="status"></p>
+  <section id="searchBar">
+    <input type="text" id="locationInput" placeholder="Enter city and country (e.g. Riyadh, Saudi Arabia)">
+    <button onclick="searchCoffee()">Search</button>
   </section>
 
-  <section class="map-list">
-    <div id="map"></div>
-    <ul id="list"></ul>
-  </section>
+  <div id="map"></div>
+  <div id="results"><h2>Results</h2><div id="list"></div></div>
 
-  <footer>
-    <small>Privacy: location is only used to search nearby cafés and open directions. Nothing stored.</small>
-  </footer>
-
-  <script
-    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    crossorigin="">
-  </script>
-  <script src="app.js"></script>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js');
+    // Initialize map
+    const map = L.map('map').setView([20, 0], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    let markers = [];
+
+    async function searchCoffee() {
+      const location = document.getElementById("locationInput").value;
+      if (!location) {
+        alert("Please enter a city and country!");
+        return;
+      }
+
+      // 1. Convert location to coordinates using Nominatim
+      const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location)}`);
+      const geoData = await geoRes.json();
+      if (geoData.length === 0) {
+        alert("Location not found. Try again.");
+        return;
+      }
+      const { lat, lon } = geoData[0];
+      map.setView([lat, lon], 14);
+
+      // Clear old markers
+      markers.forEach(m => map.removeLayer(m));
+      markers = [];
+
+      // 2. Query nearby cafes using Overpass API
+      const query = `
+        [out:json];
+        node["amenity"="cafe"](around:3000,${lat},${lon});
+        out;
+      `;
+      const overRes = await fetch("https://overpass-api.de/api/interpreter", {
+        method: "POST",
+        body: query
+      });
+      const overData = await overRes.json();
+
+      const resultsDiv = document.getElementById("list");
+      resultsDiv.innerHTML = "";
+
+      if (overData.elements.length === 0) {
+        resultsDiv.innerHTML = "<p>No cafés found nearby.</p>";
+        return;
+      }
+
+      // 3. Show results on map + list
+      overData.elements.forEach(place => {
+        const name = place.tags.name || "Unnamed Café";
+        const marker = L.marker([place.lat, place.lon]).addTo(map).bindPopup(`<b>${name}</b>`);
+        markers.push(marker);
+
+        const div = document.createElement("div");
+        div.className = "place";
+        div.innerHTML = `<b>${name}</b><br>Lat: ${place.lat}, Lon: ${place.lon}`;
+        resultsDiv.appendChild(div);
+      });
     }
   </script>
 </body>
