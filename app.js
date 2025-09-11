@@ -11,7 +11,11 @@
       open:'Open', wifi:'Wi-Fi', outdoor:'Outdoor', minRating:'Min rating',
       ready:'Ready', searching:'Searching cafés…', none:'No cafés found. Try another area.',
       fullscreen:'Fullscreen', exitFS:'Exit Fullscreen', searchArea:'Search this area', locate:'Locate me',
-      directions:'Directions', osm:'OSM', privacy:'Privacy', disclaimer:'Disclaimer', love:'Made with love', home:'Home'
+      directions:'Directions', osm:'OSM', privacy:'Privacy', disclaimer:'Disclaimer', love:'Made with love', home:'Home',
+      tutorial_welcome:'Welcome to Coffee Finder Pro!',
+      tutorial_search:'Type a city name to search in KSA.',
+      tutorial_filters:'Use filters to refine results.',
+      tutorial_map:'Tap a card to fly & draw a sci-fi arc.',
     },
     ar:{
       brand:'كوفي فندر برو',
@@ -21,7 +25,11 @@
       open:'مفتوح', wifi:'واي فاي', outdoor:'جلسات خارجية', minRating:'أدنى تقييم',
       ready:'جاهز', searching:'جاري البحث عن المقاهي…', none:'لا توجد مقاهٍ في هذه المنطقة. جرّب موقعاً آخر.',
       fullscreen:'ملء الشاشة', exitFS:'خروج من ملء الشاشة', searchArea:'ابحث في هذه المنطقة', locate:'موقعي',
-      directions:'الطريق', osm:'خرائط OSM', privacy:'الخصوصية', disclaimer:'إخلاء المسؤولية', love:'صنع بحب', home:'الرئيسية'
+      directions:'الطريق', osm:'OSM', privacy:'الخصوصية', disclaimer:'إخلاء المسؤولية', love:'صنع بحب', home:'الرئيسية',
+      tutorial_welcome:'مرحباً بك في كوفي فندر برو!',
+      tutorial_search:'اكتب اسم مدينة للبحث داخل السعودية.',
+      tutorial_filters:'استخدم المرشحات لتنقية النتائج.',
+      tutorial_map:'اضغط على بطاقة لرحلة وسهم ضوئي خيالي.',
     }
   };
 
@@ -35,9 +43,10 @@
       'https://z.overpass-api.de/api/interpreter'
     ],
     timeout: 20000,
-    country: 'sa',                    // السعودية فقط
+    country: 'sa',
     defaultView: [24.774265, 46.738586],
-    defaultZoom: 6
+    defaultZoom: 6,
+    cacheTTL: 5*60*1000
   };
 
   const BRAND_SVGS = {
@@ -93,7 +102,9 @@
     markers: [],
     isFullscreen: false,
     overpassAbort: null,
-    suggestAbort: null
+    suggestAbort: null,
+    cache: new Map(),
+    activeArc: null
   };
 
   /* ------------ Utils ------------ */
@@ -122,23 +133,28 @@
       return close>open ? (mins>=open && mins<=close) : (mins>=open || mins<=close); },
     getUserRating: id => { const v=localStorage.getItem(`cf_rate_${id}`); return v?parseFloat(v):null; },
     setUserRating: (id,val) => localStorage.setItem(`cf_rate_${id}`,String(val)),
-    renderStars: r => { let h='', full=Math.floor(r), half=(r-full)>=.25 && (r-full)<.75;
-      for(let i=0;i<full;i++) h+='<i class="fa-solid fa-star"></i>';
-      if(half) h+='<i class="fa-solid fa-star-half-stroke"></i>';
-      for(let i=(half?full+1:full); i<5; i++) h+='<i class="fa-regular fa-star"></i>'; return h; },
     toast: (msg,type='info') => { const c=document.querySelector('.toast-container');
       const t=document.createElement('div'); t.className=`toast ${type}`;
       const icon=type==='error'?'circle-exclamation':type==='success'?'circle-check':'circle-info';
       t.innerHTML=`<i class="fa-solid fa-${icon}"></i><span>${msg}</span>`; c.appendChild(t);
       setTimeout(()=>{t.style.opacity='0'; setTimeout(()=>t.remove(),300);},3000); },
+    cacheGet: key => { const it=state.cache.get(key); if(!it) return null; if(Date.now()-it.ts>CFG.cacheTTL){ state.cache.delete(key); return null; } return it.data; },
+    cacheSet: (key,data)=> state.cache.set(key,{data,ts:Date.now()}),
+    // 5-note sci-fi click
     clickSound: (() => { let ctx; return () => {
-      try{ ctx = ctx || new (window.AudioContext||window.webkitAudioContext)();
-        const o=ctx.createOscillator(), g=ctx.createGain();
-        o.type='sine'; o.frequency.setValueAtTime(720, ctx.currentTime);
-        g.gain.setValueAtTime(0.07, ctx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime+0.12);
-        o.connect(g).connect(ctx.destination); o.start(); o.stop(ctx.currentTime+0.12);
-      }catch(e){} }; })()
+      try{
+        ctx = ctx || new (window.AudioContext||window.webkitAudioContext)();
+        const notes = [880, 1320, 990, 1480, 1110];
+        const t0 = ctx.currentTime;
+        notes.forEach((f,i)=>{
+          const o=ctx.createOscillator(), g=ctx.createGain();
+          o.type='sine'; o.frequency.value=f;
+          g.gain.value=0.06; g.gain.exponentialRampToValueAtTime(0.0001, t0+0.12+i*0.04);
+          o.connect(g).connect(ctx.destination);
+          o.start(t0+i*0.04); o.stop(t0+0.12+i*0.04);
+        });
+      }catch(e){}
+    };})()
   };
 
   /* ------------ Parallax background ------------ */
@@ -154,59 +170,50 @@
   /* ------------ Init ------------ */
   function init(){
     document.getElementById('yr').textContent=new Date().getFullYear();
-    applyLang('en'); // default
+    applyLang(localStorage.getItem('cf_lang') || 'en');
     initMap();
     bindEvents();
-    // بداية داخل السعودية (مشهد عام) ثم بحث افتراضي حول الرياض
+    // Start in KSA and show cafés near Riyadh
     state.map.setView(CFG.defaultView, CFG.defaultZoom);
-    searchAt(24.7136, 46.6753, false, 12); // Riyadh
+    searchAt(24.7136, 46.6753, false, 12);
   }
 
   function initMap(){
-    state.map = L.map('map', { zoomControl:true, preferCanvas:true })
+    state.map = L.map(dom.mapEl, { zoomControl:true, preferCanvas:true })
       .setView(CFG.defaultView, CFG.defaultZoom);
 
-    // بلاطات مع بدائل تلقائية
-    const tileUrls = [
-      'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-      'https://a.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
-      'https://maps.wikimedia.org/osm-intl/{z}/{x}/{y}.png'
-    ];
-    let current = 0;
-    let layer = L.tileLayer(tileUrls[current], {maxZoom:19, attribution:'&copy; OpenStreetMap contributors', crossOrigin:true})
-      .on('tileerror', () => {
-        current = (current + 1) % tileUrls.length;
-        state.map.removeLayer(layer);
-        layer = L.tileLayer(tileUrls[current], {maxZoom:19, attribution:'&copy; OpenStreetMap contributors', crossOrigin:true});
-        state.map.addLayer(layer);
-      })
-      .addTo(state.map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+      maxZoom:19, attribution:'&copy; OpenStreetMap contributors', crossOrigin:true
+    }).addTo(state.map);
 
     state.cluster = L.markerClusterGroup({
       showCoverageOnHover:false, maxClusterRadius:50, chunkedLoading:true, spiderfyOnMaxZoom:true
     });
     state.map.addLayer(state.cluster);
 
-    // أزرار الخريطة
-    dom.btnHere.addEventListener('click',()=>{ const c=state.map.getCenter(); searchAt(c.lat,c.lng,true); });
+    // Controls
+    $('#btnSearchHere').addEventListener('click',()=>{ const c=state.map.getCenter(); searchAt(c.lat, c.lng, true); });
     dom.btnLoc.addEventListener('click', geolocate);
-
     dom.btnFS.addEventListener('click', toggleFullscreen);
     dom.exitFsBtn.addEventListener('click', toggleFullscreen);
     document.addEventListener('keydown',e=>{ if(e.key==='Escape' && state.isFullscreen) toggleFullscreen(); });
+
+    // Prevent map hidden glitches
+    setTimeout(()=>state.map.invalidateSize(), 250);
+    window.addEventListener('resize', ()=> setTimeout(()=>state.map.invalidateSize(), 120));
   }
 
   function bindEvents(){
-    // صوت للنقرات
+    // sci-fi click sound
     document.addEventListener('click', (e)=>{
-      if(e.target.closest('button, .btn, select, input[type=checkbox], a')) utils.clickSound();
+      if(e.target.closest('button, .btn, select, input[type=checkbox], a, .card-cafe')) utils.clickSound();
     }, true);
 
-    // الذهاب للصفحة الرئيسية عبر الأيقونة
+    // Home via cup icon
     dom.homeBtn.addEventListener('click', home);
 
     let timer=null;
-    dom.query.addEventListener('input',()=>{ clearTimeout(timer); timer=setTimeout(suggest,140); });
+    dom.query.addEventListener('input',()=>{ clearTimeout(timer); timer=setTimeout(suggest,120); });
     dom.query.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); useTopSuggestion(); }});
     dom.sugg.addEventListener('click',e=>{
       const a=e.target.closest('a[data-lat]'); if(!a) return;
@@ -224,9 +231,12 @@
     dom.minR.addEventListener('input',()=>{ dom.minRVal.textContent=parseFloat(dom.minR.value).toFixed(1); renderResults(); });
 
     dom.lang.addEventListener('change',()=> applyLang(dom.lang.value));
+
+    // Guided tour
+    $('#btnTour').addEventListener('click', startTour);
   }
 
-  /* ------------ لغة ------------ */
+  /* ------------ Language ------------ */
   function renderSortOptions(){
     const t=I18N[state.lang];
     dom.sort.innerHTML = `
@@ -238,25 +248,32 @@
   }
   function applyLang(lang){
     state.lang = lang;
+    localStorage.setItem('cf_lang', lang);
     const t = I18N[lang];
+
+    // dir + titles
     document.documentElement.lang = lang;
     document.documentElement.dir = (lang==='ar' ? 'rtl' : 'ltr');
     dom.brandText.textContent = t.brand;
     dom.query.placeholder = t.placeholder;
-    // labels
+
+    // static labels
     $$('[data-i18n]').forEach(el => { const key=el.getAttribute('data-i18n'); if(t[key]) el.textContent = t[key]; });
-    dom.resTitle.textContent = t.results;
-    dom.loadingTxt.textContent = t.searching;
-    dom.noresTxt.textContent = t.none;
+    $('#resTitle').textContent = t.results;
+    $('#loadingTxt').textContent = t.searching;
+    $('#noresTxt').textContent = t.none;
     dom.kpi.textContent = t.ready;
-    dom.btnFS.title = t.fullscreen; dom.btnHere.title = t.searchArea; dom.btnLoc.title = t.locate;
-    dom.homeBtn.title = t.home;
-    dom.query.style.textAlign = (lang==='ar' ? 'right' : 'left');
+
+    // tooltips
+    dom.btnFS.title = t.fullscreen; $('#btnSearchHere').title = t.searchArea; dom.btnLoc.title = t.locate; dom.homeBtn.title = t.home;
+
     renderSortOptions();
-    renderResults(); // إعادة رسم البطاقات بالنصوص الجديدة
+    // rerender to apply translated buttons/popups
+    renderResults();
+    dom.query.style.textAlign = (lang==='ar' ? 'right' : 'left');
   }
 
-  /* ------------ ملء الشاشة ------------ */
+  /* ------------ Fullscreen ------------ */
   function toggleFullscreen(){
     state.isFullscreen = !state.isFullscreen;
     dom.mapEl.classList.toggle('map-full');
@@ -265,7 +282,7 @@
     setTimeout(()=>state.map.invalidateSize(), 160);
   }
 
-  /* ------------ اقتراحات (KSA فقط) ------------ */
+  /* ------------ Suggestions (KSA only) ------------ */
   function hideSuggest(){ dom.sugg.style.display='none'; dom.sugg.innerHTML=''; if(state.suggestAbort){ state.suggestAbort.abort(); state.suggestAbort=null; } }
 
   async function suggest(){
@@ -273,10 +290,15 @@
     if(q.length < 1){ hideSuggest(); return; }
     if(state.suggestAbort) state.suggestAbort.abort();
     state.suggestAbort = new AbortController();
+    const cacheKey = `suggest:${q}:${state.lang}`;
 
     try{
-      let items = await photonSuggest(q, state.suggestAbort.signal);
-      if(!items.length) items = await nominatimSuggest(q, state.suggestAbort.signal);
+      let items = utils.cacheGet(cacheKey);
+      if(!items){
+        items = await photonSuggest(q, state.suggestAbort.signal);
+        if(!items.length) items = await nominatimSuggest(q, state.suggestAbort.signal);
+        utils.cacheSet(cacheKey, items);
+      }
       if(items.length) renderSuggestions(items); else hideSuggest();
     }catch(_){ /* ignore */ }
   }
@@ -287,7 +309,7 @@
     url.searchParams.set('limit', '8');
     url.searchParams.set('lang', state.lang);
     url.searchParams.set('layer', 'city,town,village,locality');
-    url.searchParams.set('osm_tag', 'countrycode:' + CFG.country); // حصر بالسعودية
+    url.searchParams.set('osm_tag', 'countrycode:' + CFG.country);
     const r = await fetch(url, { signal }); const d = await r.json();
     return (d.features||[]).map(f=>{
       const p=f.properties||{}; const label=[p.name,p.city,p.state,p.country].filter(Boolean).join(', ');
@@ -321,7 +343,7 @@
     }catch(_){ utils.toast(state.lang==='ar'?'تعذر العثور على الموقع':'Could not find location','error'); }
   }
 
-  /* ------------ البحث عبر Overpass ------------ */
+  /* ------------ Search + Overpass (with cancel + cache) ------------ */
   function startLoading(){
     dom.loader.style.display='block'; dom.results.innerHTML=''; dom.nores.classList.add('d-none');
     dom.kpi.textContent=I18N[state.lang].searching; state.cluster.clearLayers(); state.markers=[];
@@ -339,9 +361,10 @@
   }
 
   async function overpassQuery(query, signal){
+    // Try POST then GET across multiple endpoints
     for(const ep of CFG.overpass){
       try{
-        const r = await utils.fetchWithTimeout(ep, CFG.timeout, {
+        const r = await fetch(ep, {
           method:'POST',
           headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8','Accept':'application/json'},
           body:'data='+encodeURIComponent(query),
@@ -352,7 +375,7 @@
     }
     for(const ep of CFG.overpass){
       try{
-        const r = await utils.fetchWithTimeout(ep+'?data='+encodeURIComponent(query), { signal });
+        const r = await fetch(ep+'?data='+encodeURIComponent(query), { signal });
         if(r.ok) return await r.json();
       }catch(_){}
     }
@@ -369,8 +392,10 @@
       );
       out center tags;
     `;
+    const key = `cafes:${lat.toFixed(4)}:${lon.toFixed(4)}:${radius}`;
     try{
-      const data = await overpassQuery(q, signal);
+      let data = utils.cacheGet(key);
+      if(!data){ data = await overpassQuery(q, signal); utils.cacheSet(key, data); }
       processCafes(data, lat, lon);
     }catch(e){
       if(e.name==='AbortError') return;
@@ -397,7 +422,7 @@
     renderResults(); stopLoading();
   }
 
-  /* ------------ عرض النتائج ------------ */
+  /* ------------ Rendering ------------ */
   function renderResults(){
     let list = state.list.slice();
     if(dom.fWifi.checked) list = list.filter(c=>c.tags.internet_access==='yes');
@@ -414,8 +439,7 @@
     });
 
     updateMarkers(list); updateList(list);
-    const t = I18N[state.lang];
-    dom.kpi.textContent = list.length ? `${(state.lang==='ar'?'عرض':'Showing')} ${list.length} ${(state.lang==='ar'?'مقهى':'cafés')}` : t.none;
+    dom.kpi.textContent = list.length ? `${(state.lang==='ar'?'عرض':'Showing')} ${list.length} ${(state.lang==='ar'?'مقهى':'cafés')}` : I18N[state.lang].none;
     dom.nores.classList.toggle('d-none', !!list.length);
   }
 
@@ -438,7 +462,7 @@
     const addr=[c.tags['addr:street'], c.tags['addr:city']].filter(Boolean).join(', ');
     return `
       <div><strong style="color:#fff">${utils.escapeHtml(c.name)}</strong></div>
-      <div class="stars my-1">${utils.renderStars(c.rating)} <span class="small" style="color:#e9ffe9">(${c.rating.toFixed(1)})</span></div>
+      <div class="stars my-1">${renderStars(c.rating)} <span class="small" style="color:#e9ffe9">(${c.rating.toFixed(1)})</span></div>
       <div class="small" style="color:#e9ffe9">${c.distance.toFixed(1)} km</div>
       ${addr?`<div class="small"><i class="fa-solid fa-location-dot me-1"></i>${utils.escapeHtml(addr)}</div>`:''}
       <div class="mt-2 d-flex gap-1 flex-wrap">
@@ -448,39 +472,45 @@
     `;
   }
 
-  function avatarHtml(c){
-    const n=(c.name||'').toLowerCase();
-    const b=Object.keys(BRAND_SVGS).find(k=>n.includes(k));
-    if(b){ return `<div class="avatar" title="${b}"><img src="${BRAND_SVGS[b]}" alt="${b}" loading="lazy"></div>`; }
-    const Ltr=(c.name||'?').trim().charAt(0).toUpperCase();
-    return `<div class="avatar"><div class="letter">${Ltr}</div></div>`;
+  function renderStars(r){
+    let h='', full=Math.floor(r), half=(r-full)>=.25 && (r-full)<.75;
+    for(let i=0;i<full;i++) h+='<i class="fa-solid fa-star"></i>';
+    if(half) h+='<i class="fa-solid fa-star-half-stroke"></i>';
+    for(let i=(half?full+1:full); i<5; i++) h+='<i class="fa-regular fa-star"></i>'; 
+    return h;
   }
 
   function cardHtml(c,idx){
-    const t=I18N[state.lang];
     const addr=[c.tags['addr:street'], c.tags['addr:city']].filter(Boolean).join(', ');
     const user=c.userRating||0;
+    const wifi = c.tags.internet_access==='yes' ? '<span class="chip"><i class="fa-solid fa-wifi me-1"></i>Wi-Fi</span>' : '';
+    const outd = c.tags.outdoor_seating==='yes' ? '<span class="chip"><i class="fa-solid fa-umbrella-beach me-1"></i>Outdoor</span>' : '';
     return `
-      <div class="card card-cafe mb-3 pointer" data-id="${c.id}" data-index="${idx}">
-        <div class="card-body d-flex gap-3">
+      <div class="card-cafe pointer" data-id="${c.id}" data-index="${idx}">
+        <div class="d-flex gap-3">
           ${avatarHtml(c)}
           <div class="flex-grow-1">
             <div class="d-flex justify-content-between align-items-start">
               <div class="fw-bold">${utils.escapeHtml(c.name)}</div>
               <div class="small text-secondary">${c.distance.toFixed(1)} km</div>
             </div>
-            <div class="stars">${utils.renderStars(c.rating)} <span class="small text-secondary">(${c.rating.toFixed(1)})</span></div>
+            <div class="stars">${renderStars(c.rating)} <span class="small text-secondary">(${c.rating.toFixed(1)})</span></div>
             ${addr?`<div class="small text-secondary"><i class="fa-solid fa-location-dot me-1"></i>${utils.escapeHtml(addr)}</div>`:''}
-            <div class="mt-1 d-flex gap-2 flex-wrap small">
-              ${c.tags.internet_access==='yes'?'<span class="chip"><i class="fa-solid fa-wifi me-1"></i>Wi-Fi</span>':''}
-              ${c.tags.outdoor_seating==='yes'?'<span class="chip"><i class="fa-solid fa-umbrella-beach me-1"></i>Outdoor</span>':''}
-            </div>
+            <div class="mt-1 d-flex gap-2 flex-wrap small">${wifi}${outd}</div>
             <div class="mt-2 rate">
               ${[1,2,3,4,5].map(v=>`<i class="fa-solid fa-star ${user&&v<=user?'text-warning':''}" data-v="${v}"></i>`).join(' ')}
             </div>
           </div>
         </div>
       </div>`;
+  }
+
+  function avatarHtml(c){
+    const n=(c.name||'').toLowerCase();
+    const b=Object.keys(BRAND_SVGS).find(k=>n.includes(k));
+    if(b){ return `<div class="avatar" title="${b}"><img src="${BRAND_SVGS[b]}" alt="${b}" loading="lazy"></div>`; }
+    const L=(c.name||'?').trim().charAt(0).toUpperCase();
+    return `<div class="avatar"><div class="letter">${L}</div></div>`;
   }
 
   function updateList(list){
@@ -490,7 +520,7 @@
       const i=parseInt(card.dataset.index);
       card.addEventListener('mouseenter',()=>{ const m=state.markers[i]; if(m) m.openPopup(); });
       card.addEventListener('click',e=>{
-        if(!e.target.closest('.rate')){ const m=state.markers[i]; if(m){ state.map.setView(m.getLatLng(),16); m.openPopup(); } }
+        if(!e.target.closest('.rate')){ const m=state.markers[i]; if(m){ flyWithArc(m.getLatLng()); m.openPopup(); } }
       });
     });
     $$('.rate i').forEach(star=>{
@@ -503,7 +533,31 @@
     });
   }
 
-  /* ------------ تحديد الموقع ------------ */
+  function updateMarkers(list){ /* already implemented in over section */ }
+
+  /* ------------ Sci-fi arc between origin and target ------------ */
+  function flyWithArc(targetLatLng){
+    if(!state.origin) return;
+    state.map.flyTo(targetLatLng, 16, { duration: 1.2 });
+
+    if(state.activeArc){ state.map.removeLayer(state.activeArc); state.activeArc=null; }
+
+    // create arc points (quadratic curve via manual sampling)
+    const A = L.latLng(state.origin.lat, state.origin.lon);
+    const B = L.latLng(targetLatLng.lat, targetLatLng.lng);
+    const mid = L.latLng( (A.lat+B.lat)/2 + 0.08, (A.lng+B.lng)/2 ); // raise latitude a bit to "arch"
+    const points = [];
+    for(let t=0;t<=1;t+=0.05){
+      const lat = (1-t)*(1-t)*A.lat + 2*(1-t)*t*mid.lat + t*t*B.lat;
+      const lng = (1-t)*(1-t)*A.lng + 2*(1-t)*t*mid.lng + t*t*B.lng;
+      points.push([lat,lng]);
+    }
+    const arc = L.polyline(points, { className:'arc-anim' }).addTo(state.map);
+    state.activeArc = arc;
+    setTimeout(()=>{ if(state.activeArc===arc){ state.map.removeLayer(arc); state.activeArc=null; } }, 2500);
+  }
+
+  /* ------------ Geolocation ------------ */
   function geolocate(){
     if(!navigator.geolocation){ utils.toast(state.lang==='ar'?'المتصفح لا يدعم تحديد الموقع':'Geolocation not supported','error'); return; }
     utils.toast(state.lang==='ar'?'جاري تحديد موقعك…':'Getting your location…','info');
@@ -514,16 +568,60 @@
     );
   }
 
-  /* ------------ زر المنزل ------------ */
+  /* ------------ Guided Tour ------------ */
+  function startTour(){
+    const msgs = [
+      I18N[state.lang].tutorial_welcome,
+      I18N[state.lang].tutorial_search,
+      I18N[state.lang].tutorial_filters,
+      I18N[state.lang].tutorial_map
+    ];
+    let i=0;
+    utils.toast(msgs[i],'info');
+    const nav = document.createElement('div');
+    nav.className='toast';
+    nav.innerHTML = `
+      <div class="d-flex justify-content-between align-items-center w-100">
+        <button id="tutorialPrev" class="btn btn-sm btn-outline-light">‹</button>
+        <span id="tutorialStep">${i+1}/${msgs.length}</span>
+        <button id="tutorialNext" class="btn btn-sm btn-mint">›</button>
+      </div>`;
+    $('.toast-container').appendChild(nav);
+    $('#tutorialNext').addEventListener('click', ()=>{
+      i++; if(i<msgs.length){ utils.toast(msgs[i],'info'); $('#tutorialStep').textContent=`${i+1}/${msgs.length}`; } else { nav.remove(); utils.toast(state.lang==='ar'?'انتهت الجولة':'Tour finished','success'); }
+    });
+    $('#tutorialPrev').addEventListener('click', ()=>{
+      i = Math.max(0,i-1); utils.toast(msgs[i],'info'); $('#tutorialStep').textContent=`${i+1}/${msgs.length}`;
+    });
+  }
+
+  /* ------------ Home (cup icon) ------------ */
   function home(){
+    // reset filters
     dom.fOpen.checked=false; dom.fWifi.checked=false; dom.fOutdoor.checked=false;
     dom.minR.value=0; dom.minRVal.textContent='0.0';
-    dom.sort.value='rating'; dom.radius.value='50000';
+    dom.sort.value='rating'; dom.radius.value='5000';
     dom.query.value=''; hideSuggest();
+    // go to KSA default then Riyadh search
     state.map.setView(CFG.defaultView, CFG.defaultZoom);
     searchAt(24.7136, 46.6753, false, 12);
   }
 
-  // ابدأ
+  // helpers used earlier
+  function updateMarkers(list){
+    state.cluster.clearLayers(); state.markers=[];
+    const icon = L.divIcon({
+      className:'', 
+      html:`<div class="trail"></div><div class="steam"></div><div class="cup"><div class="foam"></div></div>`,
+      iconSize:[26,26], iconAnchor:[13,18]
+    });
+    list.forEach((c,i)=>{
+      const m = L.marker([c.lat,c.lon], { icon }).bindPopup(popupHtml(c));
+      m.on('mouseover', () => m.openPopup());
+      state.cluster.addLayer(m); state.markers.push(m);
+    });
+  }
+
+  // Boot
   if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', init); } else { init(); }
 })();
