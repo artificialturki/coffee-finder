@@ -3,21 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Coffee Finder Pro (OSM)</title>
+  <title>Coffee Finder Pro</title>
+
+  <!-- Bootstrap for modern UI -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
   <style>
-    body { margin:0; font-family: Arial, sans-serif; display:flex; flex-direction:column; height:100vh; }
-    header { background:#3c2f2f; color:#fff; padding:1rem; text-align:center; }
-    #searchBar { display:flex; padding:1rem; gap:0.5rem; background:#fafafa; }
-    #searchBar input { flex:1; padding:0.6rem; border:1px solid #ccc; border-radius:4px; }
-    #searchBar button { background:#3c2f2f; color:#fff; border:none; padding:0.6rem 1.2rem; border-radius:4px; cursor:pointer; }
-    #searchBar button:hover { background:#5a4444; }
-    #container { flex:1; display:flex; }
-    #map { flex:2; }
-    #results { flex:1; overflow-y:auto; border-left:1px solid #ccc; padding:1rem; background:#fff; }
-    .place { margin-bottom:1rem; padding-bottom:1rem; border-bottom:1px solid #eee; }
-    .place h3 { margin:0; font-size:1.1rem; }
-    .place p { margin:0.2rem 0; color:#555; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f9f9f9; }
+    header { background: linear-gradient(90deg, #3c2f2f, #6d4c41); color:#fff; padding:1rem; text-align:center; }
+    #map { height: 70vh; width: 100%; border-radius: 8px; }
+    .results { margin-top: 1rem; }
+    .card { margin-bottom: 1rem; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+    .leaflet-popup-content { font-size: 14px; }
   </style>
 </head>
 <body>
@@ -26,19 +26,28 @@
     <p>Find cafés anywhere in the world 🌍 (Powered by OpenStreetMap)</p>
   </header>
 
-  <div id="searchBar">
-    <input type="text" id="locationInput" placeholder="Enter city, country (e.g. Riyadh, Saudi Arabia)">
-    <button onclick="searchCoffee()">Search</button>
-  </div>
+  <div class="container my-3">
+    <div class="input-group mb-3">
+      <input type="text" id="locationInput" class="form-control" placeholder="Enter city, country (e.g. Riyadh, Saudi Arabia)">
+      <button class="btn btn-dark" onclick="searchLocation()">Search</button>
+    </div>
 
-  <div id="container">
+    <select id="locationChoices" class="form-select mb-3 d-none" onchange="chooseLocation(this.value)">
+      <option value="">Select the correct location</option>
+    </select>
+
     <div id="map"></div>
-    <div id="results"><h2>Results</h2><div id="list"></div></div>
+
+    <div class="results">
+      <h3>Results</h3>
+      <div id="list"></div>
+    </div>
   </div>
 
+  <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
   <script>
-    // Init map
     const map = L.map('map').setView([20, 0], 2);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors'
@@ -46,25 +55,42 @@
 
     let markers = [];
 
-    async function searchCoffee() {
-      const location = document.getElementById("locationInput").value;
-      if (!location) { alert("Please enter a city and country!"); return; }
+    async function searchLocation() {
+      const query = document.getElementById("locationInput").value;
+      if (!query) return alert("Enter a location!");
 
-      // 1. Geocode city + country → coordinates
-      const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location)}`);
+      const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&q=${encodeURIComponent(query)}`);
       const geoData = await geoRes.json();
+
+      const choices = document.getElementById("locationChoices");
+      choices.innerHTML = "<option value=''>Select the correct location</option>";
+
       if (geoData.length === 0) {
-        alert("Location not found.");
+        choices.classList.add("d-none");
+        alert("No locations found.");
         return;
       }
-      const { lat, lon } = geoData[0];
+
+      geoData.forEach((loc, idx) => {
+        const text = `${loc.display_name}`;
+        const opt = document.createElement("option");
+        opt.value = `${loc.lat},${loc.lon}`;
+        opt.textContent = text;
+        choices.appendChild(opt);
+      });
+
+      choices.classList.remove("d-none");
+    }
+
+    async function chooseLocation(value) {
+      if (!value) return;
+      const [lat, lon] = value.split(",");
       map.setView([lat, lon], 14);
 
       // Clear old markers
       markers.forEach(m => map.removeLayer(m));
       markers = [];
 
-      // 2. Query Overpass API for cafés around 3km
       const query = `
         [out:json];
         node["amenity"="cafe"](around:3000,${lat},${lon});
@@ -84,21 +110,21 @@
         return;
       }
 
-      // 3. Add markers + sidebar list
       overData.elements.forEach(place => {
         const name = place.tags.name || "Unnamed Café";
         const marker = L.marker([place.lat, place.lon]).addTo(map)
           .bindPopup(`<b>${name}</b>`);
         markers.push(marker);
 
-        const div = document.createElement("div");
-        div.className = "place";
-        div.innerHTML = `
-          <h3>${name}</h3>
+        const card = document.createElement("div");
+        card.className = "card p-2";
+        card.innerHTML = `
+          <h5>${name}</h5>
           <p>Lat: ${place.lat}, Lon: ${place.lon}</p>
-          <a href="https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lon}" target="_blank">📍 Get Directions</a>
+          <a href="https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lon}" 
+             target="_blank" class="btn btn-sm btn-outline-dark">📍 Get Directions</a>
         `;
-        listDiv.appendChild(div);
+        listDiv.appendChild(card);
       });
     }
   </script>
