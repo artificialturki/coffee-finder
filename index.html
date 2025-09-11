@@ -7,7 +7,7 @@
 <meta name="description" content="Find cafés anywhere in the world. OpenStreetMap-based, fast, accurate, zero API keys." />
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>☕</text></svg>">
 
-<!-- Performance optimized resources -->
+<!-- CSS: Bootstrap, Leaflet, MarkerCluster -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet" crossorigin="anonymous">
 <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet" crossorigin="anonymous">
@@ -15,532 +15,92 @@
 <link href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" rel="stylesheet" crossorigin="anonymous">
 
 <style>
-  :root {
-    --bg: #f7f5f2;
-    --panel: #ffffff;
-    --ink: #2a211c;
-    --muted: #7a6e67;
-    --brand: #c86b40;
-    --brand-gradient: linear-gradient(135deg, #c86b40, #e36a44);
-    --chip: #efe8e2;
-    --shadow-sm: 0 2px 8px rgba(0,0,0,0.08);
-    --shadow-md: 0 4px 12px rgba(0,0,0,0.12);
-    --shadow-lg: 0 10px 30px rgba(0,0,0,0.15);
-    --radius-sm: 8px;
-    --radius-md: 12px;
-    --radius-lg: 16px;
-    --transition: all 0.3s ease;
+  :root{
+    --bg:#f7f5f2;--panel:#fff;--ink:#2a211c;--muted:#7a6e67;--brand:#c86b40;
+    --brand-gradient:linear-gradient(135deg,#c86b40,#e36a44);
+    --chip:#efe8e2;--shadow-sm:0 2px 8px rgba(0,0,0,.08);
+    --shadow-md:0 4px 12px rgba(0,0,0,.12);--shadow-lg:0 10px 30px rgba(0,0,0,.15);
+    --r-sm:8px;--r-md:12px;--r-lg:16px;--t:.3s ease
   }
-
-  * {
-    box-sizing: border-box;
+  *{box-sizing:border-box}
+  html,body{height:100%;scroll-behavior:smooth}
+  body{
+    background:linear-gradient(135deg,#faf9f8,#f3efe9);
+    color:var(--ink);font-family:'Segoe UI',system-ui,-apple-system,BlinkMacSystemFont,sans-serif;line-height:1.6;overflow-x:hidden
   }
-
-  html, body {
-    height: 100%;
-    scroll-behavior: smooth;
+  header{
+    background:radial-gradient(1200px 400px at 10% -10%,#4a3a36 0,#332826 60%,#2b2220 100%);
+    color:#fff;padding:38px 0 22px;box-shadow:var(--shadow-lg);position:relative;overflow:hidden
   }
-
-  body {
-    background: linear-gradient(135deg, #faf9f8, #f3efe9);
-    color: var(--ink);
-    font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-    line-height: 1.6;
-    overflow-x: hidden;
+  header::after{
+    content:"";position:absolute;inset:0;opacity:.05;background-image:url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23ffffff' fill-opacity='0.03'/%3E%3C/svg%3E")
   }
-
-  /* Header styles */
-  header {
-    background: radial-gradient(1200px 400px at 10% -10%, #4a3a36 0, #332826 60%, #2b2220 100%);
-    color: #fff;
-    padding: 38px 0 22px;
-    box-shadow: var(--shadow-lg);
-    position: relative;
-    overflow: hidden;
+  .brand{font-weight:800;font-size:2.2rem;letter-spacing:.3px;display:flex;align-items:center;gap:.5rem}
+  .tag{opacity:.85;font-size:1rem}
+  .search-card{background:var(--panel);border-radius:var(--r-lg);margin-top:-22px;padding:20px 20px 14px;box-shadow:var(--shadow-lg);position:relative;z-index:10}
+  .input-group{border-radius:var(--r-md);overflow:hidden;box-shadow:var(--shadow-sm);transition:var(--t)}
+  .input-group:focus-within{box-shadow:0 0 0 3px rgba(200,107,64,.2)}
+  .input-group-text{background:var(--panel);border:none;padding:.75rem 1rem}
+  .form-control,.form-select{border:none;padding:.75rem 1rem;transition:var(--t)}
+  .form-control:focus,.form-select:focus{box-shadow:none}
+  .btn-brand{background:var(--brand-gradient);border:0;color:#fff;font-weight:600;padding:.75rem 1.5rem;transition:var(--t)}
+  .btn-brand:hover{filter:brightness(1.08);transform:translateY(-1px);box-shadow:0 4px 12px rgba(200,107,64,.3)}
+  #map{height:62vh;border-radius:var(--r-md);box-shadow:var(--shadow-md);transition:height .3s ease}
+  .map-fullscreen{position:fixed!important;top:0;left:0;width:100%!important;height:100%!important;z-index:1000;border-radius:0!important}
+  .results{max-height:62vh;overflow:auto;scrollbar-width:thin;scrollbar-color:var(--chip) transparent}
+  .results::-webkit-scrollbar{width:6px}.results::-webkit-scrollbar-thumb{background-color:var(--chip);border-radius:3px}
+  .card-cafe{border:0;border-radius:var(--r-md);box-shadow:var(--shadow-sm);transition:var(--t);margin-bottom:1rem;overflow:hidden}
+  .card-cafe:hover{transform:translateY(-3px);box-shadow:var(--shadow-md)}
+  .cmeta{font-size:.9rem;color:var(--muted)}
+  .loader{display:none;text-align:center;padding:16px}
+  .coffee-loader{display:inline-block;position:relative;width:80px;height:80px}
+  .coffee-loader div{display:inline-block;position:absolute;left:8px;width:16px;background:var(--brand);animation:coffee-loader 1.2s cubic-bezier(0,.5,.5,1) infinite;border-radius:20px}
+  .coffee-loader div:nth-child(1){left:8px;animation-delay:-.24s}
+  .coffee-loader div:nth-child(2){left:32px;animation-delay:-.12s}
+  .coffee-loader div:nth-child(3){left:56px;animation-delay:0}
+  @keyframes coffee-loader{0%{top:8px;height:64px}50%,100%{top:24px;height:32px}}
+  .pill{border-radius:999px;background:var(--chip);padding:.25rem .6rem;font-size:.8rem;display:inline-flex;align-items:center;gap:.25rem}
+  .badgish{background:#f3ede8;border-radius:var(--r-sm);padding:.4rem .8rem;font-size:.85rem;display:inline-flex;align-items:center;gap:.4rem;cursor:pointer;transition:var(--t)}
+  .badgish:hover{background:#e8ded5}
+  .country-select{min-width:150px}
+  .suggest{position:absolute;inset:auto 0 0 0;top:100%;z-index:20;background:var(--panel);border-radius:var(--r-md);box-shadow:var(--shadow-lg);overflow:hidden;display:none;max-height:300px;overflow-y:auto}
+  .suggest a{display:flex;gap:.5rem;align-items:center;padding:.75rem 1rem;color:var(--ink);text-decoration:none;transition:var(--t);border-bottom:1px solid #f0f0f0}
+  .suggest a:hover{background:#f6f3ef}
+  .leaflet-popup-content{margin:.8rem .8rem;line-height:1.4}
+  .cof-ic{color:#7b4e3a;font-size:18px}
+  .floating-search{position:absolute;z-index:999;right:14px;top:14px;display:flex;gap:.5rem}
+  .floating-button{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--panel);box-shadow:var(--shadow-md);border:none;color:var(--ink);transition:var(--t);cursor:pointer}
+  .floating-button:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+  .kpi{font-size:.92rem;color:var(--muted)}
+  footer{padding:22px 0;color:#fff;background:#2b2220;margin-top:26px}
+  .pointer{cursor:pointer}
+  .stars{color:#ffb400;display:inline-flex;align-items:center}
+  .stars .fa-star,.stars .fa-star-half-stroke{margin-right:2px}
+  .rate-group{display:inline-flex;gap:2px}
+  .rate-group .fa-star{cursor:pointer;color:#d4d4d4;transition:var(--t)}
+  .rate-group .fa-star.hovered,.rate-group .fa-star.active{color:#ffb400}
+  .toast-container{position:fixed;bottom:20px;right:20px;z-index:1100;display:flex;flex-direction:column;gap:10px}
+  .toast{background:#333;color:#fff;padding:12px 16px;border-radius:var(--r-md);box-shadow:var(--shadow-lg);animation:toast-in .3s ease;display:flex;align-items:center;gap:10px}
+  @keyframes toast-in{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+  @media (max-width:992px){.brand{font-size:1.8rem}.search-card{padding:16px}#map{height:50vh}.results{max-height:50vh}}
+  @media (max-width:768px){
+    .brand{font-size:1.6rem}.tag{font-size:.9rem}.search-card{margin-top:-16px}
+    .floating-search{top:auto;bottom:20px;right:20px;flex-direction:column}
+    .floating-button{width:50px;height:50px}
   }
-
-  header::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23ffffff' fill-opacity='0.03' fill-rule='evenodd'/%3E%3C/svg%3E");
-    opacity: 0.05;
+  @media (max-width:576px){
+    .brand{font-size:1.4rem}.input-group{flex-direction:column}
+    .input-group-text,.form-control,.form-select,.btn{border-radius:var(--r-md);width:100%}.btn-brand{margin-top:.5rem}
   }
-
-  .brand {
-    font-weight: 800;
-    font-size: 2.2rem;
-    letter-spacing: .3px;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+  @media (prefers-color-scheme:dark){
+    :root{--bg:#1a1a1a;--panel:#2d2d2d;--ink:#f0f0f0;--muted:#a0a0a0;--chip:#3d3d3d}
+    body{background:linear-gradient(135deg,#1a1a1a,#2d2d2d);color:var(--ink)}
+    .input-group-text,.form-control,.form-select{background:#3d3d3d;color:var(--ink)}
+    .card-cafe{background:var(--panel)}.badgish{background:#3d3d3d}.badgish:hover{background:#4d4d4d}
   }
-
-  .tag {
-    opacity: .85;
-    font-size: 1rem;
-  }
-
-  /* Search card */
-  .search-card {
-    background: var(--panel);
-    border-radius: var(--radius-lg);
-    margin-top: -22px;
-    padding: 20px 20px 14px;
-    box-shadow: var(--shadow-lg);
-    position: relative;
-    z-index: 10;
-  }
-
-  .input-group {
-    border-radius: var(--radius-md);
-    overflow: hidden;
-    box-shadow: var(--shadow-sm);
-    transition: var(--transition);
-  }
-
-  .input-group:focus-within {
-    box-shadow: 0 0 0 3px rgba(200, 107, 64, 0.2);
-  }
-
-  .input-group-text {
-    background: var(--panel);
-    border: none;
-    padding: 0.75rem 1rem;
-  }
-
-  .form-control, .form-select {
-    border: none;
-    padding: 0.75rem 1rem;
-    transition: var(--transition);
-  }
-
-  .form-control:focus, .form-select:focus {
-    box-shadow: none;
-  }
-
-  .btn-brand {
-    background: var(--brand-gradient);
-    border: 0;
-    color: white;
-    font-weight: 600;
-    padding: 0.75rem 1.5rem;
-    transition: var(--transition);
-  }
-
-  .btn-brand:hover {
-    filter: brightness(1.08);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(200, 107, 64, 0.3);
-  }
-
-  /* Map styles */
-  #map {
-    height: 62vh;
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-md);
-    transition: height 0.3s ease;
-  }
-
-  .map-fullscreen {
-    position: fixed !important;
-    top: 0;
-    left: 0;
-    width: 100% !important;
-    height: 100% !important;
-    z-index: 1000;
-    border-radius: 0 !important;
-  }
-
-  /* Results section */
-  .results {
-    max-height: 62vh;
-    overflow: auto;
-    scrollbar-width: thin;
-    scrollbar-color: var(--chip) transparent;
-  }
-
-  .results::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  .results::-webkit-scrollbar-thumb {
-    background-color: var(--chip);
-    border-radius: 3px;
-  }
-
-  .card-cafe {
-    border: 0;
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-sm);
-    transition: var(--transition);
-    margin-bottom: 1rem;
-    overflow: hidden;
-  }
-
-  .card-cafe:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--shadow-md);
-  }
-
-  .cmeta {
-    font-size: .9rem;
-    color: var(--muted);
-  }
-
-  /* Loader */
-  .loader {
-    display: none;
-    text-align: center;
-    padding: 16px;
-  }
-
-  .coffee-loader {
-    display: inline-block;
-    position: relative;
-    width: 80px;
-    height: 80px;
-  }
-
-  .coffee-loader div {
-    display: inline-block;
-    position: absolute;
-    left: 8px;
-    width: 16px;
-    background: var(--brand);
-    animation: coffee-loader 1.2s cubic-bezier(0, 0.5, 0.5, 1) infinite;
-    border-radius: 20px;
-  }
-
-  .coffee-loader div:nth-child(1) {
-    left: 8px;
-    animation-delay: -0.24s;
-  }
-
-  .coffee-loader div:nth-child(2) {
-    left: 32px;
-    animation-delay: -0.12s;
-  }
-
-  .coffee-loader div:nth-child(3) {
-    left: 56px;
-    animation-delay: 0;
-  }
-
-  @keyframes coffee-loader {
-    0% {
-      top: 8px;
-      height: 64px;
-    }
-    50%, 100% {
-      top: 24px;
-      height: 32px;
-    }
-  }
-
-  /* Pills and badges */
-  .pill {
-    border-radius: 999px;
-    background: var(--chip);
-    padding: .25rem .6rem;
-    font-size: .8rem;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-  }
-
-  .badgish {
-    background: #f3ede8;
-    border-radius: var(--radius-sm);
-    padding: .4rem .8rem;
-    font-size: .85rem;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    cursor: pointer;
-    transition: var(--transition);
-  }
-
-  .badgish:hover {
-    background: #e8ded5;
-  }
-
-  .country-select {
-    min-width: 150px;
-  }
-
-  /* Suggestions */
-  .suggest {
-    position: absolute;
-    inset: auto 0 0 0;
-    top: 100%;
-    z-index: 20;
-    background: var(--panel);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-lg);
-    overflow: hidden;
-    display: none;
-    max-height: 300px;
-    overflow-y: auto;
-  }
-
-  .suggest a {
-    display: flex;
-    gap: .5rem;
-    align-items: center;
-    padding: .75rem 1rem;
-    color: var(--ink);
-    text-decoration: none;
-    transition: var(--transition);
-    border-bottom: 1px solid #f0f0f0;
-  }
-
-  .suggest a:hover {
-    background: #f6f3ef;
-  }
-
-  /* Leaflet popup */
-  .leaflet-popup-content {
-    margin: .8rem .8rem;
-    line-height: 1.4;
-  }
-
-  .cof-ic {
-    color: #7b4e3a;
-    font-size: 18px;
-  }
-
-  /* Floating elements */
-  .floating-search {
-    position: absolute;
-    z-index: 999;
-    right: 14px;
-    top: 14px;
-    display: flex;
-    gap: 0.5rem;
-  }
-
-  .floating-button {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--panel);
-    box-shadow: var(--shadow-md);
-    border: none;
-    color: var(--ink);
-    transition: var(--transition);
-    cursor: pointer;
-  }
-
-  .floating-button:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
-  }
-
-  .kpi {
-    font-size: .92rem;
-    color: var(--muted);
-  }
-
-  /* Footer */
-  footer {
-    padding: 22px 0;
-    color: #fff;
-    background: #2b2220;
-    margin-top: 26px;
-  }
-
-  .pointer {
-    cursor: pointer;
-  }
-
-  /* Rating Stars */
-  .stars {
-    color: #ffb400;
-    display: inline-flex;
-    align-items: center;
-  }
-
-  .stars .fa-star, .stars .fa-star-half-stroke {
-    margin-right: 2px;
-  }
-
-  .rate-group {
-    display: inline-flex;
-    gap: 2px;
-  }
-
-  .rate-group .fa-star {
-    cursor: pointer;
-    color: #d4d4d4;
-    transition: var(--transition);
-  }
-
-  .rate-group .fa-star.hovered, .rate-group .fa-star.active {
-    color: #ffb400;
-  }
-
-  /* Toast notifications */
-  .toast-container {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    z-index: 1100;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .toast {
-    background: #333;
-    color: white;
-    padding: 12px 16px;
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-lg);
-    animation: toast-in 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  @keyframes toast-in {
-    from {
-      transform: translateX(100%);
-      opacity: 0;
-    }
-    to {
-      transform: translateX(0);
-      opacity: 1;
-    }
-  }
-
-  /* Responsive design */
-  @media (max-width: 992px) {
-    .brand {
-      font-size: 1.8rem;
-    }
-    
-    .search-card {
-      padding: 16px;
-    }
-    
-    #map {
-      height: 50vh;
-    }
-    
-    .results {
-      max-height: 50vh;
-    }
-  }
-
-  @media (max-width: 768px) {
-    .brand {
-      font-size: 1.6rem;
-    }
-    
-    .tag {
-      font-size: 0.9rem;
-    }
-    
-    .search-card {
-      margin-top: -16px;
-    }
-    
-    .floating-search {
-      top: auto;
-      bottom: 20px;
-      right: 20px;
-      flex-direction: column;
-    }
-    
-    .floating-button {
-      width: 50px;
-      height: 50px;
-    }
-  }
-
-  @media (max-width: 576px) {
-    .brand {
-      font-size: 1.4rem;
-    }
-    
-    .input-group {
-      flex-direction: column;
-    }
-    
-    .input-group-text, .form-control, .form-select, .btn {
-      border-radius: var(--radius-md);
-      width: 100%;
-    }
-    
-    .btn-brand {
-      margin-top: 0.5rem;
-    }
-  }
-
-  /* Dark mode support */
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #1a1a1a;
-      --panel: #2d2d2d;
-      --ink: #f0f0f0;
-      --muted: #a0a0a0;
-      --chip: #3d3d3d;
-    }
-    
-    body {
-      background: linear-gradient(135deg, #1a1a1a, #2d2d2d);
-      color: var(--ink);
-    }
-    
-    .input-group-text, .form-control, .form-select {
-      background: #3d3d3d;
-      color: var(--ink);
-    }
-    
-    .card-cafe {
-      background: var(--panel);
-    }
-    
-    .badgish {
-      background: #3d3d3d;
-    }
-    
-    .badgish:hover {
-      background: #4d4d4d;
-    }
-  }
-
-  /* Animation for elements */
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  .animate-in {
-    animation: fadeIn 0.5s ease forwards;
-  }
-
-  /* Focus states for accessibility */
-  button:focus-visible, 
-  input:focus-visible, 
-  select:focus-visible, 
-  a:focus-visible {
-    outline: 2px solid var(--brand);
-    outline-offset: 2px;
-  }
+  @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  .animate-in{animation:fadeIn .5s ease forwards}
+  button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 </style>
 </head>
 <body>
@@ -549,7 +109,7 @@
   <div class="container">
     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
       <div class="brand"><i class="fa-solid fa-mug-hot"></i>Coffee Finder Pro</div>
-      <div class="tag">OpenStreetMap • Overpass • Zero-key • Fast • With Smart Ratings</div>
+      <div class="tag">OpenStreetMap • Overpass • Zero-key • Fast • Smart Autocorrect & Ratings</div>
     </div>
   </div>
 </header>
@@ -606,12 +166,8 @@
   <!-- Map + Results -->
   <section class="mt-3 position-relative">
     <div class="floating-search">
-      <button id="btnFullscreen" class="floating-button" title="Toggle fullscreen map">
-        <i class="fa-solid fa-expand"></i>
-      </button>
-      <button id="btnCurrentView" class="floating-button" title="Return to current search">
-        <i class="fa-solid fa-location-arrow"></i>
-      </button>
+      <button id="btnFullscreen" class="floating-button" title="Toggle fullscreen map"><i class="fa-solid fa-expand"></i></button>
+      <button id="btnCurrentView" class="floating-button" title="Return to current search"><i class="fa-solid fa-location-arrow"></i></button>
     </div>
     <div class="row g-3">
       <div class="col-lg-8"><div id="map"></div></div>
@@ -627,7 +183,7 @@
         </div>
         <div class="loader" id="loader">
           <div class="coffee-loader"><div></div><div></div><div></div></div>
-          <div class="mt-2">Searching cafés…</div>
+          <div class="mt-2" id="loadingText">Searching cafés…</div>
         </div>
         <div id="results" class="results"></div>
         <div id="nores" class="text-center text-muted d-none py-4">
@@ -645,17 +201,17 @@
   </div>
 </footer>
 
-<!-- JS: Bootstrap bundle, Leaflet & cluster -->
+<!-- JS: Bootstrap bundle, Leaflet, clusters, opening_hours parser -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/opening_hours@3.6.0/opening_hours.js" crossorigin="anonymous"></script>
 
 <script>
-// Use a more efficient module-like pattern
-(function() {
+(function(){
   'use strict';
 
-  // ------------ Configuration ------------
+  // -------- Config --------
   const CONFIG = {
     overpassEndpoints: [
       'https://overpass-api.de/api/interpreter',
@@ -665,33 +221,26 @@
     photonUrl: 'https://photon.komoot.io/api/',
     nominatimUrl: 'https://nominatim.openstreetmap.org/search',
     requestTimeout: 18000,
-    animationDuration: 300,
-    maxSearchRadius: 10000, // meters
     defaultZoom: 13,
-    minZoomForSearch: 10
+    minZoomForSearch: 10,
+    maxSearchRadius: 10000,
+    expandSteps: [1, 1.5, 2, 3] // progressive radius multipliers
   };
 
-  // ------------ Countries (full ISO-3166-1 alpha-2) ------------
-  const ISO_COUNTRIES = [
-    ["","🌍 Global"],
-    ["af","Afghanistan"],["ax","Åland Islands"],["al","Albania"],["dz","Algeria"],["as","American Samoa"],["ad","Andorra"],["ao","Angola"],
-    // ... rest of countries (shortened for brevity)
-    ["zm","Zambia"],["zw","Zimbabwe"]
-  ];
-
-  // ------------ State Management ------------
+  // -------- State --------
   const state = {
     countryBias: '',
     centerBias: null,
     currentOrigin: null,
     cafes: [],
     markers: [],
+    cluster: null,
     mapMovedSinceSearch: false,
     isFullscreen: false,
     currentPosition: null
   };
 
-  // ------------ DOM References ------------
+  // -------- DOM --------
   const dom = {
     q: document.getElementById('q'),
     suggestions: document.getElementById('suggestions'),
@@ -707,530 +256,306 @@
     fWifi: document.getElementById('fWifi'),
     fOutdoor: document.getElementById('fOutdoor'),
     loader: document.getElementById('loader'),
+    loadingText: document.getElementById('loadingText'),
     results: document.getElementById('results'),
     nores: document.getElementById('nores'),
     kpi: document.getElementById('kpiTxt'),
     map: null
   };
 
-  // ------------ Map Initialization ------------
-  function initMap() {
-    dom.map = L.map('map', { 
-      zoomControl: false,
-      preferCanvas: true // Better performance for many markers
-    }).setView([20, 0], 3);
-    
-    L.control.zoom({ position: 'topright' }).addTo(dom.map);
-    
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
-      maxZoom: 19, 
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      crossOrigin: true
-    }).addTo(dom.map);
-    
-    // Use a more efficient clustering approach
-    const cluster = L.markerClusterGroup({
-      showCoverageOnHover: false,
-      maxClusterRadius: 50,
-      spiderfyOnMaxZoom: true,
-      chunkedLoading: true,
-      chunkInterval: 100
-    });
-    
-    dom.map.addLayer(cluster);
-    state.cluster = cluster;
-    
-    // Map move detection → enable "Search this area"
-    dom.map.on('moveend', () => { 
-      state.mapMovedSinceSearch = true; 
-      dom.btnHere.disabled = false; 
-    });
-    
-    // Fullscreen button functionality
-    dom.btnFullscreen.addEventListener('click', toggleFullscreen);
-    dom.btnCurrentView.addEventListener('click', returnToCurrentView);
-    
-    // Handle ESC key to exit fullscreen
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && state.isFullscreen) {
-        toggleFullscreen();
-      }
-    });
-  }
-
-  // ------------ Fullscreen functionality ------------
-  function toggleFullscreen() {
-    const mapElement = document.getElementById('map');
-    
-    if (!state.isFullscreen) {
-      mapElement.classList.add('map-fullscreen');
-      dom.btnFullscreen.innerHTML = '<i class="fa-solid fa-compress"></i>';
-      state.isFullscreen = true;
-    } else {
-      mapElement.classList.remove('map-fullscreen');
-      dom.btnFullscreen.innerHTML = '<i class="fa-solid fa-expand"></i>';
-      state.isFullscreen = false;
-    }
-    
-    // Trigger map resize to ensure proper rendering
-    setTimeout(() => {
-      dom.map.invalidateSize();
-    }, CONFIG.animationDuration);
-  }
-
-  function returnToCurrentView() {
-    if (state.currentOrigin) {
-      dom.map.setView([state.currentOrigin.lat, state.currentOrigin.lon], CONFIG.defaultZoom);
-      state.mapMovedSinceSearch = false;
-      dom.btnHere.disabled = true;
-    }
-  }
-
-  // ------------ Utility Functions ------------
+  // -------- Utils --------
   const utils = {
-    deg2rad: d => d * Math.PI / 180,
-    
-    haversine(lat1, lon1, lat2, lon2) {
-      const R = 6371; // Earth's radius in km
-      const dLat = this.deg2rad(lat2 - lat1);
-      const dLon = this.deg2rad(lon2 - lon1);
-      
-      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(this.deg2rad(lat1)) * Math.cos(this.deg2rad(lat2)) * 
-                Math.sin(dLon/2) * Math.sin(dLon/2);
-      
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
-      return R * c; // Distance in km
+    deg2rad:d=>d*Math.PI/180,
+    haversine(aLat,aLon,bLat,bLon){
+      const R=6371, dLat=this.deg2rad(bLat-aLat), dLon=this.deg2rad(bLon-aLon);
+      const s=Math.sin(dLat/2)**2 + Math.cos(this.deg2rad(aLat))*Math.cos(this.deg2rad(bLat))*Math.sin(dLon/2)**2;
+      return 2*R*Math.atan2(Math.sqrt(s),Math.sqrt(1-s));
     },
-    
-    show(el) { el.classList.remove('d-none'); },
-    hide(el) { el.classList.add('d-none'); },
-    
-    startLoading(msg = 'Searching cafés…') {
-      dom.loader.style.display = 'block'; 
-      dom.loader.querySelector('div').textContent = msg;
-      dom.results.innerHTML = ''; 
-      this.hide(dom.nores);
+    show(el){ el.classList.remove('d-none'); },
+    hide(el){ el.classList.add('d-none'); },
+    startLoading(msg){ dom.loadingText.textContent = msg||'Searching cafés…'; dom.loader.style.display='block'; dom.results.innerHTML=''; this.hide(dom.nores); },
+    stopLoading(){ dom.loader.style.display='none'; },
+    escapeHtml(s){ return (s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); },
+    safeUrl(u){ try{ return new URL(u, location.href).href }catch{ return '#'} },
+    directionsUrl(lat,lon){ return /iPad|iPhone|iPod/.test(navigator.userAgent) ? `http://maps.apple.com/?daddr=${lat},${lon}` : `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`; },
+    fmtK:n=>n.toLocaleString(),
+    norm:s=>(s||'').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu,'').trim(),
+    dice(a,b){
+      a=this.norm(a); b=this.norm(b); if(a===b) return 1; if(a.length<2||b.length<2) return 0;
+      const bigr=s=>Array.from({length:s.length-1},(_,i)=>s.slice(i,i+2));
+      const A=bigr(a), B=bigr(b), map=new Map(); A.forEach(x=>map.set(x,(map.get(x)||0)+1));
+      let inter=0; B.forEach(x=>{const v=map.get(x)||0;if(v){inter++;map.set(x,v-1)}}); return (2*inter)/(A.length+B.length);
     },
-    
-    stopLoading() { dom.loader.style.display = 'none'; },
-    
-    escapeHtml(s) {
-      if (!s) return '';
-      return s.replace(/[&<>"']/g, m => ({ 
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', 
-        '"': '&quot;', "'": '&#39;' 
-      }[m]));
+    clamp:(n,min,max)=>Math.max(min,Math.min(max,n)),
+    toast(msg,type='info'){
+      const box=document.querySelector('.toast-container')||document.body.appendChild(Object.assign(document.createElement('div'),{className:'toast-container'}));
+      const t=document.createElement('div'); t.className='toast '+type;
+      t.innerHTML=`<i class="fa-solid fa-${type==='error'?'circle-exclamation':type==='success'?'circle-check':'circle-info'}"></i><span>${this.escapeHtml(msg)}</span>`;
+      box.appendChild(t); setTimeout(()=>{t.style.opacity='0'; setTimeout(()=>t.remove(),300)},3000);
     },
-    
-    safeUrl(u) { 
-      try { 
-        const x = new URL(u, location.href); 
-        return x.href; 
-      } catch(_) { 
-        return '#'; 
-      } 
-    },
-    
-    directionsUrl(lat, lon) { 
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent); 
-      return isIOS ? 
-        `http://maps.apple.com/?daddr=${lat},${lon}` : 
-        `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`; 
-    },
-    
-    fmtK: n => n.toLocaleString(),
-    
-    // Normalize strings (autocorrect)
-    norm: s => (s || '').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '').trim(),
-    
-    // Sørensen–Dice coefficient for string similarity
-    dice(a, b) {
-      a = this.norm(a); 
-      b = this.norm(b);
-      if (a === b) return 1;
-      if (a.length < 2 || b.length < 2) return 0;
-      
-      const bigrams = s => Array.from({length: s.length - 1}, (_, i) => s.slice(i, i + 2));
-      const a2 = bigrams(a), b2 = bigrams(b);
-      const set = new Map();
-      
-      a2.forEach(x => set.set(x, (set.get(x) || 0) + 1));
-      
-      let inter = 0;
-      b2.forEach(x => {
-        const v = set.get(x) || 0;
-        if (v) { 
-          inter++; 
-          set.set(x, v - 1);
-        }
-      });
-      
-      return (2 * inter) / (a2.length + b2.length);
-    },
-    
-    clamp(n, min, max) { 
-      return Math.max(min, Math.min(max, n)); 
-    },
-    
-    // Toast notification system
-    toast(msg, type = 'info') {
-      const toast = document.createElement('div');
-      toast.className = `toast ${type}`;
-      toast.innerHTML = `
-        <i class="fa-solid fa-${type === 'error' ? 'circle-exclamation' : 
-                               type === 'success' ? 'circle-check' : 'circle-info'}"></i>
-        <span>${msg}</span>
-      `;
-      
-      document.querySelector('.toast-container')?.appendChild(toast);
-      
-      setTimeout(() => {
-        toast.style.opacity = '0';
-        setTimeout(() => toast.remove(), 300);
-      }, 3000);
-    }
+    debounce(fn,wait){ let id; return (...a)=>{ clearTimeout(id); id=setTimeout(()=>fn(...a),wait)} }
   };
 
-  // ------------ Application Initialization ------------
-  function init() {
-    // Set current year in footer
-    document.getElementById('yr').textContent = new Date().getFullYear();
-    
-    // Create toast container if it doesn't exist
-    if (!document.querySelector('.toast-container')) {
-      const toastContainer = document.createElement('div');
-      toastContainer.className = 'toast-container';
-      document.body.appendChild(toastContainer);
-    }
-    
-    // Initialize the map
-    initMap();
-    
-    // Populate countries dropdown
-    populateCountries();
-    
-    // Auto-detect country (best effort)
-    autoDetectCountry();
-    
-    // Set up event listeners
-    setupEventListeners();
+  // -------- Map --------
+  function initMap(){
+    dom.map = L.map('map',{zoomControl:false,preferCanvas:true}).setView([20,0],3);
+    L.control.zoom({position:'topright'}).addTo(dom.map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(dom.map);
+
+    const cluster = L.markerClusterGroup({showCoverageOnHover:false,maxClusterRadius:50,spiderfyOnMaxZoom:true,chunkedLoading:true,chunkInterval:100});
+    dom.map.addLayer(cluster); state.cluster=cluster;
+
+    dom.map.on('moveend',()=>{state.mapMovedSinceSearch=true; dom.btnHere.disabled=false;});
+    dom.btnFullscreen.addEventListener('click',toggleFullscreen);
+    dom.btnCurrentView.addEventListener('click',returnToCurrentView);
+    document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&state.isFullscreen){toggleFullscreen()} });
+  }
+  function toggleFullscreen(){
+    const el=document.getElementById('map');
+    if(!state.isFullscreen){ el.classList.add('map-fullscreen'); dom.btnFullscreen.innerHTML='<i class="fa-solid fa-compress"></i>'; state.isFullscreen=true; }
+    else{ el.classList.remove('map-fullscreen'); dom.btnFullscreen.innerHTML='<i class="fa-solid fa-expand"></i>'; state.isFullscreen=false; }
+    setTimeout(()=>dom.map.invalidateSize(),300);
+  }
+  function returnToCurrentView(){
+    if(state.currentOrigin){ dom.map.setView([state.currentOrigin.lat,state.currentOrigin.lon], CONFIG.defaultZoom); state.mapMovedSinceSearch=false; dom.btnHere.disabled=true; }
   }
 
-  function populateCountries() {
-    dom.country.innerHTML = ISO_COUNTRIES.map(([c, n]) => 
-      `<option value="${c}">${n}</option>`
-    ).join('');
-    dom.country.value = '';
+  // -------- Countries (all) via ISO codes + Intl names --------
+  const ISO2 = [
+    '','AF','AX','AL','DZ','AS','AD','AO','AI','AQ','AG','AR','AM','AW','AU','AT','AZ','BS','BH','BD','BB','BY','BE','BZ','BJ','BM','BT','BO','BQ','BA','BW','BV','BR','IO','BN','BG','BF','BI','CV','KH','CM','CA','KY','CF','TD','CL','CN','CX','CC','CO','KM','CG','CD','CK','CR','CI','HR','CU','CW','CY','CZ','DK','DJ','DM','DO','EC','EG','SV','GQ','ER','EE','SZ','ET','FK','FO','FJ','FI','FR','GF','PF','TF','GA','GM','GE','DE','GH','GI','GR','GL','GD','GP','GU','GT','GG','GN','GW','GY','HT','HM','VA','HN','HK','HU','IS','IN','ID','IR','IQ','IE','IM','IL','IT','JM','JP','JE','JO','KZ','KE','KI','KP','KR','KW','KG','LA','LV','LB','LS','LR','LY','LI','LT','LU','MO','MG','MW','MY','MV','ML','MT','MH','MQ','MR','MU','YT','MX','FM','MD','MC','MN','ME','MS','MA','MZ','MM','NA','NR','NP','NL','NC','NZ','NI','NE','NG','NU','NF','MK','MP','NO','OM','PK','PW','PS','PA','PG','PY','PE','PH','PN','PL','PT','PR','QA','RE','RO','RU','RW','BL','SH','KN','LC','MF','PM','VC','WS','SM','ST','SA','SN','RS','SC','SL','SG','SX','SK','SI','SB','SO','ZA','GS','SS','ES','LK','SD','SR','SJ','SE','CH','SY','TW','TJ','TZ','TH','TL','TG','TK','TO','TT','TN','TR','TM','TC','TV','UG','UA','AE','GB','US','UM','UY','UZ','VU','VE','VN','VG','VI','WF','EH','YE','ZM','ZW'
+  ];
+  function populateCountries(){
+    const intl = new Intl.DisplayNames(['en'],{type:'region'});
+    dom.country.innerHTML = ISO2.map(code=>{
+      if(!code) return `<option value="">🌍 Global</option>`;
+      return `<option value="${code.toLowerCase()}">${intl.of(code)}</option>`;
+    }).join('');
+    dom.country.value='';
   }
 
-  async function autoDetectCountry() {
-    try {
+  // -------- Auto-detect country bias (timezone + IP) --------
+  async function autoDetectCountry(){
+    // Timezone hint (fast, no network)
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    if(tz === 'Asia/Riyadh'){ dom.country.value='sa'; state.countryBias='sa'; }
+
+    // IP-based (best effort)
+    try{
       const r = await fetch('https://ipapi.co/json/');
-      if (!r.ok) throw new Error('IP detection failed');
-      
-      const j = await r.json();
-      if (j && j.country_code) {
-        state.countryBias = (j.country_code || '').toLowerCase();
-        const idx = ISO_COUNTRIES.findIndex(x => x[0] === state.countryBias);
-        if (idx >= 0) dom.country.value = state.countryBias;
-        if (j.latitude && j.longitude) {
-          state.centerBias = { lat: j.latitude, lon: j.longitude };
+      if(r.ok){
+        const j = await r.json();
+        if(j.country_code){
+          const cc = j.country_code.toLowerCase();
+          if(!state.countryBias){ state.countryBias = cc; dom.country.value = cc; }
         }
+        if(j.latitude && j.longitude){ state.centerBias = {lat:j.latitude, lon:j.longitude}; }
       }
-    } catch(_) {
-      // Silent fail - not critical functionality
-    }
+    }catch{}
   }
 
-  function setupEventListeners() {
-    // Search input events
-    dom.q.addEventListener('input', debounce(loadSuggestions, 250));
-    dom.q.addEventListener('keydown', e => { 
-      if (e.key === 'Enter') tryAutocorrectThenGeocode(); 
-    });
-    
-    // Country selection
-    dom.country.addEventListener('change', () => {
-      state.countryBias = dom.country.value || '';
-    });
-    
-    // Button events
-    dom.btnSearch.addEventListener('click', () => tryAutocorrectThenGeocode());
+  // -------- Init / Events --------
+  function init(){
+    document.getElementById('yr').textContent = new Date().getFullYear();
+    initMap();
+    populateCountries();
+    autoDetectCountry();
+    setupEventListeners();
+    hydrateFromLink();
+  }
+  function setupEventListeners(){
+    dom.q.addEventListener('input', utils.debounce(loadSuggestions, 250));
+    dom.q.addEventListener('keydown', e=>{ if(e.key==='Enter') tryAutocorrectThenGeocode(); });
+    dom.country.addEventListener('change', ()=>{ state.countryBias = dom.country.value || ''; loadSuggestions(); });
+    dom.btnSearch.addEventListener('click', ()=> tryAutocorrectThenGeocode());
     dom.btnLocate.addEventListener('click', handleGeolocation);
-    dom.btnHere.addEventListener('click', () => {
-      const c = dom.map.getCenter(); 
-      doSearchAt(c.lat, c.lng, true);
+    dom.btnHere.addEventListener('click', ()=>{ const c=dom.map.getCenter(); doSearchAt(c.lat,c.lng,true); });
+    [dom.fOpen,dom.fWifi,dom.fOutdoor,dom.sort].forEach(el=> el.addEventListener('change', applyFiltersAndRender));
+    dom.suggestions.addEventListener('click', e=>{
+      const a=e.target.closest('a[data-lat]'); if(!a) return;
+      dom.suggestions.style.display='none'; dom.suggestions.innerHTML='';
+      const lat=parseFloat(a.dataset.lat), lon=parseFloat(a.dataset.lon);
+      utils.toast(`Using: ${dom.q.value}`); doSearchAt(lat,lon);
     });
-    
-    // Filter events
-    dom.fOpen.addEventListener('change', applyFiltersAndRender);
-    dom.fWifi.addEventListener('change', applyFiltersAndRender);
-    dom.fOutdoor.addEventListener('change', applyFiltersAndRender);
-    dom.sort.addEventListener('change', applyFiltersAndRender);
-    
-    // Suggestions click
-    dom.suggestions.addEventListener('click', e => {
-      const a = e.target.closest('a[data-lat]'); 
-      if (!a) return;
-      
-      dom.suggestions.style.display = 'none'; 
-      dom.suggestions.innerHTML = '';
-      
-      const lat = parseFloat(a.dataset.lat), 
-            lon = parseFloat(a.dataset.lon);
-      
-      utils.toast(`Using: ${dom.q.value}`);
-      doSearchAt(lat, lon);
-    });
-    
-    // Close suggestions when clicking outside
-    document.addEventListener('click', e => {
-      if (!dom.suggestions.contains(e.target) && e.target !== dom.q) {
-        dom.suggestions.style.display = 'none';
-      }
+    document.addEventListener('click', e=>{
+      if(!dom.suggestions.contains(e.target) && e.target!==dom.q){ dom.suggestions.style.display='none'; }
     });
   }
 
-  // ------------ Debounce function for input events ------------
-  function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-      const later = () => {
-        clearTimeout(timeout);
-        func(...args);
-      };
-      clearTimeout(timeout);
-      timeout = setTimeout(later, wait);
-    };
-  }
-
-  // ------------ Suggestions (Photon) ------------
-  async function loadSuggestions() {
-    const val = dom.q.value.trim(); 
-    if (!val || val.length < 2) { 
-      dom.suggestions.style.display = 'none'; 
-      dom.suggestions.innerHTML = ''; 
-      return; 
+  // -------- Shareable link hydrate --------
+  function hydrateFromLink(){
+    const u = new URL(location.href);
+    const lat = parseFloat(u.searchParams.get('lat'));
+    const lon = parseFloat(u.searchParams.get('lon'));
+    const r = parseInt(u.searchParams.get('r'),10);
+    if(!isNaN(lat) && !isNaN(lon)){
+      if(!isNaN(r)) dom.radius.value = String(utils.clamp(r, 1000, CONFIG.maxSearchRadius));
+      doSearchAt(lat, lon, false, CONFIG.defaultZoom);
     }
-    
+  }
+  function updateShareLink(){
+    if(!state.currentOrigin) return;
+    const u = new URL(location.href);
+    u.searchParams.set('lat', state.currentOrigin.lat.toFixed(6));
+    u.searchParams.set('lon', state.currentOrigin.lon.toFixed(6));
+    u.searchParams.set('r', dom.radius.value);
+    history.replaceState(null,'', u.toString());
+  }
+
+  // -------- Suggestions (Photon) with **country priority** + **center bias** --------
+  async function loadSuggestions(){
+    const val = dom.q.value.trim(); 
+    if(val.length < 2){ dom.suggestions.style.display='none'; dom.suggestions.innerHTML=''; return; }
+
     const url = new URL(CONFIG.photonUrl);
     url.searchParams.set('q', val);
     url.searchParams.set('limit', '8');
-    url.searchParams.set('lang', 'en');
+    url.searchParams.set('lang', bestLang());
     url.searchParams.set('layer', 'city,town,village,locality');
-    
-    if (state.countryBias) {
-      url.searchParams.set('osm_tag', `countrycode:${state.countryBias}`);
-    }
-    
-    if (state.centerBias) { 
-      url.searchParams.set('lat', state.centerBias.lat); 
-      url.searchParams.set('lon', state.centerBias.lon); 
-    }
-    
-    try {
-      const r = await fetchWithTimeout(url, 5000);
+    if(state.centerBias){ url.searchParams.set('lat', state.centerBias.lat); url.searchParams.set('lon', state.centerBias.lon); }
+
+    try{
+      const r = await fetch(url, {cache:'no-store'});
       const j = await r.json();
-      
-      const items = (j.features || []).map(f => {
-        const p = f.properties || {};
-        const line = [p.name, p.city, p.state, p.country].filter(Boolean).join(', ');
-        return { 
-          label: line || p.name, 
-          lat: f.geometry.coordinates[1], 
-          lon: f.geometry.coordinates[0] 
-        };
-      }).slice(0, 8);
-      
-      if (!items.length) { 
-        dom.suggestions.style.display = 'none'; 
-        dom.suggestions.innerHTML = ''; 
-        return; 
+      let items = (j.features||[]).map(f=>{
+        const p=f.properties||{}, label=[p.name,p.city,p.state,p.country].filter(Boolean).join(', ');
+        return {label, cc:(p.countrycode||'').toLowerCase(), lat:f.geometry.coordinates[1], lon:f.geometry.coordinates[0]};
+      });
+
+      // prioritize selected country, then nearest to centerBias
+      if(state.countryBias){
+        const inCountry = items.filter(i=>i.cc===state.countryBias);
+        const outCountry = items.filter(i=>i.cc!==state.countryBias);
+        items = [...inCountry, ...outCountry];
       }
-      
-      dom.suggestions.innerHTML = items.map(i => `
+      if(state.centerBias){
+        items.sort((a,b)=> utils.haversine(a.lat,a.lon,state.centerBias.lat,state.centerBias.lon) - utils.haversine(b.lat,b.lon,state.centerBias.lat,state.centerBias.lon));
+      }
+
+      if(!items.length){ dom.suggestions.style.display='none'; dom.suggestions.innerHTML=''; return; }
+      dom.suggestions.innerHTML = items.map(i=>`
         <a class="pointer" data-lat="${i.lat}" data-lon="${i.lon}">
-          <i class="fa-solid fa-location-dot text-danger"></i>
-          <span>${utils.escapeHtml(i.label)}</span>
+          <i class="fa-solid fa-location-dot text-danger"></i><span>${utils.escapeHtml(i.label)}</span>
         </a>`).join('');
-      
-      dom.suggestions.style.display = 'block';
-    } catch(_) { 
-      dom.suggestions.style.display = 'none'; 
-      dom.suggestions.innerHTML = ''; 
+      dom.suggestions.style.display='block';
+    }catch{
+      dom.suggestions.style.display='none'; dom.suggestions.innerHTML='';
     }
   }
-
-  // ------------ Fetch with timeout ------------
-  async function fetchWithTimeout(url, timeout) {
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), timeout);
-    
-    try {
-      const response = await fetch(url, { signal: controller.signal });
-      clearTimeout(id);
-      return response;
-    } catch (error) {
-      clearTimeout(id);
-      throw error;
-    }
+  function bestLang(){
+    // prefer Arabic if country is Saudi Arabia or user agent prefers ar
+    if(state.countryBias==='sa') return 'ar';
+    const langs = navigator.languages || [navigator.language||'en'];
+    return (langs.find(l=>/^ar/i.test(l)) ? 'ar' : 'en');
   }
 
-  // ------------ Geocode with autocorrect + strong country bias ------------
-  async function tryAutocorrectThenGeocode() {
-    const typed = dom.q.value.trim(); 
-    if (!typed) return dom.q.focus();
-    
-    // 1) Try Photon quick guess
+  // -------- Geocode (autocorrect → Photon guess; fallback → Nominatim) --------
+  async function tryAutocorrectThenGeocode(){
+    const typed = dom.q.value.trim(); if(!typed){ dom.q.focus(); return; }
+
+    // Quick Photon guess + fuzzy
     const guess = await topPhotonGuess(typed);
-    if (guess && utils.dice(typed, guess.label) >= 0.62) {
-      dom.suggestions.style.display = 'none'; 
-      dom.suggestions.innerHTML = '';
+    if(guess && utils.dice(typed, guess.label) >= 0.62){
+      dom.suggestions.style.display='none'; dom.suggestions.innerHTML='';
       utils.toast(`Using: ${guess.label}`);
       return doSearchAt(guess.lat, guess.lon);
     }
-    
-    // 2) Fallback to Nominatim
     return geocodeText(typed);
   }
-
-  async function topPhotonGuess(text) {
+  async function topPhotonGuess(text){
     const url = new URL(CONFIG.photonUrl);
     url.searchParams.set('q', text);
-    url.searchParams.set('limit', '1');
-    url.searchParams.set('layer', 'city,town,village,locality');
-    url.searchParams.set('lang', 'en');
-    
-    if (state.countryBias) {
-      url.searchParams.set('osm_tag', `countrycode:${state.countryBias}`);
-    }
-    
-    if (state.centerBias) { 
-      url.searchParams.set('lat', state.centerBias.lat); 
-      url.searchParams.set('lon', state.centerBias.lon); 
-    }
-    
-    try {
-      const r = await fetchWithTimeout(url, 5000);
-      const j = await r.json();
-      const f = (j.features || [])[0]; 
-      if (!f) return null;
-      
-      const p = f.properties || {};
-      const label = [p.name, p.city, p.state, p.country].filter(Boolean).join(', ');
-      
-      return { 
-        label: label || p.name, 
-        lat: f.geometry.coordinates[1], 
-        lon: f.geometry.coordinates[0] 
-      };
-    } catch(_) { 
-      return null; 
-    }
-  }
-
-  async function geocodeText(text) {
-    const url = new URL(CONFIG.nominatimUrl);
-    url.searchParams.set('format', 'json');
-    url.searchParams.set('addressdetails', '1');
     url.searchParams.set('limit', '5');
-    url.searchParams.set('q', text);
-    
-    if (state.countryBias) {
-      url.searchParams.set('countrycodes', state.countryBias);
-    }
-    
-    try {
-      utils.startLoading('Finding place…');
-      const r = await fetchWithTimeout(url.toString(), 8000);
+    url.searchParams.set('layer', 'city,town,village,locality');
+    url.searchParams.set('lang', bestLang());
+    if(state.centerBias){ url.searchParams.set('lat', state.centerBias.lat); url.searchParams.set('lon', state.centerBias.lon); }
+    try{
+      const r = await fetch(url, {cache:'no-store'});
       const j = await r.json();
-      
-      if (!j.length) { 
-        utils.stopLoading(); 
-        showNoResults('No matching location. Try adding the country.'); 
-        return; 
-      }
-      
-      const loc = j[0];
-      const lat = parseFloat(loc.lat), 
-            lon = parseFloat(loc.lon);
-      
-      utils.toast(`Using: ${loc.display_name.split(',').slice(0, 3).join(', ')}`);
-      doSearchAt(lat, lon);
-    } catch(_) { 
-      utils.stopLoading(); 
-      showNoResults('Search failed. Please try again.'); 
+      let items = (j.features||[]).map(f=>{
+        const p=f.properties||{}, label=[p.name,p.city,p.state,p.country].filter(Boolean).join(', ');
+        return {label, cc:(p.countrycode||'').toLowerCase(), lat:f.geometry.coordinates[1], lon:f.geometry.coordinates[0]};
+      });
+      // prioritize selected country
+      if(state.countryBias){ items.sort((a,b)=> (b.cc===state.countryBias)-(a.cc===state.countryBias)); }
+      // prefer nearer to centerBias
+      if(state.centerBias){ items.sort((a,b)=> utils.haversine(a.lat,a.lon,state.centerBias.lat,state.centerBias.lon) - utils.haversine(b.lat,b.lon,state.centerBias.lat,state.centerBias.lon)); }
+      return items[0] || null;
+    }catch{ return null; }
+  }
+  async function geocodeText(text){
+    const url = new URL(CONFIG.nominatimUrl);
+    url.searchParams.set('format','json'); url.searchParams.set('addressdetails','1'); url.searchParams.set('limit','5'); url.searchParams.set('q',text);
+    if(state.countryBias){ url.searchParams.set('countrycodes', state.countryBias); }
+    utils.startLoading('Finding place…');
+    try{
+      const r = await fetch(url.toString(), {headers:{'Accept-Language': bestLang()}});
+      const j = await r.json();
+      if(!j.length){ utils.stopLoading(); showNoResults('No matching location. Try adding the country.'); return; }
+      const loc=j[0]; const lat=parseFloat(loc.lat), lon=parseFloat(loc.lon);
+      utils.toast(`Using: ${loc.display_name.split(',').slice(0,3).join(', ')}`);
+      doSearchAt(lat,lon);
+    }catch{
+      utils.stopLoading(); showNoResults('Search failed. Please try again.');
     }
   }
 
-  // ------------ Geolocation ------------
-  function handleGeolocation() {
-    if (!navigator.geolocation) {
-      utils.toast('Geolocation is not supported.', 'error');
-      return;
-    }
-    
+  // -------- Geolocation --------
+  function handleGeolocation(){
+    if(!navigator.geolocation){ utils.toast('Geolocation not supported.','error'); return; }
     utils.startLoading('Getting your location…');
-    
     navigator.geolocation.getCurrentPosition(
-      pos => {
-        const { latitude: lat, longitude: lon } = pos.coords;
-        state.centerBias = { lat, lon };
-        state.currentPosition = { lat, lon };
+      pos=>{
+        const {latitude:lat, longitude:lon}=pos.coords;
+        state.centerBias={lat,lon}; state.currentPosition={lat,lon};
         utils.toast('Using your current location');
-        doSearchAt(lat, lon, false, 14);
+        doSearchAt(lat,lon,false,14);
       },
-      error => {
-        utils.stopLoading();
-        utils.toast('Could not get your location. Try searching by city.', 'error');
-      },
-      { 
-        enableHighAccuracy: true, 
-        timeout: 10000,
-        maximumAge: 600000
-      }
+      ()=>{ utils.stopLoading(); utils.toast('Could not get your location. Try searching by city.','error'); },
+      {enableHighAccuracy:true, timeout:10000, maximumAge:600000}
     );
   }
 
-  // ------------ Main search function ------------
-  function doSearchAt(lat, lon, fromMapMove = false, zoom = CONFIG.defaultZoom) {
-    state.currentOrigin = { lat, lon };
-    dom.map.setView([lat, lon], Math.max(zoom, dom.map.getZoom()));
-    state.mapMovedSinceSearch = false;
-    dom.btnHere.disabled = true;
-    
-    const radius = parseInt(dom.radius.value, 10);
-    findCafes(lat, lon, radius);
+  // -------- Search + progressive radius expansion --------
+  function doSearchAt(lat,lon,fromMapMove=false,zoom=CONFIG.defaultZoom){
+    state.currentOrigin={lat,lon}; dom.map.setView([lat,lon], Math.max(zoom, dom.map.getZoom())); state.mapMovedSinceSearch=false; dom.btnHere.disabled=true;
+    updateShareLink();
+    const baseRadius=parseInt(dom.radius.value,10);
+    findCafesProgressive(lat,lon,baseRadius);
   }
 
-  // ------------ Overpass query with failover ------------
-  async function overpassFetch(body) {
-    for (const ep of CONFIG.overpassEndpoints) {
-      try {
-        const ctrl = new AbortController();
-        const t = setTimeout(() => ctrl.abort(), CONFIG.requestTimeout);
-        
-        const r = await fetch(ep, {
-          method: 'POST',
-          body,
-          signal: ctrl.signal
-        });
-        
-        clearTimeout(t);
-        if (r.ok) return await r.json();
-      } catch(_) {
-        // Try next endpoint
-      }
+  async function findCafesProgressive(lat,lon,baseRadius){
+    utils.startLoading('Searching cafés…');
+    let all = [];
+    for(const m of CONFIG.expandSteps){
+      const radius = Math.min(Math.round(baseRadius*m), CONFIG.maxSearchRadius);
+      const got = await findCafesOnce(lat,lon,radius);
+      all = dedupeById([...all, ...got]);
+      if(all.length >= 8 || m === CONFIG.expandSteps[CONFIG.expandSteps.length-1]) break; // enough results
     }
-    
+    state.cafes = all;
+    applyFiltersAndRender();
+    utils.stopLoading();
+  }
+
+  function dedupeById(list){
+    const seen=new Set(); const out=[];
+    for(const x of list){ if(!seen.has(x.id)){ seen.add(x.id); out.push(x); } }
+    return out;
+  }
+
+  async function overpassFetch(body){
+    for(const ep of CONFIG.overpassEndpoints){
+      try{
+        const ctrl=new AbortController(); const t=setTimeout(()=>ctrl.abort(), CONFIG.requestTimeout);
+        const r = await fetch(ep,{method:'POST', body, signal:ctrl.signal});
+        clearTimeout(t);
+        if(r.ok) return await r.json();
+      }catch{}
+    }
     throw new Error('All Overpass endpoints failed');
   }
 
-  // ------------ Query & render ------------
-  async function findCafes(lat, lon, radius) {
-    utils.startLoading('Searching cafés…');
-    
+  async function findCafesOnce(lat,lon,radius){
     const query = `
       [out:json][timeout:25];
       (
@@ -1238,323 +563,179 @@
         way["amenity"="cafe"](around:${radius},${lat},${lon});
         node["shop"="coffee"](around:${radius},${lat},${lon});
       );
-      out center tags;
-    `;
-    
-    let data;
-    try {
-      data = await overpassFetch(query);
-    } catch(_) {
-      utils.stopLoading();
-      showNoResults('Search failed (Overpass). Please try again.');
-      return;
+      out center tags;`;
+    try{
+      const data = await overpassFetch(query);
+      const elements = data.elements||[];
+      return elements.map(e=>{
+        const c = e.type==='way' ? e.center : {lat:e.lat, lon:e.lon};
+        const tags = e.tags||{};
+        const distance = state.currentOrigin ? utils.haversine(state.currentOrigin.lat,state.currentOrigin.lon,c.lat,c.lon) : null;
+        const smart = smartScore(tags, distance);
+        const user = getUserRating(e.id);
+        const combined = user ? (0.7*smart + 0.3*user) : smart;
+        return { id:e.id, lat:c.lat, lon:c.lon, tags, name:tags.name||tags.brand||'Unnamed café', distance, opening:tags.opening_hours||null, smartRating:smart, userRating:user, combinedRating: utils.clamp(combined,0,5) };
+      });
+    }catch{
+      utils.toast('Overpass temporarily busy — retrying other mirrors…','info');
+      return [];
     }
-    
-    const elements = data.elements || [];
-    
-    state.cafes = elements.map(e => {
-      const c = e.type === 'way' ? e.center : { lat: e.lat, lon: e.lon };
-      const tags = e.tags || {};
-      const distance = state.currentOrigin ? 
-        utils.haversine(state.currentOrigin.lat, state.currentOrigin.lon, c.lat, c.lon) : null;
-      
-      const smart = smartScore(tags, distance);
-      const user = getUserRating(e.id);
-      const combined = user ? (0.7 * smart + 0.3 * user) : smart;
-      
-      return {
-        id: e.id,
-        lat: c.lat,
-        lon: c.lon,
-        tags,
-        name: tags.name || tags.brand || 'Unnamed café',
-        distance,
-        opening: tags.opening_hours || null,
-        smartRating: smart,
-        userRating: user,
-        combinedRating: utils.clamp(combined, 0, 5)
-      };
-    });
-    
-    applyFiltersAndRender();
-    utils.stopLoading();
   }
 
-  // ------------ Smart rating (0..5) ------------
-  function smartScore(tags, distanceKm) {
-    let score = 2.6; // base
-    
-    if (tags.opening_hours) score += 0.7;
-    if (tags.internet_access === 'yes') score += 0.6;
-    if (tags.outdoor_seating === 'yes') score += 0.5;
-    if (tags.website || tags['contact:website']) score += 0.4;
-    if (tags.phone || tags['contact:phone']) score += 0.3;
-    if (tags.wheelchair === 'yes') score += 0.2;
-    if (tags.brand) score += 0.2;
-    if (tags.cuisine) score += 0.1;
-    
-    if (typeof distanceKm === 'number') {
-      // penalize far results gently
-      if (distanceKm > 8) score -= 0.8;
-      else if (distanceKm > 5) score -= 0.6;
-      else if (distanceKm > 3) score -= 0.3;
+  // -------- Smart rating --------
+  function smartScore(tags, distanceKm){
+    let score=2.6;
+    if(tags.opening_hours) score+=0.7;
+    if(tags.internet_access==='yes') score+=0.6;
+    if(tags.outdoor_seating==='yes') score+=0.5;
+    if(tags.website||tags['contact:website']) score+=0.4;
+    if(tags.phone||tags['contact:phone']) score+=0.3;
+    if(tags.wheelchair==='yes') score+=0.2;
+    if(tags.brand) score+=0.2;
+    if(tags.cuisine) score+=0.1;
+    if(typeof distanceKm==='number'){
+      if(distanceKm>8) score-=0.8; else if(distanceKm>5) score-=0.6; else if(distanceKm>3) score-=0.3;
     }
-    
-    return utils.clamp(score, 0, 5);
+    return utils.clamp(score,0,5);
   }
 
-  // ------------ User rating storage ------------
-  function getUserRating(id) {
-    const key = `cfp_rating_${id}`;
-    const value = localStorage.getItem(key);
-    return value ? parseFloat(value) : null;
-  }
+  // -------- User ratings --------
+  function getUserRating(id){ const v=localStorage.getItem(`cfp_rating_${id}`); return v?parseFloat(v):null; }
+  function setUserRating(id,val){ localStorage.setItem(`cfp_rating_${id}`, String(val)); }
 
-  function setUserRating(id, value) {
-    localStorage.setItem(`cfp_rating_${id}`, String(value));
-  }
-
-  // ------------ Filters/sort ------------
-  function applyFiltersAndRender() {
+  // -------- Filters / sort --------
+  function applyFiltersAndRender(){
     let list = state.cafes.slice();
-    
-    const needOpen = dom.fOpen.checked;
-    const needWifi = dom.fWifi.checked;
-    const needOutdoor = dom.fOutdoor.checked;
-    
-    if (needOpen) list = list.filter(isOpenNow);
-    if (needWifi) list = list.filter(c => (c.tags.internet_access === 'yes'));
-    if (needOutdoor) list = list.filter(c => (c.tags.outdoor_seating === 'yes'));
-    
+    if(dom.fOpen.checked) list = list.filter(isOpenNow);
+    if(dom.fWifi.checked) list = list.filter(c=>c.tags.internet_access==='yes');
+    if(dom.fOutdoor.checked) list = list.filter(c=>c.tags.outdoor_seating==='yes');
+
     const mode = dom.sort.value;
-    if (mode === 'name') {
-      list.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-    } else if (mode === 'hours') {
-      list.sort((a, b) => ((b.opening ? 1 : 0) - (a.opening ? 1 : 0)));
-    } else if (mode === 'rating') {
-      list.sort((a, b) => (b.combinedRating - a.combinedRating));
-    } else {
-      list.sort((a, b) => (a.distance ?? 1e9) - (b.distance ?? 1e9));
-    }
-    
+    if(mode==='name') list.sort((a,b)=> (a.name||'').localeCompare(b.name||''));
+    else if(mode==='hours') list.sort((a,b)=> ((b.opening?1:0)-(a.opening?1:0)));
+    else if(mode==='rating') list.sort((a,b)=> b.combinedRating - a.combinedRating);
+    else list.sort((a,b)=> (a.distance??1e9) - (b.distance??1e9));
+
     render(list);
   }
 
-  function isOpenNow(cafe) {
-    if (!cafe.opening) return false;
-    if (cafe.opening.includes('24/7')) return true;
-    
-    try {
-      if (window.opening_hours) {
-        const oh = new opening_hours(cafe.opening);
-        return oh.getState(new Date());
-      }
-    } catch(_) {
-      // Fallback to simple time parsing if library fails
+  function isOpenNow(cafe){
+    if(!cafe.opening) return false;
+    if(/24\/7/.test(cafe.opening)) return true;
+    try{ const oh = new opening_hours(cafe.opening); return oh.getState(new Date()); }
+    catch{
+      const m=/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/.exec(cafe.opening||''); if(!m) return false;
+      const now=new Date(), mins=now.getHours()*60+now.getMinutes();
+      const open=+m[1]*60+ +m[2], close=+m[3]*60+ +m[4];
+      return close>open ? (mins>=open&&mins<=close) : (mins>=open||mins<=close);
     }
-    
-    const m = /(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/.exec(cafe.opening);
-    if (m) {
-      const now = new Date();
-      const mins = now.getHours() * 60 + now.getMinutes();
-      const open = parseInt(m[1]) * 60 + parseInt(m[2]);
-      const close = parseInt(m[3]) * 60 + parseInt(m[4]);
-      
-      if (close > open) return mins >= open && mins <= close;
-      return (mins >= open) || (mins <= close);
-    }
-    
-    return false;
   }
 
-  // ------------ Rendering ------------
-  function renderStars(score) {
-    let html = '';
-    const s = utils.clamp(score, 0, 5);
-    const full = Math.floor(s);
-    const half = (s - full) >= 0.25 && (s - full) < 0.75;
-    
-    for (let i = 0; i < full; i++) {
-      html += '<i class="fa-solid fa-star"></i>';
-    }
-    
-    if (half) {
-      html += '<i class="fa-solid fa-star-half-stroke"></i>';
-    }
-    
-    for (let i = (half ? full + 1 : full); i < 5; i++) {
-      html += '<i class="fa-regular fa-star"></i>';
-    }
-    
+  // -------- Render --------
+  function renderStars(score){
+    let html=''; const s=utils.clamp(score,0,5), full=Math.floor(s), half=(s-full)>=0.25 && (s-full)<0.75;
+    for(let i=0;i<full;i++) html+='<i class="fa-solid fa-star"></i>';
+    if(half) html+='<i class="fa-solid fa-star-half-stroke"></i>';
+    for(let i=(half?full+1:full); i<5; i++) html+='<i class="fa-regular fa-star"></i>';
     return html;
   }
-
-  function render(list) {
-    dom.kpi.textContent = list.length ? `Showing ${utils.fmtK(list.length)} cafés` : 'No cafés';
-    state.cluster.clearLayers();
-    state.markers = [];
-    
-    if (!list.length) {
-      dom.results.innerHTML = '';
-      utils.show(dom.nores);
-      return;
-    }
-    
-    utils.hide(dom.nores);
-    
-    // Create markers with optimized performance
-    const icon = L.divIcon({
-      className: '',
-      html: '<i class="fa-solid fa-mug-hot cof-ic"></i>',
-      iconSize: [24, 24],
-      iconAnchor: [12, 12]
-    });
-    
-    list.forEach((c, i) => {
-      const marker = L.marker([c.lat, c.lon], { icon }).bindPopup(popupHtml(c));
-      marker.on('mouseover', () => marker.openPopup());
-      state.cluster.addLayer(marker);
-      state.markers.push(marker);
-    });
-    
-    // Render results with requestAnimationFrame for smoother UI
-    requestAnimationFrame(() => {
-      dom.results.innerHTML = list.map((c, i) => cardHtml(c, i)).join('');
-      
-      // Add interactivity to results
-      addResultInteractivity(list);
-    });
-  }
-
-  function popupHtml(cafe) {
-    const web = cafe.tags.website || cafe.tags['contact:website'];
-    const phone = cafe.tags.phone || cafe.tags['contact:phone'];
-    const wifi = cafe.tags.internet_access === 'yes' ? 
-      `<span class="pill"><i class="fa-solid fa-wifi"></i> Wi-Fi</span>` : '';
-    
-    const outdoor = cafe.tags.outdoor_seating === 'yes' ? 
-      `<span class="pill"><i class="fa-solid fa-umbrella-beach"></i> outdoor</span>` : '';
-    
-    const openS = cafe.opening ? 
-      `<div class="small"><i class="fa-regular fa-clock me-1"></i>${utils.escapeHtml(cafe.opening)}</div>` : '';
-    
-    const distS = cafe.distance != null ? 
-      `<div class="small text-muted">${cafe.distance.toFixed(1)} km away</div>` : '';
-    
-    const addr = [cafe.tags['addr:street'], cafe.tags['addr:city']].filter(Boolean).join(', ');
-    const addrS = addr ? 
-      `<div class="small"><i class="fa-solid fa-location-dot me-1"></i>${utils.escapeHtml(addr)}</div>` : '';
-    
+  function popupHtml(c){
+    const web=c.tags.website||c.tags['contact:website'], phone=c.tags.phone||c.tags['contact:phone'];
+    const wifi=c.tags.internet_access==='yes'?`<span class="pill"><i class="fa-solid fa-wifi"></i> Wi-Fi</span>`:'';
+    const outdoor=c.tags.outdoor_seating==='yes'?`<span class="pill"><i class="fa-solid fa-umbrella-beach"></i> outdoor</span>`:'';
+    const openS=c.opening?`<div class="small"><i class="fa-regular fa-clock me-1"></i>${utils.escapeHtml(c.opening)}</div>`:'';
+    const distS=c.distance!=null?`<div class="small text-muted">${c.distance.toFixed(1)} km away</div>`:'';
+    const addr=[c.tags['addr:street'],c.tags['addr:city']].filter(Boolean).join(', ');
+    const addrS=addr?`<div class="small"><i class="fa-solid fa-location-dot me-1"></i>${utils.escapeHtml(addr)}</div>`:'';
     return `
-      <div><strong>${utils.escapeHtml(cafe.name)}</strong></div>
-      <div class="stars my-1">${renderStars(cafe.combinedRating)} <span class="text-muted small">(${cafe.combinedRating.toFixed(1)})</span></div>
+      <div><strong>${utils.escapeHtml(c.name)}</strong></div>
+      <div class="stars my-1">${renderStars(c.combinedRating)} <span class="text-muted small">(${c.combinedRating.toFixed(1)})</span></div>
       ${distS}${addrS}${openS}
       <div class="mt-1 d-flex gap-1 flex-wrap">${wifi}${outdoor}</div>
       <div class="mt-2 d-flex gap-1 flex-wrap">
-        <a class="btn btn-sm btn-primary" target="_blank" href="${utils.directionsUrl(cafe.lat, cafe.lon)}"><i class="fa-solid fa-turn-up me-1"></i>Directions</a>
-        <a class="btn btn-sm btn-outline-secondary" target="_blank" href="https://www.openstreetmap.org/?mlat=${cafe.lat}&mlon=${cafe.lon}#map=19/${cafe.lat}/${cafe.lon}">OSM</a>
-        ${web ? `<a class="btn btn-sm btn-outline-secondary" target="_blank" href="${utils.safeUrl(web)}">Website</a>` : ''}
-        ${phone ? `<a class="btn btn-sm btn-outline-secondary" href="tel:${encodeURIComponent(phone)}">Call</a>` : ''}
-      </div>
-    `;
+        <a class="btn btn-sm btn-primary" target="_blank" href="${utils.directionsUrl(c.lat,c.lon)}"><i class="fa-solid fa-turn-up me-1"></i>Directions</a>
+        <a class="btn btn-sm btn-outline-secondary" target="_blank" href="https://www.openstreetmap.org/?mlat=${c.lat}&mlon=${c.lon}#map=19/${c.lat}/${c.lon}">OSM</a>
+        ${web?`<a class="btn btn-sm btn-outline-secondary" target="_blank" href="${utils.safeUrl(web)}">Website</a>`:''}
+        ${phone?`<a class="btn btn-sm btn-outline-secondary" href="tel:${encodeURIComponent(phone)}">Call</a>`:''}
+      </div>`;
   }
-
-  function cardHtml(cafe, idx) {
-    const web = cafe.tags.website || cafe.tags['contact:website'];
-    const phone = cafe.tags.phone || cafe.tags['contact:phone'];
-    const addr = [cafe.tags['addr:street'], cafe.tags['addr:city']].filter(Boolean).join(', ');
-    const user = cafe.userRating || 0;
-    
+  function cardHtml(c,idx){
+    const web=c.tags.website||c.tags['contact:website'], phone=c.tags.phone||c.tags['contact:phone'];
+    const addr=[c.tags['addr:street'],c.tags['addr:city']].filter(Boolean).join(', ');
+    const user=c.userRating||0;
     return `
-      <div class="card card-cafe mb-2 pointer animate-in" data-idx="${idx}" style="animation-delay: ${idx * 0.05}s">
+      <div class="card card-cafe mb-2 pointer animate-in" data-idx="${idx}" style="animation-delay:${idx*0.05}s">
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-start">
             <div>
-              <div class="fw-bold">${utils.escapeHtml(cafe.name)}</div>
-              <div class="stars">${renderStars(cafe.combinedRating)} <span class="text-muted small">(${cafe.combinedRating.toFixed(1)})</span></div>
-              <div class="cmeta">${cafe.distance != null ? `${cafe.distance.toFixed(1)} km away` : ''}</div>
+              <div class="fw-bold">${utils.escapeHtml(c.name)}</div>
+              <div class="stars">${renderStars(c.combinedRating)} <span class="text-muted small">(${c.combinedRating.toFixed(1)})</span></div>
+              <div class="cmeta">${c.distance!=null?`${c.distance.toFixed(1)} km away`:''}</div>
             </div>
             <div class="text-nowrap">
-              <a class="btn btn-sm btn-outline-primary" target="_blank" href="${utils.directionsUrl(cafe.lat, cafe.lon)}" title="Directions"><i class="fa-solid fa-route"></i></a>
-              <a class="btn btn-sm btn-outline-secondary" target="_blank" href="https://www.openstreetmap.org/?mlat=${cafe.lat}&mlon=${cafe.lon}#map=19/${cafe.lat}/${cafe.lon}" title="OpenStreetMap"><i class="fa-brands fa-openid"></i></a>
+              <a class="btn btn-sm btn-outline-primary" target="_blank" href="${utils.directionsUrl(c.lat,c.lon)}" title="Directions"><i class="fa-solid fa-route"></i></a>
+              <a class="btn btn-sm btn-outline-secondary" target="_blank" href="https://www.openstreetmap.org/?mlat=${c.lat}&mlon=${c.lon}#map=19/${c.lat}/${c.lon}" title="OpenStreetMap"><i class="fa-brands fa-openid"></i></a>
             </div>
           </div>
-          ${addr ? `<div class="mt-1 cmeta"><i class="fa-solid fa-location-dot me-1"></i>${utils.escapeHtml(addr)}</div>` : ''}
-          ${cafe.opening ? `<div class="mt-1 cmeta"><i class="fa-regular fa-clock me-1"></i>${utils.escapeHtml(cafe.opening)}</div>` : ''}
+          ${addr?`<div class="mt-1 cmeta"><i class="fa-solid fa-location-dot me-1"></i>${utils.escapeHtml(addr)}</div>`:''}
+          ${c.opening?`<div class="mt-1 cmeta"><i class="fa-regular fa-clock me-1"></i>${utils.escapeHtml(c.opening)}</div>`:''}
           <div class="mt-2 d-flex gap-2 flex-wrap">
-            ${cafe.tags.internet_access === 'yes' ? '<span class="pill"><i class="fa-solid fa-wifi"></i> Wi-Fi</span>' : ''}
-            ${cafe.tags.outdoor_seating === 'yes' ? '<span class="pill"><i class="fa-solid fa-umbrella-beach"></i> outdoor</span>' : ''}
+            ${c.tags.internet_access==='yes'?'<span class="pill"><i class="fa-solid fa-wifi"></i> Wi-Fi</span>':''}
+            ${c.tags.outdoor_seating==='yes'?'<span class="pill"><i class="fa-solid fa-umbrella-beach"></i> outdoor</span>':''}
           </div>
           <div class="mt-2 d-flex gap-3 flex-wrap small">
-            ${web ? `<a class="text-decoration-none" target="_blank" href="${utils.safeUrl(web)}"><i class="fa-solid fa-globe me-1"></i>Website</a>` : ''}
-            ${phone ? `<a class="text-decoration-none" href="tel:${encodeURIComponent(phone)}"><i class="fa-solid fa-phone me-1"></i>Call</a>` : ''}
+            ${web?`<a class="text-decoration-none" target="_blank" href="${utils.safeUrl(web)}"><i class="fa-solid fa-globe me-1"></i>Website</a>`:''}
+            ${phone?`<a class="text-decoration-none" href="tel:${encodeURIComponent(phone)}"><i class="fa-solid fa-phone me-1"></i>Call</a>`:''}
           </div>
           <div class="mt-2 small">Your rating:</div>
           <div class="rate-group" data-idx="${idx}">
-            ${[1, 2, 3, 4, 5].map(v => 
-              `<i class="fa-solid fa-star ${user && v <= user ? 'active' : ''}" data-v="${v}" title="${v}"></i>`
-            ).join('')}
+            ${[1,2,3,4,5].map(v=>`<i class="fa-solid fa-star ${user&&v<=user?'active':''}" data-v="${v}" title="${v}"></i>`).join('')}
           </div>
         </div>
       </div>`;
   }
+  function render(list){
+    dom.kpi.textContent = list.length ? `Showing ${utils.fmtK(list.length)} cafés` : 'No cafés';
+    state.cluster.clearLayers(); state.markers = [];
+    if(!list.length){ dom.results.innerHTML=''; utils.show(dom.nores); return; }
+    utils.hide(dom.nores);
 
-  function addResultInteractivity(list) {
-    // Hover sync between list and map markers
-    dom.results.querySelectorAll('[data-idx]').forEach(el => {
-      const i = +el.dataset.idx;
-      el.addEventListener('mouseenter', () => state.markers[i].openPopup());
-      el.addEventListener('click', e => {
-        if (!e.target.closest('.rate-group')) {
-          dom.map.setView(state.markers[i].getLatLng(), 16);
-          state.markers[i].openPopup();
-        }
+    const icon = L.divIcon({className:'', html:'<i class="fa-solid fa-mug-hot cof-ic"></i>', iconSize:[24,24], iconAnchor:[12,12]});
+    list.forEach((c,i)=>{ const m=L.marker([c.lat,c.lon],{icon}).bindPopup(popupHtml(c)); m.on('mouseover',()=>m.openPopup()); state.cluster.addLayer(m); state.markers.push(m); });
+
+    requestAnimationFrame(()=>{
+      dom.results.innerHTML = list.map((c,i)=>cardHtml(c,i)).join('');
+      addResultInteractivity(list);
+    });
+  }
+  function addResultInteractivity(list){
+    dom.results.querySelectorAll('[data-idx]').forEach(el=>{
+      const i=+el.dataset.idx;
+      el.addEventListener('mouseenter',()=> state.markers[i]?.openPopup());
+      el.addEventListener('click', e=>{
+        if(!e.target.closest('.rate-group')){ dom.map.setView(state.markers[i].getLatLng(),16); state.markers[i].openPopup(); }
       });
     });
-    
-    // Rating functionality
-    dom.results.querySelectorAll('.rate-group .fa-star').forEach(star => {
-      star.addEventListener('mouseenter', e => {
-        const value = parseInt(e.target.dataset.v, 10);
-        const parent = e.target.parentElement;
-        
-        parent.querySelectorAll('.fa-star').forEach(s => {
-          s.classList.toggle('hovered', parseInt(s.dataset.v, 10) <= value);
-        });
+    dom.results.querySelectorAll('.rate-group .fa-star').forEach(star=>{
+      star.addEventListener('mouseenter',e=>{
+        const v=+e.target.dataset.v, p=e.target.parentElement;
+        p.querySelectorAll('.fa-star').forEach(s=> s.classList.toggle('hovered', +s.dataset.v<=v));
       });
-      
-      star.addEventListener('mouseleave', e => {
-        e.target.parentElement.querySelectorAll('.fa-star').forEach(s => {
-          s.classList.remove('hovered');
-        });
+      star.addEventListener('mouseleave',e=>{
+        e.target.parentElement.querySelectorAll('.fa-star').forEach(s=> s.classList.remove('hovered'));
       });
-      
-      star.addEventListener('click', e => {
-        const idx = parseInt(e.target.closest('.rate-group').dataset.idx, 10);
-        const value = parseInt(e.target.dataset.v, 10);
-        
-        setUserRating(list[idx].id, value);
-        
-        // Update ratings live
-        list[idx].userRating = value;
-        list[idx].combinedRating = utils.clamp(0.7 * list[idx].smartRating + 0.3 * value, 0, 5);
-        
+      star.addEventListener('click',e=>{
+        const idx=+e.target.closest('.rate-group').dataset.idx, v=+e.target.dataset.v;
+        setUserRating(list[idx].id, v);
+        list[idx].userRating=v; list[idx].combinedRating=utils.clamp(0.7*list[idx].smartRating+0.3*v,0,5);
         applyFiltersAndRender();
       });
     });
   }
+  function showNoResults(msg){ dom.results.innerHTML=`<div class="text-center text-muted py-4">${utils.escapeHtml(msg)}</div>`; utils.show(dom.nores); }
 
-  function showNoResults(msg) {
-    dom.results.innerHTML = `<div class="text-center text-muted py-4">${utils.escapeHtml(msg)}</div>`;
-    utils.show(dom.nores);
-  }
-
-  // Initialize the application when DOM is loaded
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
+  // ---- Init now ----
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
 </script>
 </body>
