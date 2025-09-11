@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Coffee Finder Pro ☕ — Worldwide cafés (OSM)</title>
-<meta name="description" content="Find cafés anywhere in the world. OpenStreetMap based, fast, accurate, no API keys." />
+<meta name="description" content="Find cafés anywhere in the world. OpenStreetMap-based, fast, accurate, zero API keys." />
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>☕</text></svg>">
 
 <!-- Bootstrap -->
@@ -16,15 +16,13 @@
 <!-- MarkerCluster -->
 <link href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" rel="stylesheet">
 <link href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" rel="stylesheet">
+<!-- Opening_hours parser (best effort; we also have a fallback) -->
+<script defer src="https://cdn.jsdelivr.net/npm/opening_hours@3.10.1/opening_hours.min.js"></script>
 
 <style>
   :root{
-    --bg:#f7f5f2;
-    --panel:#ffffff;
-    --ink:#2a211c;
-    --muted:#7a6e67;
-    --brand:#c86b40;
-    --brand2:#7a4b3a;
+    --bg:#f7f5f2; --panel:#ffffff; --ink:#2a211c; --muted:#7a6e67;
+    --brand:#c86b40; --brand2:#7a4b3a; --chip:#efe8e2;
   }
   html,body{height:100%}
   body{background:linear-gradient(135deg,#faf9f8,#f3efe9); color:var(--ink)}
@@ -46,13 +44,17 @@
   .card-cafe:hover{transform:translateY(-2px); box-shadow:0 12px 26px rgba(0,0,0,.10)}
   .cmeta{font-size:.9rem; color:var(--muted)}
   .loader{display:none; text-align:center; padding:16px}
-  .pill{border-radius:999px; background:#f1ece7; padding:.25rem .6rem; font-size:.8rem}
+  .pill{border-radius:999px; background:var(--chip); padding:.25rem .6rem; font-size:.8rem}
   .country-select{min-width:130px}
-  .suggest{position:absolute; inset:auto 0 0 0; top:100%; z-index:20; background:var(--panel); border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,.15); overflow:hidden; display:none}
+  .suggest{position:absolute; inset:auto 0 0 0; top:100%; z-index:20; background:var(--panel);
+           border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,.15); overflow:hidden; display:none}
   .suggest a{display:flex; gap:.5rem; align-items:center; padding:.55rem .8rem; color:var(--ink); text-decoration:none}
   .suggest a:hover{background:#f6f3ef}
   .leaflet-popup-content{margin:.4rem .6rem}
   .cof-ic{color:#7b4e3a; font-size:18px}
+  .badgish{background:#f3ede8;border-radius:8px;padding:.22rem .5rem;font-size:.8rem}
+  .floating-search{position:absolute; z-index:999; right:14px; top:14px}
+  .kpi{font-size:.92rem; color:var(--muted)}
   footer{padding:22px 0; color:#fff; background:#2b2220; margin-top:26px}
   .pointer{cursor:pointer}
 </style>
@@ -63,26 +65,25 @@
   <div class="container">
     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
       <div class="brand"><i class="fa-solid fa-mug-saucer me-2"></i>Coffee Finder Pro</div>
-      <div class="tag">OpenStreetMap • Overpass • Zero-key</div>
+      <div class="tag">OpenStreetMap • Overpass • Zero-key • Fast</div>
     </div>
   </div>
 </header>
 
 <main class="container">
-  <!-- Search -->
+  <!-- Search+Filters -->
   <section class="search-card">
     <div class="row g-2 align-items-stretch">
-      <div class="col-12 col-lg-6 position-relative">
+      <div class="col-12 col-xl-5 position-relative">
         <div class="input-group">
           <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass"></i></span>
           <input id="q" class="form-control" placeholder="City, area or address (e.g., Riyadh, Saudi Arabia)">
           <button id="btnSearch" class="btn btn-brand text-white px-4"><i class="fa-solid fa-search me-1"></i>Search</button>
         </div>
-        <!-- suggestions -->
         <div id="suggestions" class="suggest rounded-3"></div>
       </div>
 
-      <div class="col-7 col-lg-3">
+      <div class="col-6 col-xl-2">
         <div class="input-group">
           <span class="input-group-text bg-white"><i class="fa-solid fa-globe"></i></span>
           <select id="country" class="form-select country-select">
@@ -91,14 +92,40 @@
         </div>
       </div>
 
-      <div class="col-5 col-lg-3 d-grid">
-        <button id="btnLocate" class="btn btn-outline-secondary"><i class="fa-solid fa-location-crosshairs me-1"></i>Use my location</button>
+      <div class="col-6 col-xl-2">
+        <div class="input-group">
+          <span class="input-group-text bg-white"><i class="fa-solid fa-ruler"></i></span>
+          <select id="radius" class="form-select">
+            <option value="2000">2 km</option>
+            <option value="4000" selected>4 km</option>
+            <option value="6000">6 km</option>
+            <option value="8000">8 km</option>
+            <option value="10000">10 km</option>
+          </select>
+        </div>
       </div>
+
+      <div class="col-12 col-xl-3">
+        <div class="row g-2">
+          <div class="col-6 d-grid"><button id="btnLocate" class="btn btn-outline-secondary"><i class="fa-solid fa-location-crosshairs me-1"></i>Locate me</button></div>
+          <div class="col-6 d-grid"><button id="btnSearchHere" class="btn btn-outline-primary" disabled><i class="fa-solid fa-arrows-to-circle me-1"></i>Search this area</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-2 d-flex gap-2 flex-wrap align-items-center">
+      <label class="badgish"><input id="fOpen" type="checkbox" class="form-check-input me-1">Open now</label>
+      <label class="badgish"><input id="fWifi" type="checkbox" class="form-check-input me-1">Wi-Fi</label>
+      <label class="badgish"><input id="fOutdoor" type="checkbox" class="form-check-input me-1">Outdoor seating</label>
+      <div class="kpi ms-auto"><span id="kpiTxt">Ready</span></div>
     </div>
   </section>
 
   <!-- Map + Results -->
-  <section class="mt-3">
+  <section class="mt-3 position-relative">
+    <div class="floating-search">
+      <span class="badge text-bg-light">Drag the map — button will enable</span>
+    </div>
     <div class="row g-3">
       <div class="col-lg-8"><div id="map"></div></div>
       <div class="col-lg-4">
@@ -123,7 +150,7 @@
 
 <footer>
   <div class="container small text-center">
-    © <span id="yr"></span> Coffee Finder Pro — Tiles © OSM contributors • Data: Overpass/OSM.
+    © <span id="yr"></span> Coffee Finder Pro — Tiles © OSM contributors • Data: Overpass/OSM • Built for speed.
   </div>
 </footer>
 
@@ -134,43 +161,62 @@
 
 <script>
 (() => {
-  // -------------------- MAP INIT --------------------
-  const map = L.map('map', { zoomControl: false }).setView([20, 0], 3);
-  L.control.zoom({ position: 'topright' }).addTo(map);
-
-  const tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '&copy; OpenStreetMap'
+  // ------------ Map init ------------
+  const map = L.map('map', { zoomControl:false }).setView([20, 0], 3);
+  L.control.zoom({ position:'topright' }).addTo(map);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, attribution: '&copy; OpenStreetMap'
   }).addTo(map);
 
   const cluster = L.markerClusterGroup({ showCoverageOnHover:false, maxClusterRadius:50 });
   map.addLayer(cluster);
 
-  // -------------------- STATE --------------------
-  let centerBias = null;      // {lat, lon} used to bias searches
-  let currentOrigin = null;   // last searched center {lat, lon}
-  let cafes = [];             // results
-  let markers = [];           // markers for linking with list
-  const resultsEl = document.getElementById('results');
-  const noresEl = document.getElementById('nores');
-  const loaderEl = document.getElementById('loader');
+  // ------------ State ------------
+  let countryBias = '';     // 2-letter code
+  let centerBias = null;    // {lat,lon} for suggestions
+  let currentOrigin = null; // last search center
+  let cafes = [];           // results
+  let markers = [];         // for hover sync
+  let mapMovedSinceSearch = false;
 
-  // -------------------- UTIL --------------------
+  const els = {
+    q:         document.getElementById('q'),
+    suggestions: document.getElementById('suggestions'),
+    country:   document.getElementById('country'),
+    radius:    document.getElementById('radius'),
+    btnSearch: document.getElementById('btnSearch'),
+    btnLocate: document.getElementById('btnLocate'),
+    btnHere:   document.getElementById('btnSearchHere'),
+    sort:      document.getElementById('sort'),
+    fOpen:     document.getElementById('fOpen'),
+    fWifi:     document.getElementById('fWifi'),
+    fOutdoor:  document.getElementById('fOutdoor'),
+    loader:    document.getElementById('loader'),
+    results:   document.getElementById('results'),
+    nores:     document.getElementById('nores'),
+    kpi:       document.getElementById('kpiTxt')
+  };
+
+  // ------------ Utils ------------
   const deg2rad = d => d*Math.PI/180;
-  function haversine(lat1,lon1,lat2,lon2) {
-    const R = 6371, dLat = deg2rad(lat2-lat1), dLon = deg2rad(lon2-lon1);
-    const a = Math.sin(dLat/2)**2 + Math.cos(deg2rad(lat1))*Math.cos(deg2rad(lat2))*Math.sin(dLon/2)**2;
+  function haversine(lat1,lon1,lat2,lon2){
+    const R=6371, dLat=deg2rad(lat2-lat1), dLon=deg2rad(lon2-lon1);
+    const a=Math.sin(dLat/2)**2 + Math.cos(deg2rad(lat1))*Math.cos(deg2rad(lat2))*Math.sin(dLon/2)**2;
     return R*2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
   }
   function show(el){ el.classList.remove('d-none'); }
   function hide(el){ el.classList.add('d-none'); }
-  function startLoading(){ loaderEl.style.display='block'; resultsEl.innerHTML=''; hide(noresEl); }
-  function stopLoading(){ loaderEl.style.display='none'; }
+  function startLoading(msg='Searching cafés…'){
+    els.loader.style.display='block'; els.loader.textContent=''; els.loader.insertAdjacentHTML('afterbegin', '<i class="fa-solid fa-spinner fa-spin me-2"></i>'+msg);
+    els.results.innerHTML=''; hide(els.nores);
+  }
+  function stopLoading(){ els.loader.style.display='none'; }
+  function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+  function safeUrl(u){ try{ const x=new URL(u, location.href); return x.href; }catch(_){ return '#'; } }
+  function directionsUrl(lat,lon){ const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent); return isIOS ? `http://maps.apple.com/?daddr=${lat},${lon}` : `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`; }
+  function fmtK(n){ return n.toLocaleString(); }
 
-  // -------------------- COUNTRY SELECT (auto-detect) --------------------
-  const countrySelect = document.getElementById('country');
-
-  // Build quick list of the most common codes first to keep the UI snappy
+  // ------------ Country quick list ------------
   const TOP = [
     ["sa","Saudi Arabia"],["ae","United Arab Emirates"],["qa","Qatar"],["kw","Kuwait"],
     ["bh","Bahrain"],["om","Oman"],["us","United States"],["gb","United Kingdom"],
@@ -178,158 +224,128 @@
     ["tr","Turkey"],["in","India"],["jp","Japan"],["kr","South Korea"]
   ];
   for (const [code,name] of TOP){
-    const opt = document.createElement('option');
-    opt.value = code;
-    opt.textContent = name;
-    countrySelect.appendChild(opt);
+    const opt=document.createElement('option'); opt.value=code; opt.textContent=name; els.country.appendChild(opt);
   }
 
-  // Best-effort IP geolocate to set default country & bias
+  // ------------ Auto-detect country (best effort) ------------
   (async () => {
     try{
       const r = await fetch('https://ipapi.co/json/');
       if (!r.ok) throw 0;
       const j = await r.json();
       if (j && j.country_code) {
-        countrySelect.value = j.country_code.toLowerCase();
+        countryBias = (j.country_code||'').toLowerCase();
+        els.country.value = countryBias;
         if (j.latitude && j.longitude) centerBias = { lat:j.latitude, lon:j.longitude };
       }
     }catch(_){}
   })();
 
-  // -------------------- SUGGESTIONS (Photon) --------------------
-  const q = document.getElementById('q');
-  const sug = document.getElementById('suggestions');
+  // ------------ Suggestions (Photon) ------------
   let sugTimer = null;
-
-  q.addEventListener('input', () => {
-    const val = q.value.trim();
-    if (val.length < 2) { sug.style.display='none'; sug.innerHTML=''; return; }
-    clearTimeout(sugTimer);
-    sugTimer = setTimeout(loadSuggestions, 200);
+  els.q.addEventListener('input', () => {
+    const val = els.q.value.trim();
+    if (val.length < 2) { els.suggestions.style.display='none'; els.suggestions.innerHTML=''; return; }
+    clearTimeout(sugTimer); sugTimer = setTimeout(loadSuggestions, 200);
   });
-
   async function loadSuggestions(){
-    const val = q.value.trim();
-    if (!val) return;
-    // Photon supports bias with lat/lon; for strong country bias we’ll use Nominatim on search
+    const val = els.q.value.trim(); if (!val) return;
     const url = new URL('https://photon.komoot.io/api/');
-    url.searchParams.set('q', val);
-    url.searchParams.set('limit','6');
-    url.searchParams.set('lang','en');
+    url.searchParams.set('q', val); url.searchParams.set('limit','6'); url.searchParams.set('lang','en');
     if (centerBias){ url.searchParams.set('lat', centerBias.lat); url.searchParams.set('lon', centerBias.lon); }
-
     try{
-      const r = await fetch(url);
-      const j = await r.json();
+      const r = await fetch(url); const j = await r.json();
       const items = (j.features||[]).map(f=>{
-        const props = f.properties||{};
-        const line = [props.name, props.city, props.state, props.country].filter(Boolean).join(', ');
-        return {
-          label: line || props.name,
-          lat: f.geometry.coordinates[1],
-          lon: f.geometry.coordinates[0]
-        };
+        const p=f.properties||{}, line=[p.name,p.city,p.state,p.country].filter(Boolean).join(', ');
+        return { label: line||p.name, lat:f.geometry.coordinates[1], lon:f.geometry.coordinates[0] };
       }).slice(0,6);
-
-      if (!items.length){ sug.style.display='none'; sug.innerHTML=''; return; }
-      sug.innerHTML = items.map(i => `
+      if (!items.length){ els.suggestions.style.display='none'; els.suggestions.innerHTML=''; return; }
+      els.suggestions.innerHTML = items.map(i => `
         <a class="pointer" data-lat="${i.lat}" data-lon="${i.lon}">
           <i class="fa-solid fa-location-dot text-danger"></i>
           <span>${escapeHtml(i.label)}</span>
-        </a>
-      `).join('');
-      sug.style.display='block';
-    }catch(e){
-      sug.style.display='none';
-      sug.innerHTML='';
-    }
+        </a>`).join('');
+      els.suggestions.style.display='block';
+    }catch(_){ els.suggestions.style.display='none'; els.suggestions.innerHTML=''; }
   }
-  sug.addEventListener('click', e=>{
-    const a = e.target.closest('a[data-lat]');
-    if (!a) return;
-    const lat = parseFloat(a.dataset.lat), lon = parseFloat(a.dataset.lon);
-    sug.style.display='none';
-    sug.innerHTML='';
-    q.blur();
-    goSearch(lat,lon, a.textContent.trim());
+  els.suggestions.addEventListener('click', e=>{
+    const a=e.target.closest('a[data-lat]'); if (!a) return;
+    els.suggestions.style.display='none'; els.suggestions.innerHTML='';
+    const lat=parseFloat(a.dataset.lat), lon=parseFloat(a.dataset.lon);
+    doSearchAt(lat,lon);
   });
   document.addEventListener('click', e=>{
-    if (!sug.contains(e.target) && e.target!==q) { sug.style.display='none'; }
+    if (!els.suggestions.contains(e.target) && e.target!==els.q) els.suggestions.style.display='none';
   });
 
-  // -------------------- SEARCH (Nominatim + country bias) --------------------
-  document.getElementById('btnSearch').addEventListener('click', ()=>{
-    if (!q.value.trim()) { q.focus(); return; }
-    geocodeText(q.value.trim());
+  // ------------ Geocode with strong country bias (Nominatim) ------------
+  els.btnSearch.addEventListener('click', ()=>{
+    const t=els.q.value.trim(); if (!t) return els.q.focus(); geocodeText(t);
   });
-  q.addEventListener('keydown', e=>{
-    if (e.key==='Enter'){ e.preventDefault(); document.getElementById('btnSearch').click(); }
-  });
+  els.q.addEventListener('keydown', e=>{ if (e.key==='Enter'){ e.preventDefault(); els.btnSearch.click(); } });
+  els.country.addEventListener('change', ()=> countryBias = els.country.value||'');
 
   async function geocodeText(text){
-    // Strong country bias using Nominatim & countrycodes
     const url = new URL('https://nominatim.openstreetmap.org/search');
-    url.searchParams.set('format','json');
-    url.searchParams.set('addressdetails','1');
-    url.searchParams.set('limit','5');
-    url.searchParams.set('q', text);
-    const cc = (countrySelect.value||'').trim();
-    if (cc) url.searchParams.set('countrycodes', cc); // fixes "Riyadh" → Saudi, not Mauritania
+    url.searchParams.set('format','json'); url.searchParams.set('addressdetails','1');
+    url.searchParams.set('limit','5'); url.searchParams.set('q', text);
+    if (countryBias) url.searchParams.set('countrycodes', countryBias); // critical fix for "Riyadh"
     try{
-      startLoading();
-      const r = await fetch(url.toString(), { headers: { 'Accept-Language':'en' }});
-      const j = await r.json();
+      startLoading('Finding place…');
+      const r=await fetch(url.toString(), { headers:{'Accept-Language':'en'} }); const j=await r.json();
       if (!j.length){ stopLoading(); showNoResults('No matching location. Try adding the country.'); return; }
-      // Choose best: if user provided country bias, prefer those; else top result
-      const loc = j[0];
-      const lat = parseFloat(loc.lat), lon = parseFloat(loc.lon);
-      const label = (loc.display_name||'').split(',').slice(0,3).join(', ');
-      goSearch(lat,lon,label);
-    }catch(err){
-      stopLoading();
-      showNoResults('Search failed. Please try again.');
-    }
+      const loc=j[0]; const lat=parseFloat(loc.lat), lon=parseFloat(loc.lon);
+      doSearchAt(lat,lon);
+    }catch(_){ stopLoading(); showNoResults('Search failed. Please try again.'); }
   }
 
-  function goSearch(lat,lon,label){
-    currentOrigin = {lat,lon};
-    if (!centerBias) centerBias = {lat,lon};
-    map.setView([lat,lon], 13);
-    findCafesWithExpansion(lat,lon);
-  }
-
-  // -------------------- CURRENT LOCATION --------------------
-  document.getElementById('btnLocate').addEventListener('click', ()=>{
-    if (!navigator.geolocation) return alert('Geolocation not supported in this browser.');
-    startLoading();
-    navigator.geolocation.getCurrentPosition(pos=>{
-      const {latitude:lat, longitude:lon} = pos.coords;
-      currentOrigin = {lat,lon};
-      centerBias = {lat,lon};
-      map.setView([lat,lon], 14);
-      findCafesWithExpansion(lat,lon);
-    }, _=>{
-      stopLoading();
-      alert('Could not get your location. Please search by city instead.');
-    }, { enableHighAccuracy:true, timeout:10000 });
+  // ------------ Map move detection → enable “Search this area” ------------
+  map.on('moveend', () => {
+    mapMovedSinceSearch = true; els.btnHere.disabled=false;
+  });
+  els.btnHere.addEventListener('click', ()=>{
+    const c = map.getCenter(); doSearchAt(c.lat, c.lng, true);
   });
 
-  // -------------------- OVERPASS SEARCH (with radius expansion) --------------------
-  async function findCafesWithExpansion(lat,lon){
-    // expand radius 2km → 4km → 8km until we get results (cap 10km)
-    const radii = [2000, 4000, 8000, 10000];
-    let found = [];
-    for (const r of radii){
-      found = await queryCafes(lat,lon,r);
-      if (found.length >= 8 || r === radii[radii.length-1]) break; // enough or last try
-    }
-    stopLoading();
-    renderResults(found, lat, lon);
+  // ------------ Locate me ------------
+  els.btnLocate.addEventListener('click', ()=>{
+    if (!navigator.geolocation) return alert('Geolocation is not supported.');
+    startLoading('Getting your location…');
+    navigator.geolocation.getCurrentPosition(pos=>{
+      const {latitude:lat, longitude:lon} = pos.coords;
+      centerBias = {lat,lon}; doSearchAt(lat,lon, false, 14);
+    }, _=>{ stopLoading(); alert('Could not get your location. Try searching by city.'); }, { enableHighAccuracy:true, timeout:10000 });
+  });
+
+  function doSearchAt(lat,lon, fromMapMove=false, zoom=13){
+    currentOrigin = {lat,lon};
+    map.setView([lat,lon], Math.max(zoom, map.getZoom()));
+    mapMovedSinceSearch = false; els.btnHere.disabled = true;
+    findCafes(lat,lon, parseInt(els.radius.value,10));
   }
 
-  async function queryCafes(lat,lon,radius){
-    const q = `
+  // ------------ Overpass failover ------------
+  const OVERPASS = [
+    'https://overpass-api.de/api/interpreter',
+    'https://overpass.kumi.systems/api/interpreter',
+    'https://z.overpass-api.de/api/interpreter'
+  ];
+  async function overpassFetch(body){
+    for (const ep of OVERPASS){
+      try{
+        const ctrl = new AbortController(); const t = setTimeout(()=>ctrl.abort(), 18000);
+        const r = await fetch(ep, { method:'POST', body, signal:ctrl.signal });
+        clearTimeout(t);
+        if (r.ok) return await r.json();
+      }catch(_){ /* try next */ }
+    }
+    throw new Error('All Overpass endpoints failed');
+  }
+
+  // ------------ Query & render ------------
+  async function findCafes(lat,lon,radius){
+    startLoading('Searching cafés…');
+    const q=`
       [out:json][timeout:25];
       (
         node["amenity"="cafe"](around:${radius},${lat},${lon});
@@ -338,137 +354,154 @@
       );
       out center tags;
     `;
-    try{
-      const r = await fetch('https://overpass-api.de/api/interpreter', { method:'POST', body:q });
-      const j = await r.json();
-      const els = j.elements || [];
-      return els.map(e=>{
-        const c = e.type === 'way' ? e.center : { lat:e.lat, lon:e.lon };
-        const name = (e.tags && e.tags.name) ? e.tags.name : (e.tags && e.tags.brand) ? e.tags.brand : 'Unnamed café';
-        const dist = currentOrigin ? haversine(currentOrigin.lat,currentOrigin.lon,c.lat,c.lon) : null;
-        return {
-          id: e.id, lat:c.lat, lon:c.lon, tags:(e.tags||{}),
-          name, distance: dist, opening: e.tags?.opening_hours || null
-        };
-      });
-    }catch(_){ return []; }
+    let data;
+    try { data = await overpassFetch(q); }
+    catch(_) { stopLoading(); showNoResults('Search failed (Overpass). Please try again.'); return; }
+
+    const els = data.elements||[];
+    cafes = els.map(e=>{
+      const c = e.type==='way' ? e.center : { lat:e.lat, lon:e.lon };
+      const tags = e.tags||{};
+      return {
+        id:e.id, lat:c.lat, lon:c.lon, tags,
+        name: tags.name || tags.brand || 'Unnamed café',
+        distance: currentOrigin ? haversine(currentOrigin.lat,currentOrigin.lon,c.lat,c.lon) : null,
+        opening: tags.opening_hours || null
+      };
+    });
+    applyFiltersAndRender();
+    stopLoading();
   }
 
-  // -------------------- RENDER --------------------
-  function renderResults(list, originLat, originLon){
-    cafes = list.slice();
-    // default sort by distance
-    cafes.sort((a,b)=> (a.distance??1e9) - (b.distance??1e9));
-    cluster.clearLayers();
-    markers.length = 0;
+  // ------------ Filters/sort ------------
+  els.fOpen .addEventListener('change', applyFiltersAndRender);
+  els.fWifi .addEventListener('change', applyFiltersAndRender);
+  els.fOutdoor.addEventListener('change', applyFiltersAndRender);
+  els.sort  .addEventListener('change', applyFiltersAndRender);
 
-    if (!cafes.length){
-      resultsEl.innerHTML='';
-      show(noresEl);
-      return;
+  function applyFiltersAndRender(){
+    let list = cafes.slice();
+
+    // filters
+    const needOpen   = els.fOpen.checked;
+    const needWifi   = els.fWifi.checked;
+    const needOutdoor= els.fOutdoor.checked;
+
+    if (needOpen)   list = list.filter(isOpenNow);
+    if (needWifi)   list = list.filter(c => (c.tags.internet_access === 'yes'));
+    if (needOutdoor)list = list.filter(c => (c.tags.outdoor_seating === 'yes'));
+
+    // sort
+    const mode = els.sort.value;
+    if (mode==='name') list.sort((a,b)=> (a.name||'').localeCompare(b.name||''));
+    else if (mode==='hours') list.sort((a,b)=> ((b.opening?1:0) - (a.opening?1:0)));
+    else list.sort((a,b)=> (a.distance??1e9)-(b.distance??1e9));
+
+    render(list);
+  }
+
+  function isOpenNow(cafe){
+    if (!cafe.opening) return false;
+    if (cafe.opening.includes('24/7')) return true;
+    // try proper library if available
+    try{
+      if (window.opening_hours) {
+        const oh = new opening_hours(cafe.opening);
+        return oh.getState(new Date());
+      }
+    }catch(_){}
+    // fallback heuristic: "Mo-Su 08:00-22:00" or "08:00-22:00"
+    const m = /(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/.exec(cafe.opening);
+    if (m){
+      const now=new Date(); const mins=now.getHours()*60+now.getMinutes();
+      const open=parseInt(m[1])*60+parseInt(m[2]); const close=parseInt(m[3])*60+parseInt(m[4]);
+      if (close>open) return mins>=open && mins<=close;
+      return (mins>=open) || (mins<=close); // overnight
     }
-    hide(noresEl);
+    return false;
+  }
 
-    // add markers
+  // ------------ Rendering ------------
+  function render(list){
+    els.kpi.textContent = list.length ? `Showing ${fmtK(list.length)} cafés` : 'No cafés';
+    cluster.clearLayers(); markers.length=0;
+
+    if (!list.length){ els.results.innerHTML=''; show(els.nores); return; }
+    hide(els.nores);
+
     const icon = L.divIcon({ className:'', html:'<i class="fa-solid fa-mug-hot cof-ic"></i>', iconSize:[24,24], iconAnchor:[12,12] });
-    cafes.forEach((cafe, idx)=>{
-      const m = L.marker([cafe.lat, cafe.lon], { icon }).bindPopup(popupHtml(cafe));
-      m.on('mouseover', ()=> m.openPopup());
-      cluster.addLayer(m);
-      markers.push(m);
+    list.forEach((c, i)=>{
+      const m=L.marker([c.lat,c.lon],{icon}).bindPopup(popupHtml(c));
+      m.on('mouseover',()=>m.openPopup());
+      cluster.addLayer(m); markers.push(m);
     });
 
-    // fit slightly (keep origin center)
-    map.setView([originLat, originLon], Math.max(12, map.getZoom()));
-
-    // render list
-    resultsEl.innerHTML = cafes.map((cafe, idx)=> cardHtml(cafe, idx)).join('');
-    // link hover ↔ marker
-    resultsEl.querySelectorAll('[data-idx]').forEach(el=>{
-      const i = +el.dataset.idx;
+    els.results.innerHTML = list.map((c,i)=> cardHtml(c,i)).join('');
+    els.results.querySelectorAll('[data-idx]').forEach(el=>{
+      const i=+el.dataset.idx;
       el.addEventListener('mouseenter', ()=> markers[i].openPopup());
-      el.addEventListener('click', ()=> { map.setView(markers[i].getLatLng(), 16); markers[i].openPopup(); });
+      el.addEventListener('click', ()=>{ map.setView(markers[i].getLatLng(), 16); markers[i].openPopup(); });
     });
   }
 
   function popupHtml(c){
     const web = c.tags.website || c.tags['contact:website'];
     const phone = c.tags.phone || c.tags['contact:phone'];
-    const open = c.opening ? `<div class="small"><i class="fa-regular fa-clock me-1"></i>${escapeHtml(c.opening)}</div>` : '';
-    const line = `
+    const wifi = c.tags.internet_access === 'yes' ? `<span class="pill"><i class="fa-solid fa-wifi"></i> Wi-Fi</span>` : '';
+    const outdoor = c.tags.outdoor_seating === 'yes' ? `<span class="pill"><i class="fa-solid fa-umbrella-beach"></i> outdoor</span>` : '';
+    const openS = c.opening ? `<div class="small"><i class="fa-regular fa-clock me-1"></i>${escapeHtml(c.opening)}</div>` : '';
+    const distS = c.distance!=null ? `<div class="small text-muted">${c.distance.toFixed(1)} km away</div>` : '';
+    const addr = [c.tags['addr:street'], c.tags['addr:city']].filter(Boolean).join(', ');
+    const addrS = addr ? `<div class="small"><i class="fa-solid fa-location-dot me-1"></i>${escapeHtml(addr)}</div>` : '';
+
+    return `
       <div><strong>${escapeHtml(c.name)}</strong></div>
-      ${c.distance!=null ? `<div class="small text-muted">${c.distance.toFixed(1)} km away</div>`:''}
-      ${open}
-      <div class="mt-1 d-flex gap-1 flex-wrap">
+      ${distS}${addrS}${openS}
+      <div class="mt-1 d-flex gap-1 flex-wrap">${wifi}${outdoor}</div>
+      <div class="mt-2 d-flex gap-1 flex-wrap">
         <a class="btn btn-sm btn-primary" target="_blank" href="${directionsUrl(c.lat,c.lon)}"><i class="fa-solid fa-turn-up me-1"></i>Directions</a>
         <a class="btn btn-sm btn-outline-secondary" target="_blank" href="https://www.openstreetmap.org/?mlat=${c.lat}&mlon=${c.lon}#map=19/${c.lat}/${c.lon}">OSM</a>
-        ${web ? `<a class="btn btn-sm btn-outline-secondary" target="_blank" href="${safeUrl(web)}">Website</a>`:''}
-        ${phone ? `<a class="btn btn-sm btn-outline-secondary" href="tel:${encodeURIComponent(phone)}">Call</a>`:''}
+        ${web?`<a class="btn btn-sm btn-outline-secondary" target="_blank" href="${safeUrl(web)}">Website</a>`:''}
+        ${phone?`<a class="btn btn-sm btn-outline-secondary" href="tel:${encodeURIComponent(phone)}">Call</a>`:''}
       </div>
     `;
-    return line;
   }
 
   function cardHtml(c, idx){
     const web = c.tags.website || c.tags['contact:website'];
     const phone = c.tags.phone || c.tags['contact:phone'];
-    const cuisine = c.tags.cuisine ? `<span class="pill">cuisine: ${escapeHtml(c.tags.cuisine)}</span>` : '';
-    const wifi = c.tags.internet_access === 'yes' ? `<span class="pill"><i class="fa-solid fa-wifi"></i> Wi-Fi</span>` : '';
-    const outdoor = c.tags.outdoor_seating === 'yes' ? `<span class="pill"><i class="fa-solid fa-umbrella-beach"></i> outdoor</span>` : '';
-    const open = c.opening ? `<div class="cmeta"><i class="fa-regular fa-clock me-1"></i>${escapeHtml(c.opening)}</div>` : '';
-
+    const addr = [c.tags['addr:street'], c.tags['addr:city']].filter(Boolean).join(', ');
     return `
       <div class="card card-cafe mb-2 pointer" data-idx="${idx}">
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-start">
             <div>
               <div class="fw-bold">${escapeHtml(c.name)}</div>
-              <div class="cmeta">${c.distance!=null ? `${c.distance.toFixed(1)} km away` : ''}</div>
+              <div class="cmeta">${c.distance!=null?`${c.distance.toFixed(1)} km away`:''}</div>
             </div>
             <div class="text-nowrap">
-              <a class="btn btn-sm btn-outline-primary" target="_blank" href="${directionsUrl(c.lat,c.lon)}"><i class="fa-solid fa-route"></i></a>
-              <a class="btn btn-sm btn-outline-secondary" target="_blank" href="https://www.openstreetmap.org/?mlat=${c.lat}&mlon=${c.lon}#map=19/${c.lat}/${c.lon}"><i class="fa-brands fa-openid"></i></a>
+              <a class="btn btn-sm btn-outline-primary" target="_blank" href="${directionsUrl(c.lat,c.lon)}" title="Directions"><i class="fa-solid fa-route"></i></a>
+              <a class="btn btn-sm btn-outline-secondary" target="_blank" href="https://www.openstreetmap.org/?mlat=${c.lat}&mlon=${c.lon}#map=19/${c.lat}/${c.lon}" title="OpenStreetMap"><i class="fa-brands fa-openid"></i></a>
             </div>
           </div>
-          ${open}
-          <div class="mt-2 d-flex gap-1 flex-wrap">${cuisine}${wifi}${outdoor}</div>
+          ${addr?`<div class="mt-1 cmeta"><i class="fa-solid fa-location-dot me-1"></i>${escapeHtml(addr)}</div>`:''}
+          ${c.opening?`<div class="mt-1 cmeta"><i class="fa-regular fa-clock me-1"></i>${escapeHtml(c.opening)}</div>`:''}
           <div class="mt-2 d-flex gap-2 flex-wrap">
-            ${web ? `<a class="text-decoration-none" target="_blank" href="${safeUrl(web)}"><i class="fa-solid fa-globe me-1"></i>Website</a>`:''}
-            ${phone ? `<a class="text-decoration-none" href="tel:${encodeURIComponent(phone)}"><i class="fa-solid fa-phone me-1"></i>Call</a>`:''}
+            ${c.tags.internet_access==='yes'?'<span class="pill"><i class="fa-solid fa-wifi"></i> Wi-Fi</span>':''}
+            ${c.tags.outdoor_seating==='yes'?'<span class="pill"><i class="fa-solid fa-umbrella-beach"></i> outdoor</span>':''}
+          </div>
+          <div class="mt-2 d-flex gap-3 flex-wrap small">
+            ${web?`<a class="text-decoration-none" target="_blank" href="${safeUrl(web)}"><i class="fa-solid fa-globe me-1"></i>Website</a>`:''}
+            ${phone?`<a class="text-decoration-none" href="tel:${encodeURIComponent(phone)}"><i class="fa-solid fa-phone me-1"></i>Call</a>`:''}
           </div>
         </div>
       </div>`;
   }
 
-  // -------------------- SORT --------------------
-  document.getElementById('sort').addEventListener('change', e=>{
-    const mode = e.target.value;
-    if (!cafes.length) return;
-    if (mode==='name') cafes.sort((a,b)=> (a.name||'').localeCompare(b.name||''));
-    else if (mode==='hours') cafes.sort((a,b)=> ((!b.opening) - (!a.opening))); // "openings" first
-    else cafes.sort((a,b)=> (a.distance??1e9) - (b.distance??1e9));
-    resultsEl.innerHTML = cafes.map((c,i)=> cardHtml(c,i)).join('');
-    resultsEl.querySelectorAll('[data-idx]').forEach(el=>{
-      const i = +el.dataset.idx;
-      el.addEventListener('mouseenter', ()=> markers[i].openPopup());
-      el.addEventListener('click', ()=> { map.setView(markers[i].getLatLng(), 16); markers[i].openPopup(); });
-    });
-  });
-
-  // -------------------- HELPERS --------------------
-  function directionsUrl(lat,lon){
-    // Prefer platform-agnostic: if on iOS, apple maps; else google if available; else OSM
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    if (isIOS) return `http://maps.apple.com/?daddr=${lat},${lon}`;
-    return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
-  }
-  function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
-  function safeUrl(u){ try{ const x=new URL(u, location.href); return x.href; }catch(_){ return '#'; } }
-  function showNoResults(msg){ resultsEl.innerHTML=`<div class="text-center text-muted py-4">${escapeHtml(msg)}</div>`; show(noresEl); }
+  function showNoResults(msg){ els.results.innerHTML=`<div class="text-center text-muted py-4">${escapeHtml(msg)}</div>`; show(els.nores); }
 
   // Footer year
   document.getElementById('yr').textContent = new Date().getFullYear();
-
 })();
 </script>
 </body>
