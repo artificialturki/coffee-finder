@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Coffee Finder Pro</title>
+  <title>Coffee Finder OSM</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
   <style>
     body { margin:0; font-family: Arial, sans-serif; display:flex; flex-direction:column; height:100vh; }
     header { background:#3c2f2f; color:#fff; padding:1rem; text-align:center; }
@@ -21,8 +22,8 @@
 </head>
 <body>
   <header>
-    <h1>☕ Coffee Finder Pro</h1>
-    <p>Search cafés anywhere in the world 🌍</p>
+    <h1>☕ Coffee Finder OSM</h1>
+    <p>Find cafés anywhere in the world 🌍 (Powered by OpenStreetMap)</p>
   </header>
 
   <div id="searchBar">
@@ -35,74 +36,70 @@
     <div id="results"><h2>Results</h2><div id="list"></div></div>
   </div>
 
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
-    let map, service, geocoder, infowindow;
-    function initMap() {
-      map = new google.maps.Map(document.getElementById("map"), {
-        center: { lat: 20, lng: 0 }, zoom: 2
-      });
-      geocoder = new google.maps.Geocoder();
-      infowindow = new google.maps.InfoWindow();
-    }
+    // Init map
+    const map = L.map('map').setView([20, 0], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
 
-    function searchCoffee() {
+    let markers = [];
+
+    async function searchCoffee() {
       const location = document.getElementById("locationInput").value;
-      if (!location) { alert("Enter a city and country!"); return; }
+      if (!location) { alert("Please enter a city and country!"); return; }
 
-      geocoder.geocode({ address: location }, (results, status) => {
-        if (status !== "OK" || !results[0]) {
-          alert("Location not found.");
-          return;
-        }
-        map.setCenter(results[0].geometry.location);
-        map.setZoom(14);
+      // 1. Geocode city + country → coordinates
+      const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location)}`);
+      const geoData = await geoRes.json();
+      if (geoData.length === 0) {
+        alert("Location not found.");
+        return;
+      }
+      const { lat, lon } = geoData[0];
+      map.setView([lat, lon], 14);
 
-        const request = {
-          location: results[0].geometry.location,
-          radius: 3000,
-          type: ["cafe"],
-          keyword: "coffee"
-        };
+      // Clear old markers
+      markers.forEach(m => map.removeLayer(m));
+      markers = [];
 
-        service = new google.maps.places.PlacesService(map);
-        service.nearbySearch(request, displayResults);
+      // 2. Query Overpass API for cafés around 3km
+      const query = `
+        [out:json];
+        node["amenity"="cafe"](around:3000,${lat},${lon});
+        out;
+      `;
+      const overRes = await fetch("https://overpass-api.de/api/interpreter", {
+        method: "POST",
+        body: query
       });
-    }
+      const overData = await overRes.json();
 
-    function displayResults(results, status) {
       const listDiv = document.getElementById("list");
       listDiv.innerHTML = "";
-      if (status !== google.maps.places.PlacesServiceStatus.OK || !results) {
-        listDiv.innerHTML = "<p>No cafés found.</p>";
+
+      if (overData.elements.length === 0) {
+        listDiv.innerHTML = "<p>No cafés found nearby.</p>";
         return;
       }
 
-      results.forEach(place => {
-        // Marker
-        const marker = new google.maps.Marker({
-          map, position: place.geometry.location, title: place.name
-        });
-        marker.addListener("click", () => {
-          infowindow.setContent(`<b>${place.name}</b><br>${place.vicinity || ""}`);
-          infowindow.open(map, marker);
-        });
+      // 3. Add markers + sidebar list
+      overData.elements.forEach(place => {
+        const name = place.tags.name || "Unnamed Café";
+        const marker = L.marker([place.lat, place.lon]).addTo(map)
+          .bindPopup(`<b>${name}</b>`);
+        markers.push(marker);
 
-        // Sidebar
         const div = document.createElement("div");
         div.className = "place";
         div.innerHTML = `
-          <h3>${place.name}</h3>
-          <p>${place.vicinity || "No address available"}</p>
-          <p>⭐ ${place.rating || "N/A"} (${place.user_ratings_total || 0} reviews)</p>
+          <h3>${name}</h3>
+          <p>Lat: ${place.lat}, Lon: ${place.lon}</p>
         `;
         listDiv.appendChild(div);
       });
     }
-  </script>
-
-  <!-- Replace YOUR_API_KEY with your real Google Maps API Key -->
-  <script async defer
-    src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places&callback=initMap">
   </script>
 </body>
 </html>
