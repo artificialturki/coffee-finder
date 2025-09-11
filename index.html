@@ -1,2 +1,57 @@
-<!doctype html>
-<html><body>Coffee Finder setup…</body></html>
+<!DOCTYPE html>https://github.com/artificialturki/coffee-finder/tree/main
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Coffee Finder</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#3b2f2f">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    crossorigin=""
+  />
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>☕ Coffee Finder</h1>
+    <p>Find cafés near you or by ZIP/postal code.</p>
+  </header>
+
+  <section class="controls">
+    <label>
+      <input type="checkbox" id="useZip"> Use ZIP/Postal Code
+    </label>
+    <div id="zipRow" hidden>
+      <input id="zipInput" placeholder="Postal/ZIP">
+      <input id="countryInput" placeholder="Country (e.g., US, SA)" maxlength="2">
+    </div>
+    <button id="locBtn">Use My Location</button>
+    <button id="searchBtn">Search Coffee</button>
+    <p id="status"></p>
+  </section>
+
+  <section class="map-list">
+    <div id="map"></div>
+    <ul id="list"></ul>
+  </section>
+
+  <footer>
+    <small>Privacy: location is only used to search nearby cafés and open directions. Nothing stored.</small>
+  </footer>
+
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    crossorigin="">
+  </script>
+  <script src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+    }
+  </script>
+</body>
+</html>
