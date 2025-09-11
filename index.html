@@ -16,13 +16,13 @@
 <!-- MarkerCluster -->
 <link href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" rel="stylesheet">
 <link href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" rel="stylesheet">
-<!-- Opening_hours parser (best effort; we also have a fallback) -->
+<!-- Opening_hours parser -->
 <script defer src="https://cdn.jsdelivr.net/npm/opening_hours@3.10.1/opening_hours.min.js"></script>
 
 <style>
   :root{
     --bg:#f7f5f2; --panel:#ffffff; --ink:#2a211c; --muted:#7a6e67;
-    --brand:#c86b40; --brand2:#7a4b3a; --chip:#efe8e2;
+    --brand:#c86b40; --chip:#efe8e2;
   }
   html,body{height:100%}
   body{background:linear-gradient(135deg,#faf9f8,#f3efe9); color:var(--ink)}
@@ -45,7 +45,7 @@
   .cmeta{font-size:.9rem; color:var(--muted)}
   .loader{display:none; text-align:center; padding:16px}
   .pill{border-radius:999px; background:var(--chip); padding:.25rem .6rem; font-size:.8rem}
-  .country-select{min-width:130px}
+  .country-select{min-width:150px}
   .suggest{position:absolute; inset:auto 0 0 0; top:100%; z-index:20; background:var(--panel);
            border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,.15); overflow:hidden; display:none}
   .suggest a{display:flex; gap:.5rem; align-items:center; padding:.55rem .8rem; color:var(--ink); text-decoration:none}
@@ -57,6 +57,12 @@
   .kpi{font-size:.92rem; color:var(--muted)}
   footer{padding:22px 0; color:#fff; background:#2b2220; margin-top:26px}
   .pointer{cursor:pointer}
+
+  /* Rating Stars */
+  .stars{color:#ffb400}
+  .stars .fa-star,.stars .fa-star-half-stroke{margin-right:2px}
+  .rate-group .fa-star{cursor:pointer; color:#d4d4d4}
+  .rate-group .fa-star.hovered{color:#ffb400}
 </style>
 </head>
 <body>
@@ -65,7 +71,7 @@
   <div class="container">
     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
       <div class="brand"><i class="fa-solid fa-mug-saucer me-2"></i>Coffee Finder Pro</div>
-      <div class="tag">OpenStreetMap • Overpass • Zero-key • Fast</div>
+      <div class="tag">OpenStreetMap • Overpass • Zero-key • Fast • With Smart Ratings</div>
     </div>
   </div>
 </header>
@@ -83,12 +89,10 @@
         <div id="suggestions" class="suggest rounded-3"></div>
       </div>
 
-      <div class="col-6 col-xl-2">
+      <div class="col-6 col-xl-3">
         <div class="input-group">
           <span class="input-group-text bg-white"><i class="fa-solid fa-globe"></i></span>
-          <select id="country" class="form-select country-select">
-            <option value="">🌍 Global</option>
-          </select>
+          <select id="country" class="form-select country-select"></select>
         </div>
       </div>
 
@@ -105,7 +109,7 @@
         </div>
       </div>
 
-      <div class="col-12 col-xl-3">
+      <div class="col-12 col-xl-2">
         <div class="row g-2">
           <div class="col-6 d-grid"><button id="btnLocate" class="btn btn-outline-secondary"><i class="fa-solid fa-location-crosshairs me-1"></i>Locate me</button></div>
           <div class="col-6 d-grid"><button id="btnSearchHere" class="btn btn-outline-primary" disabled><i class="fa-solid fa-arrows-to-circle me-1"></i>Search this area</button></div>
@@ -135,6 +139,7 @@
             <option value="distance">by distance</option>
             <option value="name">by name</option>
             <option value="hours">open first</option>
+            <option value="rating">by rating</option>
           </select>
         </div>
         <div class="loader" id="loader"><i class="fa-solid fa-spinner fa-spin me-2"></i>Searching cafés…</div>
@@ -150,7 +155,7 @@
 
 <footer>
   <div class="container small text-center">
-    © <span id="yr"></span> Coffee Finder Pro — Tiles © OSM contributors • Data: Overpass/OSM • Built for speed.
+    © <span id="yr"></span> Coffee Finder Pro — Tiles © OSM contributors • Data: Overpass/OSM/Photon • Built for speed.
   </div>
 </footer>
 
@@ -161,22 +166,59 @@
 
 <script>
 (() => {
+  // ------------ Countries (full ISO-3166-1 alpha-2) ------------
+  const ISO_COUNTRIES = [
+    ["","🌍 Global"],
+    ["af","Afghanistan"],["ax","Åland Islands"],["al","Albania"],["dz","Algeria"],["as","American Samoa"],["ad","Andorra"],["ao","Angola"],
+    ["ai","Anguilla"],["aq","Antarctica"],["ag","Antigua and Barbuda"],["ar","Argentina"],["am","Armenia"],["aw","Aruba"],["au","Australia"],
+    ["at","Austria"],["az","Azerbaijan"],["bs","Bahamas"],["bh","Bahrain"],["bd","Bangladesh"],["bb","Barbados"],["by","Belarus"],
+    ["be","Belgium"],["bz","Belize"],["bj","Benin"],["bm","Bermuda"],["bt","Bhutan"],["bo","Bolivia"],["bq","Bonaire, Sint Eustatius and Saba"],
+    ["ba","Bosnia and Herzegovina"],["bw","Botswana"],["bv","Bouvet Island"],["br","Brazil"],["io","British Indian Ocean Territory"],["bn","Brunei Darussalam"],
+    ["bg","Bulgaria"],["bf","Burkina Faso"],["bi","Burundi"],["cv","Cabo Verde"],["kh","Cambodia"],["cm","Cameroon"],["ca","Canada"],["ky","Cayman Islands"],
+    ["cf","Central African Republic"],["td","Chad"],["cl","Chile"],["cn","China"],["cx","Christmas Island"],["cc","Cocos (Keeling) Islands"],
+    ["co","Colombia"],["km","Comoros"],["cg","Congo"],["cd","Congo (DRC)"],["ck","Cook Islands"],["cr","Costa Rica"],["ci","Côte d’Ivoire"],
+    ["hr","Croatia"],["cu","Cuba"],["cw","Curaçao"],["cy","Cyprus"],["cz","Czechia"],["dk","Denmark"],["dj","Djibouti"],["dm","Dominica"],
+    ["do","Dominican Republic"],["ec","Ecuador"],["eg","Egypt"],["sv","El Salvador"],["gq","Equatorial Guinea"],["er","Eritrea"],["ee","Estonia"],
+    ["sz","Eswatini"],["et","Ethiopia"],["fk","Falkland Islands"],["fo","Faroe Islands"],["fj","Fiji"],["fi","Finland"],["fr","France"],["gf","French Guiana"],
+    ["pf","French Polynesia"],["tf","French Southern Territories"],["ga","Gabon"],["gm","Gambia"],["ge","Georgia"],["de","Germany"],["gh","Ghana"],
+    ["gi","Gibraltar"],["gr","Greece"],["gl","Greenland"],["gd","Grenada"],["gp","Guadeloupe"],["gu","Guam"],["gt","Guatemala"],["gg","Guernsey"],
+    ["gn","Guinea"],["gw","Guinea-Bissau"],["gy","Guyana"],["ht","Haiti"],["hm","Heard Island and McDonald Islands"],["va","Holy See"],
+    ["hn","Honduras"],["hk","Hong Kong"],["hu","Hungary"],["is","Iceland"],["in","India"],["id","Indonesia"],["ir","Iran"],["iq","Iraq"],["ie","Ireland"],
+    ["im","Isle of Man"],["il","Israel"],["it","Italy"],["jm","Jamaica"],["jp","Japan"],["je","Jersey"],["jo","Jordan"],["kz","Kazakhstan"],
+    ["ke","Kenya"],["ki","Kiribati"],["kp","Korea (North)"],["kr","Korea (South)"],["kw","Kuwait"],["kg","Kyrgyzstan"],["la","Lao PDR"],
+    ["lv","Latvia"],["lb","Lebanon"],["ls","Lesotho"],["lr","Liberia"],["ly","Libya"],["li","Liechtenstein"],["lt","Lithuania"],["lu","Luxembourg"],
+    ["mo","Macao"],["mg","Madagascar"],["mw","Malawi"],["my","Malaysia"],["mv","Maldives"],["ml","Mali"],["mt","Malta"],["mh","Marshall Islands"],
+    ["mq","Martinique"],["mr","Mauritania"],["mu","Mauritius"],["yt","Mayotte"],["mx","Mexico"],["fm","Micronesia"],["md","Moldova"],["mc","Monaco"],
+    ["mn","Mongolia"],["me","Montenegro"],["ms","Montserrat"],["ma","Morocco"],["mz","Mozambique"],["mm","Myanmar"],["na","Namibia"],["nr","Nauru"],
+    ["np","Nepal"],["nl","Netherlands"],["nc","New Caledonia"],["nz","New Zealand"],["ni","Nicaragua"],["ne","Niger"],["ng","Nigeria"],["nu","Niue"],
+    ["nf","Norfolk Island"],["mk","North Macedonia"],["mp","Northern Mariana Islands"],["no","Norway"],["om","Oman"],["pk","Pakistan"],["pw","Palau"],
+    ["ps","Palestine, State of"],["pa","Panama"],["pg","Papua New Guinea"],["py","Paraguay"],["pe","Peru"],["ph","Philippines"],["pn","Pitcairn"],
+    ["pl","Poland"],["pt","Portugal"],["pr","Puerto Rico"],["qa","Qatar"],["re","Réunion"],["ro","Romania"],["ru","Russian Federation"],["rw","Rwanda"],
+    ["bl","Saint Barthélemy"],["sh","Saint Helena, Ascension and Tristan da Cunha"],["kn","Saint Kitts and Nevis"],["lc","Saint Lucia"],
+    ["mf","Saint Martin"],["pm","Saint Pierre and Miquelon"],["vc","Saint Vincent and the Grenadines"],["ws","Samoa"],["sm","San Marino"],
+    ["st","Sao Tome and Principe"],["sa","Saudi Arabia"],["sn","Senegal"],["rs","Serbia"],["sc","Seychelles"],["sl","Sierra Leone"],["sg","Singapore"],
+    ["sx","Sint Maarten"],["sk","Slovakia"],["si","Slovenia"],["sb","Solomon Islands"],["so","Somalia"],["za","South Africa"],["gs","South Georgia & Sandwich Is."],
+    ["ss","South Sudan"],["es","Spain"],["lk","Sri Lanka"],["sd","Sudan"],["sr","Suriname"],["sj","Svalbard and Jan Mayen"],["se","Sweden"],
+    ["ch","Switzerland"],["sy","Syrian Arab Republic"],["tw","Taiwan"],["tj","Tajikistan"],["tz","Tanzania"],["th","Thailand"],["tl","Timor-Leste"],
+    ["tg","Togo"],["tk","Tokelau"],["to","Tonga"],["tt","Trinidad and Tobago"],["tn","Tunisia"],["tr","Türkiye"],["tm","Turkmenistan"],["tc","Turks and Caicos Islands"],
+    ["tv","Tuvalu"],["ug","Uganda"],["ua","Ukraine"],["ae","United Arab Emirates"],["gb","United Kingdom"],["us","United States of America"],
+    ["um","US Minor Outlying Islands"],["uy","Uruguay"],["uz","Uzbekistan"],["vu","Vanuatu"],["ve","Venezuela"],["vn","Viet Nam"],["vg","Virgin Islands (UK)"],
+    ["vi","Virgin Islands (US)"],["wf","Wallis and Futuna"],["eh","Western Sahara"],["ye","Yemen"],["zm","Zambia"],["zw","Zimbabwe"]
+  ];
+
   // ------------ Map init ------------
   const map = L.map('map', { zoomControl:false }).setView([20, 0], 3);
   L.control.zoom({ position:'topright' }).addTo(map);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19, attribution: '&copy; OpenStreetMap'
-  }).addTo(map);
-
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
   const cluster = L.markerClusterGroup({ showCoverageOnHover:false, maxClusterRadius:50 });
   map.addLayer(cluster);
 
   // ------------ State ------------
   let countryBias = '';     // 2-letter code
   let centerBias = null;    // {lat,lon} for suggestions
-  let currentOrigin = null; // last search center
+  let currentOrigin = null;
   let cafes = [];           // results
-  let markers = [];         // for hover sync
+  let markers = [];
   let mapMovedSinceSearch = false;
 
   const els = {
@@ -197,6 +239,12 @@
     kpi:       document.getElementById('kpiTxt')
   };
 
+  // Populate countries
+  (function fillCountries(){
+    els.country.innerHTML = ISO_COUNTRIES.map(([c,n]) => `<option value="${c}">${n}</option>`).join('');
+    els.country.value = '';
+  })();
+
   // ------------ Utils ------------
   const deg2rad = d => d*Math.PI/180;
   function haversine(lat1,lon1,lat2,lon2){
@@ -211,20 +259,22 @@
     els.results.innerHTML=''; hide(els.nores);
   }
   function stopLoading(){ els.loader.style.display='none'; }
-  function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+  const escapeHtml = s => (s||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
   function safeUrl(u){ try{ const x=new URL(u, location.href); return x.href; }catch(_){ return '#'; } }
   function directionsUrl(lat,lon){ const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent); return isIOS ? `http://maps.apple.com/?daddr=${lat},${lon}` : `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`; }
-  function fmtK(n){ return n.toLocaleString(); }
+  const fmtK = n => n.toLocaleString();
 
-  // ------------ Country quick list ------------
-  const TOP = [
-    ["sa","Saudi Arabia"],["ae","United Arab Emirates"],["qa","Qatar"],["kw","Kuwait"],
-    ["bh","Bahrain"],["om","Oman"],["us","United States"],["gb","United Kingdom"],
-    ["ca","Canada"],["de","Germany"],["fr","France"],["es","Spain"],["it","Italy"],
-    ["tr","Turkey"],["in","India"],["jp","Japan"],["kr","South Korea"]
-  ];
-  for (const [code,name] of TOP){
-    const opt=document.createElement('option'); opt.value=code; opt.textContent=name; els.country.appendChild(opt);
+  // Normalize strings (autocorrect)
+  const norm = s => (s||'').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu,'').trim();
+  function dice(a,b){ // Sørensen–Dice coefficient
+    a=norm(a); b=norm(b);
+    if (a===b) return 1;
+    if (a.length<2 || b.length<2) return 0;
+    const bigrams = s => Array.from({length:s.length-1},(_,i)=>s.slice(i,i+2));
+    const a2=bigrams(a), b2=bigrams(b);
+    const set=new Map(); a2.forEach(x=>set.set(x,(set.get(x)||0)+1));
+    let inter=0; b2.forEach(x=>{const v=set.get(x)||0; if(v){ inter++; set.set(x,v-1);} });
+    return (2*inter)/(a2.length+b2.length);
   }
 
   // ------------ Auto-detect country (best effort) ------------
@@ -235,7 +285,8 @@
       const j = await r.json();
       if (j && j.country_code) {
         countryBias = (j.country_code||'').toLowerCase();
-        els.country.value = countryBias;
+        const idx = ISO_COUNTRIES.findIndex(x=>x[0]===countryBias);
+        if (idx>=0) els.country.value = countryBias;
         if (j.latitude && j.longitude) centerBias = { lat:j.latitude, lon:j.longitude };
       }
     }catch(_){}
@@ -248,17 +299,22 @@
     if (val.length < 2) { els.suggestions.style.display='none'; els.suggestions.innerHTML=''; return; }
     clearTimeout(sugTimer); sugTimer = setTimeout(loadSuggestions, 200);
   });
+
   async function loadSuggestions(){
     const val = els.q.value.trim(); if (!val) return;
     const url = new URL('https://photon.komoot.io/api/');
-    url.searchParams.set('q', val); url.searchParams.set('limit','6'); url.searchParams.set('lang','en');
+    url.searchParams.set('q', val);
+    url.searchParams.set('limit','8');
+    url.searchParams.set('lang','en');
+    url.searchParams.set('layer','city,town,village,locality'); // city-ish layers only
+    if (countryBias) url.searchParams.set('osm_tag', `countrycode:${countryBias}`); // mild hint
     if (centerBias){ url.searchParams.set('lat', centerBias.lat); url.searchParams.set('lon', centerBias.lon); }
     try{
       const r = await fetch(url); const j = await r.json();
       const items = (j.features||[]).map(f=>{
         const p=f.properties||{}, line=[p.name,p.city,p.state,p.country].filter(Boolean).join(', ');
         return { label: line||p.name, lat:f.geometry.coordinates[1], lon:f.geometry.coordinates[0] };
-      }).slice(0,6);
+      }).slice(0,8);
       if (!items.length){ els.suggestions.style.display='none'; els.suggestions.innerHTML=''; return; }
       els.suggestions.innerHTML = items.map(i => `
         <a class="pointer" data-lat="${i.lat}" data-lon="${i.lon}">
@@ -272,37 +328,64 @@
     const a=e.target.closest('a[data-lat]'); if (!a) return;
     els.suggestions.style.display='none'; els.suggestions.innerHTML='';
     const lat=parseFloat(a.dataset.lat), lon=parseFloat(a.dataset.lon);
+    toast(`Using: ${els.q.value}`);
     doSearchAt(lat,lon);
   });
   document.addEventListener('click', e=>{
     if (!els.suggestions.contains(e.target) && e.target!==els.q) els.suggestions.style.display='none';
   });
 
-  // ------------ Geocode with strong country bias (Nominatim) ------------
-  els.btnSearch.addEventListener('click', ()=>{
-    const t=els.q.value.trim(); if (!t) return els.q.focus(); geocodeText(t);
-  });
-  els.q.addEventListener('keydown', e=>{ if (e.key==='Enter'){ e.preventDefault(); els.btnSearch.click(); } });
+  // ------------ Geocode with autocorrect + strong country bias ------------
+  els.btnSearch.addEventListener('click', ()=> tryAutocorrectThenGeocode());
+  els.q.addEventListener('keydown', e=>{ if (e.key==='Enter'){ e.preventDefault(); tryAutocorrectThenGeocode(); } });
   els.country.addEventListener('change', ()=> countryBias = els.country.value||'');
+
+  async function tryAutocorrectThenGeocode(){
+    const typed = els.q.value.trim(); if (!typed) return els.q.focus();
+    // 1) Try Photon quick guess
+    const guess = await topPhotonGuess(typed);
+    if (guess && dice(typed, guess.label) >= 0.62) {
+      els.suggestions.style.display='none'; els.suggestions.innerHTML='';
+      toast(`Using: ${guess.label}`);
+      return doSearchAt(guess.lat, guess.lon);
+    }
+    // 2) Fallback to Nominatim
+    return geocodeText(typed);
+  }
+
+  async function topPhotonGuess(text){
+    const url = new URL('https://photon.komoot.io/api/');
+    url.searchParams.set('q', text);
+    url.searchParams.set('limit','1');
+    url.searchParams.set('layer','city,town,village,locality');
+    url.searchParams.set('lang','en');
+    if (countryBias) url.searchParams.set('osm_tag', `countrycode:${countryBias}`);
+    if (centerBias){ url.searchParams.set('lat', centerBias.lat); url.searchParams.set('lon', centerBias.lon); }
+    try{
+      const r=await fetch(url); const j=await r.json();
+      const f=(j.features||[])[0]; if(!f) return null;
+      const p=f.properties||{}, label=[p.name,p.city,p.state,p.country].filter(Boolean).join(', ');
+      return { label: label||p.name, lat:f.geometry.coordinates[1], lon:f.geometry.coordinates[0] };
+    }catch(_){ return null; }
+  }
 
   async function geocodeText(text){
     const url = new URL('https://nominatim.openstreetmap.org/search');
     url.searchParams.set('format','json'); url.searchParams.set('addressdetails','1');
     url.searchParams.set('limit','5'); url.searchParams.set('q', text);
-    if (countryBias) url.searchParams.set('countrycodes', countryBias); // critical fix for "Riyadh"
+    if (countryBias) url.searchParams.set('countrycodes', countryBias);
     try{
       startLoading('Finding place…');
       const r=await fetch(url.toString(), { headers:{'Accept-Language':'en'} }); const j=await r.json();
       if (!j.length){ stopLoading(); showNoResults('No matching location. Try adding the country.'); return; }
       const loc=j[0]; const lat=parseFloat(loc.lat), lon=parseFloat(loc.lon);
-      doSearchAt(lat,lon);
+      toast(`Using: ${loc.display_name.split(',').slice(0,3).join(', ')}`);
+      doSearchAt(lat, lon);
     }catch(_){ stopLoading(); showNoResults('Search failed. Please try again.'); }
   }
 
   // ------------ Map move detection → enable “Search this area” ------------
-  map.on('moveend', () => {
-    mapMovedSinceSearch = true; els.btnHere.disabled=false;
-  });
+  map.on('moveend', () => { mapMovedSinceSearch = true; els.btnHere.disabled=false; });
   els.btnHere.addEventListener('click', ()=>{
     const c = map.getCenter(); doSearchAt(c.lat, c.lng, true);
   });
@@ -313,7 +396,8 @@
     startLoading('Getting your location…');
     navigator.geolocation.getCurrentPosition(pos=>{
       const {latitude:lat, longitude:lon} = pos.coords;
-      centerBias = {lat,lon}; doSearchAt(lat,lon, false, 14);
+      centerBias = {lat,lon}; toast('Using your current location');
+      doSearchAt(lat,lon, false, 14);
     }, _=>{ stopLoading(); alert('Could not get your location. Try searching by city.'); }, { enableHighAccuracy:true, timeout:10000 });
   });
 
@@ -358,20 +442,50 @@
     try { data = await overpassFetch(q); }
     catch(_) { stopLoading(); showNoResults('Search failed (Overpass). Please try again.'); return; }
 
-    const els = data.elements||[];
-    cafes = els.map(e=>{
+    const elsData = data.elements||[];
+    cafes = elsData.map(e=>{
       const c = e.type==='way' ? e.center : { lat:e.lat, lon:e.lon };
       const tags = e.tags||{};
+      const distance = currentOrigin ? haversine(currentOrigin.lat,currentOrigin.lon,c.lat,c.lon) : null;
+      const smart = smartScore(tags, distance);
+      const user  = getUserRating(e.id);
+      const combined = user ? (0.7*smart + 0.3*user) : smart;
       return {
         id:e.id, lat:c.lat, lon:c.lon, tags,
         name: tags.name || tags.brand || 'Unnamed café',
-        distance: currentOrigin ? haversine(currentOrigin.lat,currentOrigin.lon,c.lat,c.lon) : null,
-        opening: tags.opening_hours || null
+        distance, opening: tags.opening_hours || null,
+        smartRating: smart, userRating: user, combinedRating: clamp(combined,0,5)
       };
     });
     applyFiltersAndRender();
     stopLoading();
   }
+
+  // ------------ Smart rating (0..5) ------------
+  function clamp(n,min,max){ return Math.max(min, Math.min(max,n)); }
+  function smartScore(tags, distanceKm){
+    let score = 2.6; // base
+    if (tags.opening_hours) score += 0.7;
+    if (tags.internet_access === 'yes') score += 0.6;
+    if (tags.outdoor_seating === 'yes') score += 0.5;
+    if (tags.website || tags['contact:website']) score += 0.4;
+    if (tags.phone || tags['contact:phone']) score += 0.3;
+    if (tags.wheelchair === 'yes') score += 0.2;
+    if (tags.brand) score += 0.2;
+    if (tags.cuisine) score += 0.1;
+
+    if (typeof distanceKm === 'number'){
+      // penalize far results gently
+      if (distanceKm > 8) score -= 0.8;
+      else if (distanceKm > 5) score -= 0.6;
+      else if (distanceKm > 3) score -= 0.3;
+    }
+    return clamp(score, 0, 5);
+  }
+
+  // user rating storage
+  function getUserRating(id){ const k=`cfp_rating_${id}`; const v=localStorage.getItem(k); return v?parseFloat(v):null; }
+  function setUserRating(id,val){ localStorage.setItem(`cfp_rating_${id}`, String(val)); }
 
   // ------------ Filters/sort ------------
   els.fOpen .addEventListener('change', applyFiltersAndRender);
@@ -379,10 +493,28 @@
   els.fOutdoor.addEventListener('change', applyFiltersAndRender);
   els.sort  .addEventListener('change', applyFiltersAndRender);
 
+  function isOpenNow(cafe){
+    if (!cafe.opening) return false;
+    if (cafe.opening.includes('24/7')) return true;
+    try{
+      if (window.opening_hours) {
+        const oh = new opening_hours(cafe.opening);
+        return oh.getState(new Date());
+      }
+    }catch(_){}
+    const m = /(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/.exec(cafe.opening);
+    if (m){
+      const now=new Date(); const mins=now.getHours()*60+now.getMinutes();
+      const open=parseInt(m[1])*60+parseInt(m[2]); const close=parseInt(m[3])*60+parseInt(m[4]);
+      if (close>open) return mins>=open && mins<=close;
+      return (mins>=open) || (mins<=close);
+    }
+    return false;
+  }
+
   function applyFiltersAndRender(){
     let list = cafes.slice();
 
-    // filters
     const needOpen   = els.fOpen.checked;
     const needWifi   = els.fWifi.checked;
     const needOutdoor= els.fOutdoor.checked;
@@ -391,37 +523,25 @@
     if (needWifi)   list = list.filter(c => (c.tags.internet_access === 'yes'));
     if (needOutdoor)list = list.filter(c => (c.tags.outdoor_seating === 'yes'));
 
-    // sort
     const mode = els.sort.value;
     if (mode==='name') list.sort((a,b)=> (a.name||'').localeCompare(b.name||''));
     else if (mode==='hours') list.sort((a,b)=> ((b.opening?1:0) - (a.opening?1:0)));
+    else if (mode==='rating') list.sort((a,b)=> (b.combinedRating - a.combinedRating));
     else list.sort((a,b)=> (a.distance??1e9)-(b.distance??1e9));
 
     render(list);
   }
 
-  function isOpenNow(cafe){
-    if (!cafe.opening) return false;
-    if (cafe.opening.includes('24/7')) return true;
-    // try proper library if available
-    try{
-      if (window.opening_hours) {
-        const oh = new opening_hours(cafe.opening);
-        return oh.getState(new Date());
-      }
-    }catch(_){}
-    // fallback heuristic: "Mo-Su 08:00-22:00" or "08:00-22:00"
-    const m = /(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/.exec(cafe.opening);
-    if (m){
-      const now=new Date(); const mins=now.getHours()*60+now.getMinutes();
-      const open=parseInt(m[1])*60+parseInt(m[2]); const close=parseInt(m[3])*60+parseInt(m[4]);
-      if (close>open) return mins>=open && mins<=close;
-      return (mins>=open) || (mins<=close); // overnight
-    }
-    return false;
+  // ------------ Rendering ------------
+  function renderStars(score){
+    // full/half/empty stars for score 0..5
+    let html='', s=clamp(score,0,5), full=Math.floor(s), half=(s-full)>=0.25 && (s-full)<0.75;
+    for(let i=0;i<full;i++) html+='<i class="fa-solid fa-star"></i>';
+    if(half) html+='<i class="fa-solid fa-star-half-stroke"></i>';
+    for(let i=(half?full+1:full); i<5; i++) html+='<i class="fa-regular fa-star"></i>';
+    return html;
   }
 
-  // ------------ Rendering ------------
   function render(list){
     els.kpi.textContent = list.length ? `Showing ${fmtK(list.length)} cafés` : 'No cafés';
     cluster.clearLayers(); markers.length=0;
@@ -437,10 +557,26 @@
     });
 
     els.results.innerHTML = list.map((c,i)=> cardHtml(c,i)).join('');
+    // hover sync & rating clicks
     els.results.querySelectorAll('[data-idx]').forEach(el=>{
       const i=+el.dataset.idx;
       el.addEventListener('mouseenter', ()=> markers[i].openPopup());
-      el.addEventListener('click', ()=>{ map.setView(markers[i].getLatLng(), 16); markers[i].openPopup(); });
+      el.addEventListener('click', e=>{
+        if (!e.target.closest('.rate-group')){ map.setView(markers[i].getLatLng(), 16); markers[i].openPopup(); }
+      });
+    });
+    els.results.querySelectorAll('.rate-group .fa-star').forEach(st=>{
+      st.addEventListener('mouseenter', e=> e.target.parentElement.querySelectorAll('.fa-star').forEach(x=>x.classList.toggle('hovered', x.dataset.v<=e.target.dataset.v)));
+      st.addEventListener('mouseleave', e=> e.target.parentElement.querySelectorAll('.fa-star').forEach(x=>x.classList.remove('hovered')));
+      st.addEventListener('click', e=>{
+        const idx=parseInt(e.target.closest('.rate-group').dataset.idx,10);
+        const val=parseInt(e.target.dataset.v,10);
+        setUserRating(list[idx].id, val);
+        // update ratings live
+        list[idx].userRating = val;
+        list[idx].combinedRating = clamp(0.7*list[idx].smartRating + 0.3*val, 0, 5);
+        applyFiltersAndRender();
+      });
     });
   }
 
@@ -456,6 +592,7 @@
 
     return `
       <div><strong>${escapeHtml(c.name)}</strong></div>
+      <div class="stars my-1">${renderStars(c.combinedRating)} <span class="text-muted small">(${c.combinedRating.toFixed(1)})</span></div>
       ${distS}${addrS}${openS}
       <div class="mt-1 d-flex gap-1 flex-wrap">${wifi}${outdoor}</div>
       <div class="mt-2 d-flex gap-1 flex-wrap">
@@ -471,12 +608,15 @@
     const web = c.tags.website || c.tags['contact:website'];
     const phone = c.tags.phone || c.tags['contact:phone'];
     const addr = [c.tags['addr:street'], c.tags['addr:city']].filter(Boolean).join(', ');
+    const user = c.userRating || 0;
+
     return `
       <div class="card card-cafe mb-2 pointer" data-idx="${idx}">
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-start">
             <div>
               <div class="fw-bold">${escapeHtml(c.name)}</div>
+              <div class="stars">${renderStars(c.combinedRating)} <span class="text-muted small">(${c.combinedRating.toFixed(1)})</span></div>
               <div class="cmeta">${c.distance!=null?`${c.distance.toFixed(1)} km away`:''}</div>
             </div>
             <div class="text-nowrap">
@@ -494,11 +634,23 @@
             ${web?`<a class="text-decoration-none" target="_blank" href="${safeUrl(web)}"><i class="fa-solid fa-globe me-1"></i>Website</a>`:''}
             ${phone?`<a class="text-decoration-none" href="tel:${encodeURIComponent(phone)}"><i class="fa-solid fa-phone me-1"></i>Call</a>`:''}
           </div>
+          <div class="mt-2 small">Your rating:</div>
+          <div class="rate-group" data-idx="${idx}">
+            ${[1,2,3,4,5].map(v=>`<i class="fa-solid fa-star ${user && v<=user ? 'hovered':''}" data-v="${v}" title="${v}"></i>`).join('')}
+          </div>
         </div>
       </div>`;
   }
 
   function showNoResults(msg){ els.results.innerHTML=`<div class="text-center text-muted py-4">${escapeHtml(msg)}</div>`; show(els.nores); }
+
+  // Simple toast
+  function toast(msg){
+    const d=document.createElement('div');
+    d.className='toast align-items-center text-bg-dark border-0 position-fixed bottom-0 end-0 m-3';
+    d.setAttribute('role','alert'); d.innerHTML=`<div class="d-flex"><div class="toast-body">${escapeHtml(msg)}</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div>`;
+    document.body.appendChild(d); const t=new bootstrap.Toast(d,{delay:2200}); t.show(); d.addEventListener('hidden.bs.toast',()=>d.remove());
+  }
 
   // Footer year
   document.getElementById('yr').textContent = new Date().getFullYear();
