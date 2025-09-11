@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Coffee Finder OSM</title>
+  <title>Coffee Finder Pro (OSM)</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
   <style>
     body { margin:0; font-family: Arial, sans-serif; display:flex; flex-direction:column; height:100vh; }
@@ -22,7 +22,7 @@
 </head>
 <body>
   <header>
-    <h1>☕ Coffee Finder OSM</h1>
+    <h1>☕ Coffee Finder Pro</h1>
     <p>Find cafés anywhere in the world 🌍 (Powered by OpenStreetMap)</p>
   </header>
 
@@ -96,6 +96,7 @@
         div.innerHTML = `
           <h3>${name}</h3>
           <p>Lat: ${place.lat}, Lon: ${place.lon}</p>
+          <a href="https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lon}" target="_blank">📍 Get Directions</a>
         `;
         listDiv.appendChild(div);
       });
