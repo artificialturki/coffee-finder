@@ -32,7 +32,7 @@
     overflow-x:hidden; line-height:1.6;
   }
 
-  /* Parallax starfield layers */
+  /* Parallax starfield */
   .stars, .stars2{
     position:fixed; inset:0; z-index:-2; pointer-events:none;
     background-image:
@@ -83,14 +83,21 @@
   .suggest a{ display:flex; align-items:center; gap:.55rem; padding:.65rem .8rem; color:var(--ink); text-decoration:none; background:#0f231c; border-bottom:1px solid #1a4536; transition:all .15s ease }
   .suggest a:hover{ background:#133b2d; padding-inline-start:1rem }
 
+  /* Robust map height on mobile & desktop */
   #map{
-    height:62vh; min-height:420px; /* keep visible even if vh bugs on mobile */
-    border-radius:var(--radius); box-shadow:var(--shadow); position:relative; outline:1px solid var(--line)
+    height: 62svh;
+    min-height: 420px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    position: relative;
+    outline: 1px solid var(--line);
   }
-  .leaflet-container{ background:#0d2018; } /* prevents “black void” look before tiles */
+  @supports not (height: 1svh){
+    #map{ height:62vh; }
+  }
+  .leaflet-container{ background:#0b2018 !important; }
 
-  #map .leaflet-control-zoom{ z-index:1005 } /* keep zoom clickable */
-
+  /* Fullscreen */
   .map-full{ position:fixed !important; inset:0 !important; width:100vw !important; height:100vh !important; z-index:1050 !important; border-radius:0 !important }
   .map-float{ position:absolute; left:12px; bottom:12px; z-index:1004; display:flex; flex-direction:column; gap:.6rem }
   .float-btn{
@@ -99,8 +106,6 @@
     cursor:pointer; box-shadow:var(--shadow); transition:transform .15s ease, background .15s ease
   }
   .float-btn:hover{ background:#123628; transform:scale(1.05) }
-
-  /* Exit fullscreen – mobile friendly */
   .exit-fs{ position:fixed; top:12px; right:12px; z-index:20000; display:none }
   .exit-fs.show{ display:block }
   @media (max-width:768px){
@@ -108,7 +113,7 @@
     .exit-fs .btn{ padding:.8rem 1.1rem; border-radius:999px }
   }
 
-  /* Coffee marker with glow trail */
+  /* Coffee marker + glow trail */
   .cup{ position:relative; width:26px; height:18px; border-radius:4px 4px 6px 6px; background:var(--cup); border:2px solid #523a29 }
   .cup:after{ content:""; position:absolute; right:-8px; top:4px; width:8px; height:8px; border:2px solid #523a29; border-left:none; border-radius:0 8px 8px 0 }
   .foam{ position:absolute; top:-6px; left:2px; right:2px; height:6px; background:var(--foam); border-radius:6px 6px 0 0 }
@@ -122,11 +127,12 @@
   @keyframes steam{ 0%{ transform:translateY(8px); opacity:.35 } 50%{ transform:translateY(-2px); opacity:1 } 100%{ transform:translateY(-10px); opacity:.35 } }
   @keyframes trailPulse{ 0%{ transform:translateX(-50%) scale(.7); opacity:.55 } 50%{ transform:translateX(-50%) scale(1.1); opacity:.9 } 100%{ transform:translateX(-50%) scale(.7); opacity:.55 } }
 
-  .results{ max-height:62vh; overflow:auto; scrollbar-width:thin; scrollbar-color:#1e4a3a transparent }
+  /* Results */
+  .results{ max-height:62svh; overflow:auto; scrollbar-width:thin; scrollbar-color:#1e4a3a transparent }
   .results::-webkit-scrollbar{ width:6px } .results::-webkit-scrollbar-thumb{ background-color:#1e4a3a; border-radius:3px }
   .card-cafe{ background:#0e231b; border:1px solid var(--line); border-radius:14px; transition:all .25s; overflow:hidden }
   .card-cafe:hover{ transform:translateY(-3px); box-shadow:0 12px 28px rgba(0,0,0,.35); border-color:var(--mint) }
-  .card-cafe .fw-bold{ color:var(--ink) }
+  .card-cafe .fw-bold{ color:#fff }
   .card-cafe .text-secondary{ color:var(--ink-dim) !important }
   .avatar{ width:52px; height:52px; border-radius:14px; background:#fff; border:1px solid #eaeaea; display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0 }
   .avatar img{ width:100%; height:100%; object-fit:cover } .avatar .letter{ font-weight:900; color:#222 }
@@ -144,7 +150,7 @@
   .rate{ display:flex; gap:2px } .rate i{ cursor:pointer; transition:transform .15s } .rate i:hover{ transform:scale(1.15) }
 
   @media (max-width:1200px){ .chip-input input{ width:380px } }
-  @media (max-width:992px){ #map{ height:50vh } .results{ max-height:50vh } .brand{ font-size:1.7rem } }
+  @media (max-width:992px){ #map{ height:50svh } .results{ max-height:50svh } .brand{ font-size:1.7rem } }
   @media (max-width:768px){
     .chip-input{ flex-direction:column; align-items:stretch; gap:.5rem }
     .chip-input input{ max-width:100%; width:100% }
@@ -253,7 +259,7 @@
   </div>
 </footer>
 
-<!-- Fixed exit button for fullscreen (works on mobile) -->
+<!-- Exit Fullscreen (mobile) -->
 <div id="exitFS" class="exit-fs"><button class="btn btn-sm btn-mint" id="exitFsBtn"><i class="fa-solid fa-minimize me-1"></i><span data-i18n="exitFS">Exit Fullscreen</span></button></div>
 
 <div class="toast-container"></div>
@@ -407,7 +413,18 @@
       }catch(e){} }; })()
   };
 
-  /* Parallax */
+  /* ---------- ensure map element has size before init ---------- */
+  function whenElHasSize(el, cb){
+    let tries = 0;
+    (function check(){
+      const r = el.getBoundingClientRect();
+      if (r.width > 120 && r.height > 120) return cb();
+      if (tries++ > 60) { el.style.minHeight = '480px'; return cb(); }
+      requestAnimationFrame(check);
+    })();
+  }
+
+  /* ------------ Parallax bg ------------ */
   function parallax(x, y){
     const dx = (x - window.innerWidth/2)/window.innerWidth;
     const dy = (y - window.innerHeight/2)/window.innerHeight;
@@ -419,33 +436,49 @@
 
   /* ------------ Init ------------ */
   function init(){
-    document.getElementById('yr').textContent=new Date().getFullYear();
-    applyLang('en'); // default
-    initMap();
+    $('#yr').textContent=new Date().getFullYear();
+    applyLang('en'); // default UI
+    whenElHasSize(dom.mapEl, initMap);
     bindEvents();
-    // Start in KSA and show cafés near Riyadh
-    state.map.setView(CFG.defaultView, CFG.defaultZoom);
-    setTimeout(()=>state.map.invalidateSize(), 100);   // <- ensure visible
-    searchAt(24.7136, 46.6753, false, 12);
+    // first view & search once map is alive
+    whenElHasSize(dom.mapEl, ()=> {
+      state.map.setView(CFG.defaultView, CFG.defaultZoom);
+      searchAt(24.7136, 46.6753, false, 12); // Riyadh
+    });
   }
 
   function initMap(){
-    if (!window.L) { utils.toast('Leaflet failed to load','error'); return; }
-
     state.map = L.map('map', { zoomControl:true, preferCanvas:true })
       .setView(CFG.defaultView, CFG.defaultZoom);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-      maxZoom:19, attribution:'&copy; OpenStreetMap contributors', crossOrigin:true
+    // Base layer with fallbacks
+    const base1 = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19, crossOrigin: true, attribution: '&copy; OpenStreetMap'
     }).addTo(state.map);
+
+    let addedFallback = false;
+    function addFallbackOnce(){
+      if (addedFallback) return;
+      addedFallback = true;
+      L.tileLayer('https://tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(state.map);
+      L.tileLayer('https://maps.wikimedia.org/osm-intl/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(state.map);
+    }
+    base1.on('tileerror', addFallbackOnce);
 
     state.cluster = L.markerClusterGroup({
       showCoverageOnHover:false, maxClusterRadius:50, chunkedLoading:true, spiderfyOnMaxZoom:true
     });
     state.map.addLayer(state.cluster);
 
-    /* If the map container size changes, reflow tiles (fixes “blank map”). */
-    new ResizeObserver(() => { if (state.map) state.map.invalidateSize(); }).observe(dom.mapEl);
+    // repaint on size/visibility changes
+    requestAnimationFrame(()=> state.map.invalidateSize());
+    new ResizeObserver(()=> state.map && state.map.invalidateSize()).observe(dom.mapEl);
+    window.addEventListener('resize',()=> state.map.invalidateSize());
+    window.addEventListener('orientationchange',()=> setTimeout(()=>state.map.invalidateSize(), 250));
+    window.addEventListener('pageshow',()=> setTimeout(()=>state.map.invalidateSize(), 100));
+    document.addEventListener('visibilitychange', ()=>{
+      if (document.visibilityState === 'visible') setTimeout(()=>state.map.invalidateSize(), 120);
+    });
 
     // Controls
     dom.btnHere.addEventListener('click',()=>{ const c=state.map.getCenter(); searchAt(c.lat,c.lng,true); });
@@ -456,13 +489,15 @@
   }
 
   function bindEvents(){
-    // Click sound
+    // click sound
     document.addEventListener('click', (e)=>{
       if(e.target.closest('button, .btn, select, input[type=checkbox], a')) utils.clickSound();
     }, true);
 
+    // home via cup icon
     dom.homeBtn.addEventListener('click', home);
 
+    // suggestions
     let timer=null;
     dom.query.addEventListener('input',()=>{ clearTimeout(timer); timer=setTimeout(suggest,120); });
     dom.query.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); useTopSuggestion(); }});
@@ -471,9 +506,9 @@
       hideSuggest(); searchAt(parseFloat(a.dataset.lat), parseFloat(a.dataset.lon), false, 12);
     });
     document.addEventListener('click',e=>{ if(!dom.sugg.contains(e.target) && e.target!==dom.query) hideSuggest(); });
-
     dom.btnSearch.addEventListener('click', useTopSuggestion);
 
+    // filters/sort
     dom.radius.addEventListener('change',()=>{ if(state.origin) searchAt(state.origin.lat, state.origin.lon, false, state.map.getZoom()); });
     dom.sort.addEventListener('change',renderResults);
     dom.fOpen.addEventListener('change',renderResults);
@@ -481,6 +516,7 @@
     dom.fOutdoor.addEventListener('change',renderResults);
     dom.minR.addEventListener('input',()=>{ dom.minRVal.textContent=parseFloat(dom.minR.value).toFixed(1); renderResults(); });
 
+    // language
     dom.lang.addEventListener('change',()=> applyLang(dom.lang.value));
   }
 
@@ -519,11 +555,22 @@
     dom.mapEl.classList.toggle('map-full');
     dom.btnFS.innerHTML = state.isFullscreen ? '<i class="fa-solid fa-minimize"></i>' : '<i class="fa-solid fa-maximize"></i>';
     dom.exitFS.classList.toggle('show', state.isFullscreen);
-    setTimeout(()=>state.map.invalidateSize(), 160);
+    setTimeout(()=> state.map.invalidateSize(), 180);
   }
 
   /* ------------ Suggestions (KSA only) ------------ */
   function hideSuggest(){ dom.sugg.style.display='none'; dom.sugg.innerHTML=''; if(state.suggestAbort){ state.suggestAbort.abort(); state.suggestAbort=null; } }
+
+  const KSA_CITIES = {
+    'riyadh':[24.7136,46.6753],'ar riyad':[24.7136,46.6753],
+    'jeddah':[21.4858,39.1925],'jedda':[21.4858,39.1925],
+    'dammam':[26.4207,50.0888],'khobar':[26.2797,50.2149],'dhahran':[26.2888,50.1134],
+    'makkah':[21.3891,39.8579],'mecca':[21.3891,39.8579],
+    'madinah':[24.5247,39.5692],'medina':[24.5247,39.5692],
+    'abha':[18.2164,42.5053],'tabuk':[28.3838,36.5662],'taif':[21.4373,40.5127],
+    'qassim':[26.3594,43.9810],'hail':[27.5114,41.7208],'jazan':[16.8895,42.5706],
+    'najran':[17.5650,44.2289],'yanbu':[24.0895,38.0618]
+  };
 
   async function suggest(){
     const q = dom.query.value.trim();
@@ -544,7 +591,7 @@
     url.searchParams.set('limit', '8');
     url.searchParams.set('lang', state.lang);
     url.searchParams.set('layer', 'city,town,village,locality');
-    url.searchParams.set('osm_tag', 'countrycode:' + CFG.country);
+    url.searchParams.set('osm_tag', 'countrycode:' + CFG.country); // hard filter SA
     const r = await fetch(url, { signal }); const d = await r.json();
     return (d.features||[]).map(f=>{
       const p=f.properties||{}; const label=[p.name,p.city,p.state,p.country].filter(Boolean).join(', ');
@@ -571,14 +618,22 @@
 
   async function useTopSuggestion(){
     if(dom.sugg.firstElementChild){ dom.sugg.firstElementChild.click(); return; }
-    const q = dom.query.value.trim(); if(!q){ dom.query.focus(); return; }
+    const q = (dom.query.value||'').trim(); if(!q){ dom.query.focus(); return; }
+
+    // local fast fallback
+    const key = q.toLowerCase();
+    const hit = Object.keys(KSA_CITIES).find(k => key.includes(k));
+    if (hit){ const [lat,lon] = KSA_CITIES[hit]; searchAt(lat,lon,false,12); return; }
+
+    // network geocoders
     try{
       let items = await photonSuggest(q).catch(()=>nominatimSuggest(q));
-      if(items && items[0]) searchAt(items[0].lat, items[0].lon, false, 12);
-    }catch(_){ utils.toast(state.lang==='ar'?'تعذر العثور على الموقع':'Could not find location','error'); }
+      if (items && items[0]) searchAt(items[0].lat, items[0].lon, false, 12);
+      else utils.toast(state.lang==='ar'?'تعذر العثور على الموقع':'Could not find location');
+    }catch(_){ utils.toast(state.lang==='ar'?'تعذر العثور على الموقع':'Could not find location'); }
   }
 
-  /* ------------ Search + Overpass ------------ */
+  /* ------------ Search + Overpass (cancel-safe) ------------ */
   function startLoading(){
     dom.loader.style.display='block'; dom.results.innerHTML=''; dom.nores.classList.add('d-none');
     dom.kpi.textContent=I18N[state.lang].searching; state.cluster.clearLayers(); state.markers=[];
@@ -769,14 +824,13 @@
     );
   }
 
-  /* ------------ Home (cup icon) ------------ */
+  /* ------------ Home (cup button) ------------ */
   function home(){
     dom.fOpen.checked=false; dom.fWifi.checked=false; dom.fOutdoor.checked=false;
     dom.minR.value=0; dom.minRVal.textContent='0.0';
     dom.sort.value='rating'; dom.radius.value='50000';
     dom.query.value=''; hideSuggest();
     state.map.setView(CFG.defaultView, CFG.defaultZoom);
-    setTimeout(()=>state.map.invalidateSize(), 50);
     searchAt(24.7136, 46.6753, false, 12);
   }
 
