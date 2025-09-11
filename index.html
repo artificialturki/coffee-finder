@@ -3,74 +3,595 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Coffee Finder Pro ☕</title>
-<meta name="description" content="Find cafés anywhere in the world. Autocomplete, cluster map, ratings, zero API keys." />
+<title>Coffee Finder Pro ☕ - Discover the World's Best Cafés</title>
+<meta name="description" content="Find cafés anywhere in the world. Autocomplete, cluster map, ratings, zero API keys. The most advanced coffee finder on the web." />
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.8em' font-size='80'>☕</text></svg>'">
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
-<link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet">
-<link href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" rel="stylesheet">
-<link href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" rel="stylesheet">
+<!-- Preload critical resources -->
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<link rel="preload" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<link rel="preload" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<link rel="preload" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
 
 <style>
-  :root{
-    --ink:#eafff6; --muted:#a9d3c5; --bg1:#0e1814; --bg2:#0b221a;
-    --panel:#0f2a20cc; --line:#214c3d; --mint:#38e39b; --mint2:#1fc57f;
-    --cup:#7a5238; --foam:#fff; --steam:#9bf2cf;
-    --radius:16px; --shadow:0 8px 24px rgba(0,0,0,.28);
+  :root {
+    --ink: #eafff6; 
+    --muted: #a9d3c5; 
+    --bg1: #0e1814; 
+    --bg2: #0b221a;
+    --panel: #0f2a20cc; 
+    --line: #214c3d; 
+    --mint: #38e39b; 
+    --mint2: #1fc57f;
+    --cup: #7a5238; 
+    --foam: #fff; 
+    --steam: #9bf2cf;
+    --radius: 16px; 
+    --shadow: 0 8px 24px rgba(0,0,0,.28);
+    --transition: all 0.3s ease;
+    --accent: #ff9d66;
+    --accent-gradient: linear-gradient(135deg, #ff9d66, #ff7b38);
   }
-  html,body{height:100%} body{
-    color:var(--ink); font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial;
+  
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  
+  html, body {
+    height: 100%;
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    color: var(--ink); 
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
     background: radial-gradient(1200px 500px at 20% -10%, #1a3a30 0, var(--bg1) 55%, var(--bg2) 100%);
-    overflow-x:hidden;
+    overflow-x: hidden;
+    line-height: 1.6;
   }
-  header{position:sticky; top:0; z-index:30; background:linear-gradient(180deg, rgba(15,42,32,.95), rgba(15,42,32,.65)); backdrop-filter: blur(6px); box-shadow:var(--shadow)}
-  .brand{font-weight:900; font-size:2rem; letter-spacing:.4px; display:flex; align-items:center; gap:.6rem; color:#eafff9; text-shadow:0 2px 12px rgba(56,227,155,.35)}
-  .brand i{ color:#62ffd0; filter:drop-shadow(0 0 6px #2eeaa066) }
-  .panel{ background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow) }
-  .chip-input{ background:#0d2a20; border:1px solid var(--line); border-radius:14px; padding:.7rem .9rem; display:flex; align-items:center; gap:.7rem }
-  .chip-input input{ all:unset; color:var(--ink); width:460px; max-width:60vw }
-  .btn-mint{ background:linear-gradient(180deg,var(--mint),var(--mint2)); color:#062016; font-weight:800; border:0; border-radius:12px; padding:.65rem 1rem; box-shadow:0 10px 24px #22d1893f }
-  .btn-mint:hover{ filter:brightness(1.05) }
-  .suggest{ position:absolute; top:100%; left:0; right:0; z-index:50; display:none }
-  .suggest a{ display:flex; align-items:center; gap:.55rem; padding:.65rem .8rem; color:var(--ink); text-decoration:none; background:#0f231c; border-bottom:1px solid #1a4536 }
-  .suggest a:hover{ background:#123427 }
+  
+  /* Header styles */
+  header {
+    position: sticky; 
+    top: 0; 
+    z-index: 30; 
+    background: linear-gradient(180deg, rgba(15,42,32,.95), rgba(15,42,32,.65)); 
+    backdrop-filter: blur(6px); 
+    box-shadow: var(--shadow);
+    padding: 0.75rem 0;
+  }
+  
+  .brand {
+    font-weight: 900; 
+    font-size: 2rem; 
+    letter-spacing: .4px; 
+    display: flex; 
+    align-items: center; 
+    gap: .6rem; 
+    color: #eafff9; 
+    text-shadow: 0 2px 12px rgba(56,227,155,.35);
+    transition: var(--transition);
+  }
+  
+  .brand:hover {
+    transform: translateY(-1px);
+    text-shadow: 0 4px 16px rgba(56,227,155,.5);
+  }
+  
+  .brand i { 
+    color: #62ffd0; 
+    filter: drop-shadow(0 0 6px #2eeaa066);
+    transition: var(--transition);
+  }
+  
+  .panel { 
+    background: var(--panel); 
+    border: 1px solid var(--line); 
+    border-radius: var(--radius); 
+    box-shadow: var(--shadow);
+    transition: var(--transition);
+  }
+  
+  .panel:hover {
+    box-shadow: 0 12px 32px rgba(0,0,0,.35);
+  }
+  
+  .chip-input { 
+    background: #0d2a20; 
+    border: 1px solid var(--line); 
+    border-radius: 14px; 
+    padding: .7rem .9rem; 
+    display: flex; 
+    align-items: center; 
+    gap: .7rem;
+    transition: var(--transition);
+  }
+  
+  .chip-input:focus-within {
+    border-color: var(--mint);
+    box-shadow: 0 0 0 3px rgba(56, 227, 155, 0.2);
+  }
+  
+  .chip-input input { 
+    all: unset; 
+    color: var(--ink); 
+    width: 460px; 
+    max-width: 60vw;
+    font-size: 1.05rem;
+  }
+  
+  .btn-mint { 
+    background: linear-gradient(180deg, var(--mint), var(--mint2)); 
+    color: #062016; 
+    font-weight: 800; 
+    border: 0; 
+    border-radius: 12px; 
+    padding: .65rem 1rem; 
+    box-shadow: 0 10px 24px #22d1893f;
+    transition: var(--transition);
+    cursor: pointer;
+  }
+  
+  .btn-mint:hover { 
+    filter: brightness(1.1);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px #22d1895f;
+  }
+  
+  .btn-mint:active {
+    transform: translateY(0);
+  }
+  
+  .suggest { 
+    position: absolute; 
+    top: 100%; 
+    left: 0; 
+    right: 0; 
+    z-index: 50; 
+    display: none;
+    max-height: 300px;
+    overflow-y: auto;
+    border-radius: 0 0 var(--radius) var(--radius);
+  }
+  
+  .suggest a { 
+    display: flex; 
+    align-items: center; 
+    gap: .55rem; 
+    padding: .65rem .8rem; 
+    color: var(--ink); 
+    text-decoration: none; 
+    background: #0f231c; 
+    border-bottom: 1px solid #1a4536;
+    transition: var(--transition);
+  }
+  
+  .suggest a:hover { 
+    background: #123427;
+    padding-left: 1rem;
+  }
 
-  #map{ height:62vh; border-radius:var(--radius); box-shadow:var(--shadow); position:relative }
-  /* Fullscreen actually working */
-  #map.map-full{ position:fixed !important; inset:0; width:100% !important; height:100% !important; border-radius:0 !important; z-index:2000 }
-  .leaflet-control-zoom{ z-index:1001 } /* zoom buttons always clickable */
+  /* Map styles */
+  #map { 
+    height: 62vh; 
+    border-radius: var(--radius); 
+    box-shadow: var(--shadow); 
+    position: relative;
+    transition: height 0.4s ease, border-radius 0.4s ease;
+  }
+  
+  /* Fullscreen mode */
+  #map.map-full { 
+    position: fixed !important; 
+    inset: 0; 
+    width: 100% !important; 
+    height: 100% !important; 
+    border-radius: 0 !important; 
+    z-index: 2000;
+  }
+  
+  .leaflet-control-zoom { 
+    z-index: 1001;
+  }
+  
+  .map-float { 
+    position: absolute; 
+    left: 12px; 
+    bottom: 12px; 
+    z-index: 1002; 
+    display: flex; 
+    flex-direction: column; 
+    gap: .6rem;
+  }
+  
+  .float-btn { 
+    width: 54px; 
+    height: 54px; 
+    border-radius: 50%; 
+    border: 1px solid var(--line); 
+    background: #0f2a20; 
+    color: var(--ink); 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    cursor: pointer; 
+    box-shadow: var(--shadow);
+    transition: var(--transition);
+  }
+  
+  .float-btn:hover { 
+    background: #123628;
+    transform: scale(1.05);
+  }
+  
+  /* Coffee cup animation */
+  .cup { 
+    position: relative; 
+    width: 26px; 
+    height: 18px; 
+    border-radius: 4px 4px 6px 6px; 
+    background: var(--cup); 
+    border: 2px solid #543a29;
+  }
+  
+  .cup:after { 
+    content: ""; 
+    position: absolute; 
+    right: -8px; 
+    top: 4px; 
+    width: 8px; 
+    height: 8px; 
+    border: 2px solid #543a29; 
+    border-left: none; 
+    border-radius: 0 8px 8px 0;
+  }
+  
+  .foam { 
+    position: absolute; 
+    top: -6px; 
+    left: 2px; 
+    right: 2px; 
+    height: 6px; 
+    background: var(--foam); 
+    border-radius: 6px 6px 0 0;
+  }
+  
+  .steam { 
+    position: absolute; 
+    top: -18px; 
+    left: 4px; 
+    right: 4px; 
+    height: 14px; 
+    background:
+      radial-gradient(circle at 30% 60%, var(--steam) 22%, transparent 50%),
+      radial-gradient(circle at 70% 40%, var(--steam) 22%, transparent 50%); 
+    filter: blur(1px); 
+    opacity: .8; 
+    animation: steam 2.6s ease-in-out infinite;
+  }
+  
+  @keyframes steam {
+    0% { transform: translateY(8px); opacity: .35; }
+    50% { transform: translateY(-2px); opacity: 1; }
+    100% { transform: translateY(-10px); opacity: .35; }
+  }
 
-  .map-float{ position:absolute; left:12px; bottom:12px; z-index:1002; display:flex; flex-direction:column; gap:.6rem }
-  .float-btn{ width:54px; height:54px; border-radius:50%; border:1px solid var(--line); background:#0f2a20; color:var(--ink); display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:var(--shadow) }
-  .float-btn:hover{ background:#123628 }
+  /* Results section */
+  .results { 
+    max-height: 62vh; 
+    overflow: auto; 
+    scrollbar-width: thin; 
+    scrollbar-color: #1e4a3a transparent;
+  }
+  
+  .results::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .results::-webkit-scrollbar-thumb {
+    background-color: #1e4a3a;
+    border-radius: 3px;
+  }
+  
+  .card-cafe { 
+    background: #0e231b; 
+    border: 1px solid var(--line); 
+    border-radius: 14px;
+    transition: var(--transition);
+    overflow: hidden;
+  }
+  
+  .card-cafe:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 28px rgba(0,0,0,.35);
+    border-color: var(--mint);
+  }
+  
+  .avatar { 
+    width: 52px; 
+    height: 52px; 
+    border-radius: 14px; 
+    background: #fff; 
+    border: 1px solid #eaeaea; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  
+  .avatar .letter { 
+    font-weight: 900; 
+    color: #222;
+  }
+  
+  .avatar img { 
+    width: 100%; 
+    height: 100%; 
+    object-fit: cover;
+  }
+  
+  .stars i { 
+    color: #ffc34d;
+  }
+  
+  .chip { 
+    background: #103c2f; 
+    border: 1px solid var(--line); 
+    padding: .25rem .55rem; 
+    border-radius: 999px; 
+    font-size: .85rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+  
+  .btn-route { 
+    background: linear-gradient(180deg, var(--mint), var(--mint2)); 
+    color: #062016; 
+    border: 0;
+    transition: var(--transition);
+  }
+  
+  .btn-route:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+  }
 
-  .cup{ position:relative; width:26px; height:18px; border-radius:4px 4px 6px 6px; background:var(--cup); border:2px solid #543a29 }
-  .cup:after{ content:""; position:absolute; right:-8px; top:4px; width:8px; height:8px; border:2px solid #543a29; border-left:none; border-radius:0 8px 8px 0 }
-  .foam{ position:absolute; top:-6px; left:2px; right:2px; height:6px; background:var(--foam); border-radius:6px 6px 0 0 }
-  .steam{ position:absolute; top:-18px; left:4px; right:4px; height:14px; background:
-    radial-gradient(circle at 30% 60%, var(--steam) 22%, transparent 50%),
-    radial-gradient(circle at 70% 40%, var(--steam) 22%, transparent 50%); filter:blur(1px); opacity:.8; animation:steam 2.6s ease-in-out infinite }
-  @keyframes steam{0%{transform:translateY(8px);opacity:.35}50%{transform:translateY(-2px);opacity:1}100%{transform:translateY(-10px);opacity:.35}}
+  /* Toast notifications */
+  .toast-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 2100;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .toast {
+    background: #0f2a20;
+    color: var(--ink);
+    border: 1px solid var(--line);
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: toast-in 0.3s ease;
+    max-width: 320px;
+  }
+  
+  @keyframes toast-in {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+  
+  /* Loading animation */
+  .loader {
+    display: none;
+    text-align: center;
+    padding: 2rem;
+  }
+  
+  .coffee-loader {
+    display: inline-block;
+    position: relative;
+    width: 80px;
+    height: 80px;
+  }
+  
+  .coffee-loader div {
+    display: inline-block;
+    position: absolute;
+    left: 8px;
+    width: 16px;
+    background: var(--mint);
+    animation: coffee-loader 1.2s cubic-bezier(0, 0.5, 0.5, 1) infinite;
+    border-radius: 20px;
+  }
+  
+  .coffee-loader div:nth-child(1) {
+    left: 8px;
+    animation-delay: -0.24s;
+  }
+  
+  .coffee-loader div:nth-child(2) {
+    left: 32px;
+    animation-delay: -0.12s;
+  }
+  
+  .coffee-loader div:nth-child(3) {
+    left: 56px;
+    animation-delay: 0;
+  }
+  
+  @keyframes coffee-loader {
+    0% {
+      top: 8px;
+      height: 64px;
+    }
+    50%, 100% {
+      top: 24px;
+      height: 32px;
+    }
+  }
+  
+  /* Rating stars */
+  .rate {
+    display: flex;
+    gap: 2px;
+  }
+  
+  .rate i {
+    cursor: pointer;
+    transition: var(--transition);
+  }
+  
+  .rate i:hover {
+    transform: scale(1.2);
+  }
+  
+  /* Responsive design */
+  @media (max-width: 1200px) {
+    .chip-input input {
+      width: 380px;
+    }
+  }
+  
+  @media (max-width: 992px) { 
+    #map { height: 50vh; }
+    .results { max-height: 50vh; } 
+    
+    .brand {
+      font-size: 1.7rem;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .chip-input {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.5rem;
+    }
+    
+    .chip-input input {
+      max-width: 100%;
+      width: 100%;
+    }
+    
+    .map-float {
+      flex-direction: row;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    
+    .float-btn {
+      width: 46px;
+      height: 46px;
+    }
+    
+    header .container {
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    
+    .brand {
+      justify-content: center;
+    }
+  }
+  
+  @media (max-width: 576px) {
+    .panel {
+      padding: 1rem;
+    }
+    
+    .chip-input {
+      padding: 0.6rem;
+    }
+    
+    .brand {
+      font-size: 1.5rem;
+    }
+  }
 
-  .results{ max-height:62vh; overflow:auto; scrollbar-width:thin; scrollbar-color:#1e4a3a transparent }
-  .card-cafe{ background:#0e231b; border:1px solid var(--line); border-radius:14px }
-  .avatar{ width:52px; height:52px; border-radius:14px; background:#fff; border:1px solid #eaeaea; display:flex; align-items:center; justify-content:center; overflow:hidden }
-  .avatar .letter{ font-weight:900; color:#222 }
-  .avatar img{ width:100%; height:100%; object-fit:cover }
-  .stars i{ color:#ffc34d }
-  .chip{ background:#103c2f; border:1px solid var(--line); padding:.25rem .55rem; border-radius:999px; font-size:.85rem }
-  .btn-route{ background:linear-gradient(180deg,var(--mint),var(--mint2)); color:#062016; border:0 }
+  /* Dark mode support */
+  @media (prefers-color-scheme: light) {
+    :root {
+      --ink: #1a3a30;
+      --muted: #4a7d6d;
+      --bg1: #f5fbf9;
+      --bg2: #e8f5f0;
+      --panel: #ffffffcc;
+      --line: #c8e6d9;
+      --mint: #1fc57f;
+      --mint2: #18a066;
+    }
+    
+    body {
+      background: radial-gradient(1200px 500px at 20% -10%, #c8f0e0 0, var(--bg1) 55%, var(--bg2) 100%);
+    }
+    
+    .chip-input {
+      background: #ffffff;
+    }
+    
+    .suggest a {
+      background: #ffffff;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .card-cafe {
+      background: #ffffff;
+    }
+    
+    .chip {
+      background: #e8f5f0;
+    }
+  }
 
-  @media (max-width: 992px){ #map{height:50vh}.results{max-height:50vh} }
+  /* Animation classes */
+  .animate-in {
+    animation: fadeIn 0.5s ease forwards;
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* Focus states for accessibility */
+  button:focus-visible, 
+  input:focus-visible, 
+  select:focus-visible, 
+  a:focus-visible {
+    outline: 2px solid var(--mint);
+    outline-offset: 2px;
+  }
 </style>
 </head>
 <body>
 <header class="py-3">
-  <div class="container d-flex align-items-center justify-content-between">
+  <div class="container d-flex align-items-center justify-content-between flex-wrap">
     <div class="brand"><i class="fa-solid fa-mug-saucer"></i> Coffee Finder Pro</div>
-    <div class="d-flex gap-2">
+    <div class="d-flex gap-2 flex-wrap">
       <select id="lang" class="form-select form-select-sm bg-dark text-light border-secondary">
         <option value="en">English</option><option value="ar">العربية</option><option value="fr">Français</option>
         <option value="es">Español</option><option value="de">Deutsch</option><option value="tr">Türkçe</option>
@@ -90,7 +611,7 @@
       <div class="col-lg-8 position-relative">
         <div class="chip-input">
           <i class="fa-solid fa-magnifying-glass text-success"></i>
-          <input id="query" placeholder="Enter city (e.g., Riyadh, Jeddah, Boston)">
+          <input id="query" placeholder="Enter city (e.g., Riyadh, Jeddah, Boston)" aria-label="Search for a city">
           <button id="btnSearch" class="btn btn-mint"><i class="fa-solid fa-search me-1"></i>Find</button>
         </div>
         <div id="suggestions" class="suggest panel"></div>
@@ -104,7 +625,7 @@
         </select>
       </div>
 
-      <div class="col-6 col-lg-2 d-flex gap-2">
+      <div class="col-6 col-lg-2 d-flex gap-2 flex-wrap">
         <div class="chip form-check"><input id="fOpen" class="form-check-input me-1" type="checkbox"><label class="form-check-label">Open now</label></div>
         <div class="chip form-check"><input id="fWifi" class="form-check-input me-1" type="checkbox"><label class="form-check-label">Wi-Fi</label></div>
         <div class="chip form-check"><input id="fOutdoor" class="form-check-input me-1" type="checkbox"><label class="form-check-label">Outdoor</label></div>
@@ -114,7 +635,7 @@
     <div class="mt-2 d-flex align-items-center gap-3 flex-wrap">
       <div class="d-flex align-items-center gap-2">
         <span class="small text-secondary">Min rating</span>
-        <input id="minRating" type="range" min="0" max="5" step="0.5" value="0">
+        <input id="minRating" type="range" min="0" max="5" step="0.5" value="0" aria-label="Minimum rating">
         <span id="minRatingVal" class="small">0.0</span>
       </div>
       <div class="ms-auto small" id="kpi">Ready</div>
@@ -126,9 +647,9 @@
       <div class="col-lg-8 position-relative">
         <div id="map"></div>
         <div class="map-float">
-          <button id="btnFullscreen" class="float-btn" title="Fullscreen"><i class="fa-solid fa-maximize"></i></button>
-          <button id="btnSearchHere" class="float-btn" title="Search this area"><i class="fa-solid fa-bullseye"></i></button>
-          <button id="btnLocate" class="float-btn" title="Locate me"><i class="fa-solid fa-location-arrow"></i></button>
+          <button id="btnFullscreen" class="float-btn" title="Fullscreen" aria-label="Toggle fullscreen map"><i class="fa-solid fa-maximize"></i></button>
+          <button id="btnSearchHere" class="float-btn" title="Search this area" aria-label="Search this area"><i class="fa-solid fa-bullseye"></i></button>
+          <button id="btnLocate" class="float-btn" title="Locate me" aria-label="Use my current location"><i class="fa-solid fa-location-arrow"></i></button>
         </div>
       </div>
 
@@ -144,7 +665,7 @@
         </div>
 
         <div class="loader" id="loader">
-          <div class="spinner-border text-success" role="status"></div>
+          <div class="coffee-loader"><div></div><div></div><div></div></div>
           <div class="mt-2">Searching cafés…</div>
         </div>
 
@@ -157,266 +678,902 @@
   </section>
 </main>
 
-<footer class="py-4">
+<footer class="py-4 mt-4">
   <div class="container small text-center">
     © <span id="yr"></span> Coffee Finder Pro — Tiles © OpenStreetMap contributors · Data: Overpass/Photon/Nominatim · Privacy · Disclaimer · Made with love 🇸🇦
   </div>
 </footer>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<!-- Toast container -->
+<div class="toast-container"></div>
+
+<!-- Scripts with defer attribute for better loading -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" defer></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" defer></script>
 
 <script>
-const CFG = {
-  photon:'https://photon.komoot.io/api/',
-  nominatim:'https://nominatim.openstreetmap.org/search',
-  overpass:[
-    'https://overpass-api.de/api/interpreter',
-    'https://overpass.kumi.systems/api/interpreter',
-    'https://z.overpass-api.de/api/interpreter'
-  ],
-  tO: 20000
-};
-const ISO=[["","Global"],["sa","Saudi Arabia"],["us","United States"],["gb","United Kingdom"],["ae","United Arab Emirates"],["tr","Türkiye"],["eg","Egypt"],["fr","France"],["de","Germany"],["es","Spain"],["it","Italy"],["jp","Japan"],["in","India"],["id","Indonesia"],["pk","Pakistan"],["ru","Russia"],["br","Brazil"],["mx","Mexico"],["ca","Canada"],["za","South Africa"]];
-const BRAND_SVGS={"starbucks":"https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/starbucks.svg","dunkin":"https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/dunkindonuts.svg","tim":"https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/timhortons.svg","% arabica":"https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/percent.svg"};
-const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
-const dom={lang:$('#lang'),country:$('#country'),query:$('#query'),sugg:$('#suggestions'),btnSearch:$('#btnSearch'),radius:$('#radius'),fOpen:$('#fOpen'),fWifi:$('#fWifi'),fOutdoor:$('#fOutdoor'),minR:$('#minRating'),minRVal:$('#minRatingVal'),sort:$('#sort'),loader:$('#loader'),results:$('#results'),nores:$('#nores'),kpi:$('#kpi'),mapEl:$('#map'),btnFS:$('#btnFullscreen'),btnHere:$('#btnSearchHere'),btnLoc:$('#btnLocate')};
-const state={lang:'en',country:'',bias:null,map:null,cluster:null,origin:null,list:[],markers:[]};
-
-(function init(){
-  $('#yr').textContent=new Date().getFullYear();
-  dom.country.innerHTML=ISO.map(([c,n])=>`<option value="${c}">${c?c.toUpperCase()+' — ':''}${n}</option>`).join('');
-  initMap(); bind(); tryIPBias();
-})();
-
-function initMap(){
-  state.map=L.map('map',{zoomControl:true,preferCanvas:true}).setView([23.8859,45.0792],5);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(state.map);
-  state.cluster=L.markerClusterGroup({showCoverageOnHover:false,maxClusterRadius:50,chunkedLoading:true});
-  state.map.addLayer(state.cluster);
-  dom.btnHere.addEventListener('click',()=>{const c=state.map.getCenter(); searchAt(c.lat,c.lng,true);});
-  dom.btnLoc.addEventListener('click',geolocate);
-  dom.btnFS.addEventListener('click',()=>{ dom.mapEl.classList.toggle('map-full'); setTimeout(()=>state.map.invalidateSize(),150); });
-}
-
-function bind(){
-  let t=null;
-  dom.query.addEventListener('input',()=>{clearTimeout(t); t=setTimeout(suggest,160);});
-  dom.query.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); useTopSuggestion(); }});
-  dom.sugg.addEventListener('click',e=>{ const a=e.target.closest('a[data-lat]'); if(!a)return; hideSuggest(); searchAt(+a.dataset.lat,+a.dataset.lon,false,13); });
-  document.addEventListener('click',e=>{ if(!dom.sugg.contains(e.target)&&e.target!==dom.query){ hideSuggest(); }});
-
-  dom.btnSearch.addEventListener('click',useTopSuggestion);
-  dom.radius.addEventListener('change',()=>{ if(state.origin) searchAt(state.origin.lat,state.origin.lon,false,state.map.getZoom()); });
-  dom.sort.addEventListener('change',render);
-  dom.fOpen.addEventListener('change',render); dom.fWifi.addEventListener('change',render); dom.fOutdoor.addEventListener('change',render);
-  dom.minR.addEventListener('input',()=>{ dom.minRVal.textContent=parseFloat(dom.minR.value).toFixed(1); render(); });
-  dom.lang.addEventListener('change',()=>{ state.lang=dom.lang.value; suggest(); });
-  dom.country.addEventListener('change',panToCountry);
-}
-
-function hideSuggest(){ dom.sugg.style.display='none'; dom.sugg.innerHTML=''; }
-async function suggest(){
-  const q=dom.query.value.trim(); if(q.length<1){hideSuggest(); return;}
-  try{
-    const items=await photon(q); if(items.length){ paintSuggest(items); return; }
-    paintSuggest(await nomi(q));
-  }catch(_){ hideSuggest(); }
-}
-function paintSuggest(items){
-  dom.sugg.innerHTML=items.slice(0,8).map(i=>`<a data-lat="${i.lat}" data-lon="${i.lon}"><i class="fa-solid fa-location-dot text-success"></i>${esc(i.label)}</a>`).join('');
-  dom.sugg.style.display='block';
-}
-async function useTopSuggestion(){
-  if(dom.sugg.firstElementChild){ dom.sugg.firstElementChild.click(); return; }
-  const q=dom.query.value.trim(); if(!q){ dom.query.focus(); return; }
-  const items=await photon(q).catch(()=>nomi(q));
-  if(items && items[0]){
-    let best=items[0];
-    if(/riyadh/i.test(q)){ const sa=items.find(i=>/saudi/i.test(i.label)); if(sa) best=sa; }
-    searchAt(best.lat,best.lon,false,13);
-  }
-}
-async function photon(q){
-  const u=new URL(CFG.photon); u.searchParams.set('q',q); u.searchParams.set('limit','8'); u.searchParams.set('lang',state.lang); u.searchParams.set('layer','city,town,village,locality');
-  if(state.country) u.searchParams.set('osm_tag','countrycode:'+state.country);
-  if(state.bias){ u.searchParams.set('lat',state.bias.lat); u.searchParams.set('lon',state.bias.lon); }
-  const r=await fetchTO(u,10000); const j=await r.json();
-  return (j.features||[]).map(f=>{const p=f.properties||{}; const label=[p.name,p.city,p.state,p.country].filter(Boolean).join(', '); return {label, lat:f.geometry.coordinates[1], lon:f.geometry.coordinates[0], imp:p.importance||0};}).sort((a,b)=>(b.imp||0)-(a.imp||0));
-}
-async function nomi(q){
-  const u=new URL(CFG.nominatim); u.searchParams.set('format','json'); u.searchParams.set('addressdetails','1'); u.searchParams.set('limit','5'); u.searchParams.set('q',q); u.searchParams.set('accept-language',state.lang);
-  if(state.country) u.searchParams.set('countrycodes',state.country);
-  const r=await fetchTO(u,12000); const j=await r.json();
-  return j.map(x=>({label:x.display_name, lat:+x.lat, lon:+x.lon}));
-}
-
-async function panToCountry(){
-  state.country = dom.country.value || '';
-  hideSuggest(); if(!state.country){ state.bias=null; return; }
-  const u=new URL(CFG.nominatim); u.searchParams.set('format','json'); u.searchParams.set('limit','1'); u.searchParams.set('q', ISO.find(i=>i[0]===state.country)?.[1]||state.country); u.searchParams.set('countrycodes',state.country);
-  try{
-    const r=await fetchTO(u,12000); const j=await r.json(); if(!j[0]) return;
-    const b=j[0].boundingbox; const sw=[+b[0], +b[2]], ne=[+b[1], +b[3]];
-    state.map.fitBounds([sw,ne],{maxZoom:6}); state.bias={lat:(sw[0]+ne[0])/2, lon:(sw[1]+ne[1])/2};
-    searchAt(state.bias.lat,state.bias.lon,false,9);
-  }catch(_){}
-}
-
-function start(){ dom.loader.style.display='block'; dom.results.innerHTML=''; dom.nores.classList.add('d-none'); dom.kpi.textContent='Searching…'; state.cluster.clearLayers(); state.markers=[]; }
-function stop(){ dom.loader.style.display='none'; }
-
-function searchAt(lat,lon,fromMap=false,zoom=13){
-  hideSuggest(); state.origin={lat,lon}; state.map.setView([lat,lon],zoom);
-  start(); findCafes(lat,lon, parseInt(dom.radius.value,10));
-}
-
-async function findCafes(lat,lon,radius){
-  const brands='Starbucks|Dunkin|%25 Arabica|Tim Hortons|Costa|Second Cup|Gloria Jeans';
-  const q = `
-    [out:json][timeout:50];
-    (
-      node["amenity"="cafe"](around:${radius},${lat},${lon});
-      way["amenity"="cafe"](around:${radius},${lat},${lon});
-      node["shop"="coffee"](around:${radius},${lat},${lon});
-      node["name"~"${brands}",i](around:${radius},${lat},${lon});
-      way["name"~"${brands}",i](around:${radius},${lat},${lon});
-    );
-    out center tags;
-  `;
-  try{
-    const data = await overpass(q);
-    const els = data.elements || [];
-    state.list = els.map(e=>{
-      const c = e.type==='way' ? e.center : {lat:e.lat,lon:e.lon};
-      const t = e.tags || {};
-      const name = t.name || t.brand || 'Café';
-      const d = haversine(lat,lon,c.lat,c.lon);
-      const s = smartScore(t,d);
-      const user = getUser(e.id);
-      return { id:e.id, lat:c.lat, lon:c.lon, name, tags:t, distance:d, smart:s, user, rating: mix(s,user) };
-    });
-    render();
-  }catch(err){
-    stop(); dom.kpi.textContent='Search failed (Overpass). Please try again.';
-    dom.results.innerHTML = `<div class="text-center text-secondary py-4">Network error talking to Overpass. Click “Search this area” or “Find” to retry.</div>`;
-  }
-}
-
-/* robust Overpass (POST form-encoded, then GET ?data=) */
-async function overpass(body){
-  for(const ep of CFG.overpass){
-    /* POST as application/x-www-form-urlencoded */
-    try{
-      const r1 = await fetchTO(ep, CFG.tO, {
-        method:'POST',
-        headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8','Accept':'application/json'},
-        body:'data='+encodeURIComponent(body)
+// Use a more organized module pattern
+(function() {
+  'use strict';
+  
+  // ------------ Configuration ------------
+  const CFG = {
+    photon: 'https://photon.komoot.io/api/',
+    nominatim: 'https://nominatim.openstreetmap.org/search',
+    overpass: [
+      'https://overpass-api.de/api/interpreter',
+      'https://overpass.kumi.systems/api/interpreter',
+      'https://z.overpass-api.de/api/interpreter'
+    ],
+    timeout: 20000,
+    cacheTTL: 300000 // 5 minutes cache
+  };
+  
+  const ISO = [
+    ["","Global"],["sa","Saudi Arabia"],["us","United States"],["gb","United Kingdom"],
+    ["ae","United Arab Emirates"],["tr","Türkiye"],["eg","Egypt"],["fr","France"],
+    ["de","Germany"],["es","Spain"],["it","Italy"],["jp","Japan"],["in","India"],
+    ["id","Indonesia"],["pk","Pakistan"],["ru","Russia"],["br","Brazil"],["mx","Mexico"],
+    ["ca","Canada"],["za","South Africa"]
+  ];
+  
+  const BRAND_SVGS = {
+    "starbucks": "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/starbucks.svg",
+    "dunkin": "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/dunkindonuts.svg",
+    "tim": "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/timhortons.svg",
+    "% arabica": "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/percent.svg",
+    "costa": "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/costacoffee.svg",
+    "gloria jeans": "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/gloriajeans.svg"
+  };
+  
+  // ------------ DOM References ------------
+  const $ = s => document.querySelector(s);
+  const $$ = s => document.querySelectorAll(s);
+  
+  const dom = {
+    lang: $('#lang'),
+    country: $('#country'),
+    query: $('#query'),
+    sugg: $('#suggestions'),
+    btnSearch: $('#btnSearch'),
+    radius: $('#radius'),
+    fOpen: $('#fOpen'),
+    fWifi: $('#fWifi'),
+    fOutdoor: $('#fOutdoor'),
+    minR: $('#minRating'),
+    minRVal: $('#minRatingVal'),
+    sort: $('#sort'),
+    loader: $('#loader'),
+    results: $('#results'),
+    nores: $('#nores'),
+    kpi: $('#kpi'),
+    mapEl: $('#map'),
+    btnFS: $('#btnFullscreen'),
+    btnHere: $('#btnSearchHere'),
+    btnLoc: $('#btnLocate')
+  };
+  
+  // ------------ State Management ------------
+  const state = {
+    lang: 'en',
+    country: '',
+    bias: null,
+    map: null,
+    cluster: null,
+    origin: null,
+    list: [],
+    markers: [],
+    cache: new Map(),
+    isFullscreen: false
+  };
+  
+  // ------------ Utility Functions ------------
+  const utils = {
+    escapeHtml: s => s ? s.replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])) : '',
+    
+    fetchWithTimeout: (url, ms, options = {}) => {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), ms);
+      
+      return fetch(url, { signal: controller.signal, ...options })
+        .finally(() => clearTimeout(timeout));
+    },
+    
+    haversine: (lat1, lon1, lat2, lon2) => {
+      const R = 6371; // Earth's radius in km
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+      
+      return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    },
+    
+    directionsUrl: (lat, lon) => {
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      return isIOS ? 
+        `http://maps.apple.com/?daddr=${lat},${lon}` : 
+        `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
+    },
+    
+    smartScore: (tags, distance) => {
+      let score = 2.7;
+      if (tags.opening_hours) score += 0.7;
+      if (tags.internet_access === 'yes') score += 0.5;
+      if (tags.outdoor_seating === 'yes') score += 0.4;
+      if (tags.brand) score += 0.2;
+      if (/starbucks|dunkin|tim|arabica|costa/i.test(tags.name || '')) score += 0.3;
+      
+      // Adjust based on distance
+      if (distance > 8) score -= 0.8;
+      else if (distance > 5) score -= 0.5;
+      else if (distance > 3) score -= 0.2;
+      
+      return Math.max(0, Math.min(5, score));
+    },
+    
+    mixRating: (smart, user) => user ? Math.max(0, Math.min(5, 0.7 * smart + 0.3 * user)) : smart,
+    
+    isOpen: tags => {
+      const hours = tags.opening_hours;
+      if (!hours) return true;
+      if (hours.includes('24/7')) return true;
+      
+      const m = /(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/.exec(hours);
+      if (!m) return true;
+      
+      const now = new Date();
+      const mins = now.getHours() * 60 + now.getMinutes();
+      const open = parseInt(m[1]) * 60 + parseInt(m[2]);
+      const close = parseInt(m[3]) * 60 + parseInt(m[4]);
+      
+      return (close > open) ? (mins >= open && mins <= close) : (mins >= open || mins <= close);
+    },
+    
+    renderStars: rating => {
+      let html = '';
+      const full = Math.floor(rating);
+      const half = (rating - full) >= 0.25 && (rating - full) < 0.75;
+      
+      for (let i = 0; i < full; i++) html += '<i class="fa-solid fa-star"></i>';
+      if (half) html += '<i class="fa-solid fa-star-half-stroke"></i>';
+      for (let i = (half ? full + 1 : full); i < 5; i++) html += '<i class="fa-regular fa-star"></i>';
+      
+      return html;
+    },
+    
+    getUserRating: id => {
+      const value = localStorage.getItem(`cf_rate_${id}`);
+      return value ? parseFloat(value) : null;
+    },
+    
+    setUserRating: (id, value) => {
+      localStorage.setItem(`cf_rate_${id}`, String(value));
+    },
+    
+    toast: (message, type = 'info') => {
+      const container = $('.toast-container') || (() => {
+        const div = document.createElement('div');
+        div.className = 'toast-container';
+        document.body.appendChild(div);
+        return div;
+      })();
+      
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      
+      const icon = type === 'error' ? 'circle-exclamation' : 
+                  type === 'success' ? 'circle-check' : 'circle-info';
+      
+      toast.innerHTML = `
+        <i class="fa-solid fa-${icon} text-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info'}"></i>
+        <span>${message}</span>
+      `;
+      
+      container.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    },
+    
+    // Cache with TTL
+    getCached: key => {
+      const item = state.cache.get(key);
+      if (!item) return null;
+      
+      if (Date.now() - item.timestamp > CFG.cacheTTL) {
+        state.cache.delete(key);
+        return null;
+      }
+      
+      return item.data;
+    },
+    
+    setCached: (key, data) => {
+      state.cache.set(key, {
+        data,
+        timestamp: Date.now()
       });
-      if(r1.ok) return r1.json();
-    }catch(_){}
-    /* GET fallback */
-    try{
-      const r2 = await fetchTO(ep+'?data='+encodeURIComponent(body), CFG.tO);
-      if(r2.ok) return r2.json();
-    }catch(_){}
+    }
+  };
+  
+  // ------------ Application Initialization ------------
+  function init() {
+    // Set current year in footer
+    $('#yr').textContent = new Date().getFullYear();
+    
+    // Initialize the map
+    initMap();
+    
+    // Populate countries dropdown
+    populateCountries();
+    
+    // Set up event listeners
+    bindEvents();
+    
+    // Try to get location from IP
+    tryIPBias();
   }
-  throw new Error('All endpoints failed');
-}
-
-/* RENDER */
-function render(){
-  stop();
-  let list = state.list.slice();
-  if(dom.fWifi.checked) list=list.filter(c=>c.tags.internet_access==='yes');
-  if(dom.fOutdoor.checked) list=list.filter(c=>c.tags.outdoor_seating==='yes');
-  if(dom.fOpen.checked) list=list.filter(isOpen);
-  list = list.filter(c=>c.rating >= parseFloat(dom.minR.value||0));
-  const s=dom.sort.value;
-  list.sort((a,b)=> s==='name' ? (a.name||'').localeCompare(b.name||'')
-                  : s==='rating' ? (b.rating-a.rating)
-                  : s==='hours' ? ((b.tags.opening_hours?1:0)-(a.tags.opening_hours?1:0))
-                  : (a.distance-b.distance));
-  /* markers */
-  const icon=L.divIcon({className:'', html:`<div class="steam"></div><div class="cup"><div class="foam"></div></div>`, iconSize:[26,26], iconAnchor:[13,18]});
-  state.cluster.clearLayers(); state.markers=[];
-  list.forEach((c,i)=>{ const m=L.marker([c.lat,c.lon],{icon}).bindPopup(popup(c)); m.on('mouseover',()=>m.openPopup()); state.cluster.addLayer(m); state.markers.push(m); });
-  if(!list.length){ dom.results.innerHTML=''; dom.nores.classList.remove('d-none'); dom.kpi.textContent='No cafés'; return; }
-  dom.nores.classList.add('d-none'); dom.results.innerHTML=list.map((c,i)=>card(c,i)).join('');
-  dom.kpi.textContent=`Showing ${list.length} cafés`;
-  /* interactions */
-  $$('#results .card-cafe').forEach((el,i)=>{ el.addEventListener('mouseenter',()=>state.markers[i]?.openPopup()); el.addEventListener('click',e=>{ if(!e.target.closest('.rate')){ state.map.setView(state.markers[i].getLatLng(),16); state.markers[i].openPopup(); } }); });
-  $$('.rate i').forEach(star=>{
-    star.addEventListener('click',e=>{
-      const id=star.closest('.card-cafe').dataset.id; const v=+star.dataset.v;
-      setUser(id,v); const obj=state.list.find(x=>String(x.id)===String(id));
-      if(obj){ obj.user=v; obj.rating=mix(obj.smart,v); render(); }
+  
+  function initMap() {
+    state.map = L.map('map', {
+      zoomControl: true,
+      preferCanvas: true // Better performance for many markers
+    }).setView([23.8859, 45.0792], 5);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      crossOrigin: true
+    }).addTo(state.map);
+    
+    state.cluster = L.markerClusterGroup({
+      showCoverageOnHover: false,
+      maxClusterRadius: 50,
+      chunkedLoading: true,
+      spiderfyOnMaxZoom: true
     });
-  });
-}
-function popup(c){
-  const addr=[c.tags['addr:street'],c.tags['addr:city']].filter(Boolean).join(', ');
-  return `<div><strong>${esc(c.name)}</strong></div>
-    <div class="stars my-1">${stars(c.rating)} <span class="text-secondary small">(${c.rating.toFixed(1)})</span></div>
-    <div class="small text-secondary">${c.distance.toFixed(1)} km</div>
-    ${addr?`<div class="small"><i class="fa-solid fa-location-dot me-1"></i>${esc(addr)}</div>`:''}
-    <div class="mt-2 d-flex gap-1 flex-wrap">
-      <a class="btn btn-sm btn-route" target="_blank" href="${directions(c.lat,c.lon)}"><i class="fa-solid fa-route me-1"></i>Directions</a>
-      <a class="btn btn-sm btn-outline-light" target="_blank" href="https://www.openstreetmap.org/?mlat=${c.lat}&mlon=${c.lon}#map=18/${c.lat}/${c.lon}">OSM</a>
-    </div>`;
-}
-function card(c,idx){
-  const addr=[c.tags['addr:street'],c.tags['addr:city']].filter(Boolean).join(', ');
-  return `<div class="card card-cafe mb-3 pointer" data-id="${c.id}">
-    <div class="card-body d-flex gap-3">
-      ${avatar(c)}
-      <div class="flex-grow-1">
-        <div class="d-flex justify-content-between align-items-start">
-          <div class="fw-bold">${esc(c.name)}</div>
-          <div class="text-secondary small">${c.distance.toFixed(1)} km</div>
+    
+    state.map.addLayer(state.cluster);
+    
+    // Map event listeners
+    dom.btnHere.addEventListener('click', () => {
+      const center = state.map.getCenter();
+      searchAt(center.lat, center.lng, true);
+    });
+    
+    dom.btnLoc.addEventListener('click', geolocate);
+    
+    dom.btnFS.addEventListener('click', () => {
+      state.isFullscreen = !state.isFullscreen;
+      dom.mapEl.classList.toggle('map-full');
+      dom.btnFS.innerHTML = state.isFullscreen ? 
+        '<i class="fa-solid fa-minimize"></i>' : 
+        '<i class="fa-solid fa-maximize"></i>';
+      
+      setTimeout(() => state.map.invalidateSize(), 150);
+    });
+  }
+  
+  function populateCountries() {
+    dom.country.innerHTML = ISO.map(([code, name]) => 
+      `<option value="${code}">${code ? code.toUpperCase() + ' — ' : ''}${name}</option>`
+    ).join('');
+  }
+  
+  function bindEvents() {
+    let suggestTimer = null;
+    
+    // Search input events
+    dom.query.addEventListener('input', () => {
+      clearTimeout(suggestTimer);
+      suggestTimer = setTimeout(suggest, 160);
+    });
+    
+    dom.query.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        useTopSuggestion();
+      }
+    });
+    
+    // Suggestions click
+    dom.sugg.addEventListener('click', e => {
+      const anchor = e.target.closest('a[data-lat]');
+      if (!anchor) return;
+      
+      hideSuggest();
+      searchAt(parseFloat(anchor.dataset.lat), parseFloat(anchor.dataset.lon), false, 13);
+    });
+    
+    // Close suggestions when clicking outside
+    document.addEventListener('click', e => {
+      if (!dom.sugg.contains(e.target) && e.target !== dom.query) {
+        hideSuggest();
+      }
+    });
+    
+    // Button events
+    dom.btnSearch.addEventListener('click', useTopSuggestion);
+    
+    // Filter events
+    dom.radius.addEventListener('change', () => {
+      if (state.origin) {
+        searchAt(state.origin.lat, state.origin.lon, false, state.map.getZoom());
+      }
+    });
+    
+    dom.sort.addEventListener('change', renderResults);
+    dom.fOpen.addEventListener('change', renderResults);
+    dom.fWifi.addEventListener('change', renderResults);
+    dom.fOutdoor.addEventListener('change', renderResults);
+    
+    // Rating slider
+    dom.minR.addEventListener('input', () => {
+      dom.minRVal.textContent = parseFloat(dom.minR.value).toFixed(1);
+      renderResults();
+    });
+    
+    // Language and country changes
+    dom.lang.addEventListener('change', () => {
+      state.lang = dom.lang.value;
+      suggest();
+    });
+    
+    dom.country.addEventListener('change', panToCountry);
+  }
+  
+  function hideSuggest() {
+    dom.sugg.style.display = 'none';
+    dom.sugg.innerHTML = '';
+  }
+  
+  // ------------ Suggestion Functions ------------
+  async function suggest() {
+    const query = dom.query.value.trim();
+    if (query.length < 1) {
+      hideSuggest();
+      return;
+    }
+    
+    try {
+      const cacheKey = `suggest:${query}:${state.lang}:${state.country}`;
+      const cached = utils.getCached(cacheKey);
+      
+      let items;
+      if (cached) {
+        items = cached;
+      } else {
+        items = await photonSuggest(query);
+        if (!items.length) items = await nominatimSuggest(query);
+        utils.setCached(cacheKey, items);
+      }
+      
+      if (items.length) {
+        renderSuggestions(items);
+      } else {
+        hideSuggest();
+      }
+    } catch (error) {
+      hideSuggest();
+      console.error('Suggestion error:', error);
+    }
+  }
+  
+  async function photonSuggest(query) {
+    const url = new URL(CFG.photon);
+    url.searchParams.set('q', query);
+    url.searchParams.set('limit', '8');
+    url.searchParams.set('lang', state.lang);
+    url.searchParams.set('layer', 'city,town,village,locality');
+    
+    if (state.country) {
+      url.searchParams.set('osm_tag', 'countrycode:' + state.country);
+    }
+    
+    if (state.bias) {
+      url.searchParams.set('lat', state.bias.lat);
+      url.searchParams.set('lon', state.bias.lon);
+    }
+    
+    const response = await utils.fetchWithTimeout(url, 10000);
+    const data = await response.json();
+    
+    return (data.features || []).map(feature => {
+      const props = feature.properties || {};
+      const label = [props.name, props.city, props.state, props.country].filter(Boolean).join(', ');
+      
+      return {
+        label,
+        lat: feature.geometry.coordinates[1],
+        lon: feature.geometry.coordinates[0],
+        importance: props.importance || 0
+      };
+    }).sort((a, b) => (b.importance || 0) - (a.importance || 0));
+  }
+  
+  async function nominatimSuggest(query) {
+    const url = new URL(CFG.nominatim);
+    url.searchParams.set('format', 'json');
+    url.searchParams.set('addressdetails', '1');
+    url.searchParams.set('limit', '5');
+    url.searchParams.set('q', query);
+    url.searchParams.set('accept-language', state.lang);
+    
+    if (state.country) {
+      url.searchParams.set('countrycodes', state.country);
+    }
+    
+    const response = await utils.fetchWithTimeout(url, 12000);
+    const data = await response.json();
+    
+    return data.map(item => ({
+      label: item.display_name,
+      lat: parseFloat(item.lat),
+      lon: parseFloat(item.lon)
+    }));
+  }
+  
+  function renderSuggestions(items) {
+    dom.sugg.innerHTML = items.slice(0, 8).map(item => `
+      <a data-lat="${item.lat}" data-lon="${item.lon}">
+        <i class="fa-solid fa-location-dot text-success"></i>
+        ${utils.escapeHtml(item.label)}
+      </a>
+    `).join('');
+    
+    dom.sugg.style.display = 'block';
+  }
+  
+  async function useTopSuggestion() {
+    if (dom.sugg.firstElementChild) {
+      dom.sugg.firstElementChild.click();
+      return;
+    }
+    
+    const query = dom.query.value.trim();
+    if (!query) {
+      dom.query.focus();
+      return;
+    }
+    
+    try {
+      const items = await photonSuggest(query).catch(() => nominatimSuggest(query));
+      if (items && items[0]) {
+        let bestMatch = items[0];
+        
+        // Prefer results from the selected country
+        if (state.country) {
+          const countryMatch = items.find(item => 
+            item.label.toLowerCase().includes(state.country) || 
+            item.label.toLowerCase().includes(ISO.find(i => i[0] === state.country)?.[1]?.toLowerCase() || '')
+          );
+          
+          if (countryMatch) bestMatch = countryMatch;
+        }
+        
+        searchAt(bestMatch.lat, bestMatch.lon, false, 13);
+      }
+    } catch (error) {
+      utils.toast('Could not find location', 'error');
+    }
+  }
+  
+  // ------------ Map Functions ------------
+  async function panToCountry() {
+    state.country = dom.country.value || '';
+    hideSuggest();
+    
+    if (!state.country) {
+      state.bias = null;
+      return;
+    }
+    
+    const countryName = ISO.find(i => i[0] === state.country)?.[1] || state.country;
+    const url = new URL(CFG.nominatim);
+    url.searchParams.set('format', 'json');
+    url.searchParams.set('limit', '1');
+    url.searchParams.set('q', countryName);
+    url.searchParams.set('countrycodes', state.country);
+    
+    try {
+      const response = await utils.fetchWithTimeout(url, 12000);
+      const data = await response.json();
+      
+      if (!data[0]) return;
+      
+      const bbox = data[0].boundingbox;
+      const southWest = [parseFloat(bbox[0]), parseFloat(bbox[2])];
+      const northEast = [parseFloat(bbox[1]), parseFloat(bbox[3])];
+      
+      state.map.fitBounds([southWest, northEast], { maxZoom: 6 });
+      state.bias = {
+        lat: (southWest[0] + northEast[0]) / 2,
+        lon: (southWest[1] + northEast[1]) / 2
+      };
+      
+      searchAt(state.bias.lat, state.bias.lon, false, 9);
+    } catch (error) {
+      console.error('Country pan error:', error);
+    }
+  }
+  
+  function startLoading() {
+    dom.loader.style.display = 'block';
+    dom.results.innerHTML = '';
+    dom.nores.classList.add('d-none');
+    dom.kpi.textContent = 'Searching…';
+    state.cluster.clearLayers();
+    state.markers = [];
+  }
+  
+  function stopLoading() {
+    dom.loader.style.display = 'none';
+  }
+  
+  function searchAt(lat, lon, fromMap = false, zoom = 13) {
+    hideSuggest();
+    state.origin = { lat, lon };
+    state.map.setView([lat, lon], zoom);
+    
+    startLoading();
+    findCafes(lat, lon, parseInt(dom.radius.value, 10));
+  }
+  
+  // ------------ Data Fetching ------------
+  async function findCafes(lat, lon, radius) {
+    const brands = 'Starbucks|Dunkin|%25 Arabica|Tim Hortons|Costa|Second Cup|Gloria Jeans';
+    const query = `
+      [out:json][timeout:50];
+      (
+        node["amenity"="cafe"](around:${radius},${lat},${lon});
+        way["amenity"="cafe"](around:${radius},${lat},${lon});
+        node["shop"="coffee"](around:${radius},${lat},${lon});
+        node["name"~"${brands}",i](around:${radius},${lat},${lon});
+        way["name"~"${brands}",i](around:${radius},${lat},${lon});
+      );
+      out center tags;
+    `;
+    
+    try {
+      const cacheKey = `cafes:${lat}:${lon}:${radius}`;
+      const cached = utils.getCached(cacheKey);
+      
+      let data;
+      if (cached) {
+        data = cached;
+      } else {
+        data = await overpassQuery(query);
+        utils.setCached(cacheKey, data);
+      }
+      
+      processCafes(data, lat, lon);
+    } catch (error) {
+      stopLoading();
+      dom.kpi.textContent = 'Search failed. Please try again.';
+      dom.results.innerHTML = `
+        <div class="text-center text-secondary py-4">
+          <i class="fa-solid fa-wifi fa-2x mb-2"></i>
+          <div>Network error. Click "Search this area" or "Find" to retry.</div>
         </div>
-        <div class="stars">${stars(c.rating)} <span class="text-secondary small">(${c.rating.toFixed(1)})</span></div>
-        ${addr?`<div class="small text-secondary"><i class="fa-solid fa-location-dot me-1"></i>${esc(addr)}</div>`:''}
-        <div class="mt-1 d-flex gap-2 flex-wrap small">
-          ${c.tags.internet_access==='yes'?'<span class="chip"><i class="fa-solid fa-wifi me-1"></i>Wi-Fi</span>':''}
-          ${c.tags.outdoor_seating==='yes'?'<span class="chip"><i class="fa-solid fa-umbrella-beach me-1"></i>Outdoor</span>':''}
-        </div>
-        <div class="mt-2 rate">${[1,2,3,4,5].map(v=>`<i class="fa-solid fa-star ${c.user&&v<=c.user?'text-warning':''}" data-v="${v}"></i>`).join(' ')}</div>
+      `;
+      
+      utils.toast('Search failed. Please try again.', 'error');
+    }
+  }
+  
+  async function overpassQuery(query) {
+    // Try POST first
+    for (const endpoint of CFG.overpass) {
+      try {
+        const response = await utils.fetchWithTimeout(endpoint, CFG.timeout, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            'Accept': 'application/json'
+          },
+          body: 'data=' + encodeURIComponent(query)
+        });
+        
+        if (response.ok) return await response.json();
+      } catch (error) {
+        // Try next endpoint or method
+      }
+    }
+    
+    // Fallback to GET
+    for (const endpoint of CFG.overpass) {
+      try {
+        const response = await utils.fetchWithTimeout(
+          endpoint + '?data=' + encodeURIComponent(query),
+          CFG.timeout
+        );
+        
+        if (response.ok) return await response.json();
+      } catch (error) {
+        // Try next endpoint
+      }
+    }
+    
+    throw new Error('All Overpass endpoints failed');
+  }
+  
+  function processCafes(data, originLat, originLon) {
+    const elements = data.elements || [];
+    
+    state.list = elements.map(element => {
+      const coords = element.type === 'way' ? element.center : { lat: element.lat, lon: element.lon };
+      const tags = element.tags || {};
+      
+      const name = tags.name || tags.brand || 'Café';
+      const distance = utils.haversine(originLat, originLon, coords.lat, coords.lon);
+      const smartRating = utils.smartScore(tags, distance);
+      const userRating = utils.getUserRating(element.id);
+      const combinedRating = utils.mixRating(smartRating, userRating);
+      
+      return {
+        id: element.id,
+        lat: coords.lat,
+        lon: coords.lon,
+        name,
+        tags,
+        distance,
+        smartRating,
+        userRating,
+        rating: combinedRating
+      };
+    });
+    
+    renderResults();
+    stopLoading();
+  }
+  
+  // ------------ Rendering Functions ------------
+  function renderResults() {
+    let filteredList = state.list.slice();
+    
+    // Apply filters
+    if (dom.fWifi.checked) {
+      filteredList = filteredList.filter(cafe => cafe.tags.internet_access === 'yes');
+    }
+    
+    if (dom.fOutdoor.checked) {
+      filteredList = filteredList.filter(cafe => cafe.tags.outdoor_seating === 'yes');
+    }
+    
+    if (dom.fOpen.checked) {
+      filteredList = filteredList.filter(cafe => utils.isOpen(cafe.tags));
+    }
+    
+    // Apply rating filter
+    const minRating = parseFloat(dom.minR.value || 0);
+    filteredList = filteredList.filter(cafe => cafe.rating >= minRating);
+    
+    // Apply sorting
+    const sortBy = dom.sort.value;
+    filteredList.sort((a, b) => {
+      switch (sortBy) {
+        case 'name':
+          return (a.name || '').localeCompare(b.name || '');
+        case 'rating':
+          return b.rating - a.rating;
+        case 'hours':
+          return ((b.tags.opening_hours ? 1 : 0) - (a.tags.opening_hours ? 1 : 0));
+        default: // distance
+          return a.distance - b.distance;
+      }
+    });
+    
+    // Update markers
+    updateMapMarkers(filteredList);
+    
+    // Update results list
+    updateResultsList(filteredList);
+    
+    // Update KPI
+    dom.kpi.textContent = filteredList.length ? `Showing ${filteredList.length} cafés` : 'No cafés';
+    dom.nores.classList.toggle('d-none', !!filteredList.length);
+  }
+  
+  function updateMapMarkers(cafes) {
+    state.cluster.clearLayers();
+    state.markers = [];
+    
+    const icon = L.divIcon({
+      className: '',
+      html: `<div class="steam"></div><div class="cup"><div class="foam"></div></div>`,
+      iconSize: [26, 26],
+      iconAnchor: [13, 18]
+    });
+    
+    cafes.forEach((cafe, index) => {
+      const marker = L.marker([cafe.lat, cafe.lon], { icon })
+        .bindPopup(createPopupContent(cafe));
+      
+      marker.on('mouseover', () => marker.openPopup());
+      state.cluster.addLayer(marker);
+      state.markers.push(marker);
+    });
+  }
+  
+  function updateResultsList(cafes) {
+    if (!cafes.length) {
+      dom.results.innerHTML = '';
+      return;
+    }
+    
+    dom.results.innerHTML = cafes.map((cafe, index) => createCafeCard(cafe, index)).join('');
+    
+    // Add interactivity
+    addCardInteractivity(cafes);
+  }
+  
+  function createPopupContent(cafe) {
+    const address = [cafe.tags['addr:street'], cafe.tags['addr:city']].filter(Boolean).join(', ');
+    
+    return `
+      <div><strong>${utils.escapeHtml(cafe.name)}</strong></div>
+      <div class="stars my-1">${utils.renderStars(cafe.rating)} <span class="text-secondary small">(${cafe.rating.toFixed(1)})</span></div>
+      <div class="small text-secondary">${cafe.distance.toFixed(1)} km</div>
+      ${address ? `<div class="small"><i class="fa-solid fa-location-dot me-1"></i>${utils.escapeHtml(address)}</div>` : ''}
+      <div class="mt-2 d-flex gap-1 flex-wrap">
+        <a class="btn btn-sm btn-route" target="_blank" href="${utils.directionsUrl(cafe.lat, cafe.lon)}"><i class="fa-solid fa-route me-1"></i>Directions</a>
+        <a class="btn btn-sm btn-outline-light" target="_blank" href="https://www.openstreetmap.org/?mlat=${cafe.lat}&mlon=${cafe.lon}#map=18/${cafe.lat}/${cafe.lon}">OSM</a>
       </div>
-    </div>
-  </div>`;
-}
-function avatar(c){ const name=(c.name||'').toLowerCase(); const brand=Object.keys(BRAND_SVGS).find(k=>name.includes(k)); if(brand){ return `<div class="avatar" title="${brand}"><img src="${BRAND_SVGS[brand]}" alt="${brand}"></div>`; } const l=(c.name||'?').trim().charAt(0).toUpperCase(); return `<div class="avatar"><div class="letter">${l}</div></div>`; }
-
-/* helpers */
-function esc(s){return s?s.replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])):''}
-function fetchTO(url,ms,opt={}){ const ctl=new AbortController(); const t=setTimeout(()=>ctl.abort(),ms); return fetch(url,{signal:ctl.signal, ...opt}).finally(()=>clearTimeout(t)); }
-function haversine(a,b,c,d){const R=6371, dLat=deg(c-a), dLon=deg(d-b); const x=Math.sin(dLat/2)**2+Math.cos(deg(a))*Math.cos(deg(c))*Math.sin(dLon/2)**2; return 2*R*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
-function deg(v){return v*Math.PI/180}
-function directions(lat,lon){ return /iPad|iPhone|iPod/.test(navigator.userAgent)?`http://maps.apple.com/?daddr=${lat},${lon}`:`https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`; }
-function smartScore(t,d){ let s=2.7; if(t.opening_hours)s+=0.7; if(t.internet_access==='yes')s+=0.5; if(t.outdoor_seating==='yes')s+=0.4; if(t.brand)s+=0.2; if(/starbucks|dunkin|tim|arabica|costa/i.test(t.name||'')) s+=0.3; if(d>8)s-=0.8; else if(d>5)s-=0.5; else if(d>3)s-=0.2; return Math.max(0,Math.min(5,s)); }
-function mix(s,u){ return u? Math.max(0,Math.min(5,0.7*s+0.3*u)) : s; }
-function isOpen(c){ const s=c.tags.opening_hours; if(!s) return true; if(s.includes('24/7'))return true; const m=/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/.exec(s); if(!m) return true; const now=new Date(), mins=now.getHours()*60+now.getMinutes(); const o=+m[1]*60+ +m[2], cl=+m[3]*60+ +m[4]; return (cl>o)?(mins>=o&&mins<=cl):(mins>=o||mins<=cl); }
-function stars(v){ let h=''; const f=Math.floor(v); const half=(v-f)>=0.25&&(v-f)<0.75; for(let i=0;i<f;i++)h+='<i class="fa-solid fa-star"></i>'; if(half)h+='<i class="fa-solid fa-star-half-stroke"></i>'; for(let i=(half?f+1:f); i<5; i++)h+='<i class="fa-regular fa-star"></i>'; return h; }
-function getUser(id){ const v=localStorage.getItem('cf_rate_'+id); return v?parseFloat(v):null }
-function setUser(id,v){ localStorage.setItem('cf_rate_'+id,String(v)) }
-
-/* geolocation & IP bias */
-function geolocate(){
-  if(!navigator.geolocation){ dom.kpi.textContent='Geolocation not supported'; return; }
-  navigator.geolocation.getCurrentPosition(
-    p=>{const {latitude:lat,longitude:lon}=p.coords; searchAt(lat,lon,false,14);},
-    _=>{ dom.kpi.textContent='Couldn’t get your location'; },
-    {enableHighAccuracy:true, timeout:10000, maximumAge:600000}
-  );
-}
-async function tryIPBias(){
-  try{
-    const r=await fetchTO('https://ipapi.co/json/',6000); const j=await r.json();
-    if(j && j.country_code){ state.country=j.country_code.toLowerCase(); const idx=ISO.findIndex(k=>k[0]===state.country); if(idx>=0) dom.country.value=state.country; if(j.latitude&&j.longitude){ state.bias={lat:j.latitude,lon:j.longitude}; } }
-  }catch(_){}
-}
+    `;
+  }
+  
+  function createCafeCard(cafe, index) {
+    const address = [cafe.tags['addr:street'], cafe.tags['addr:city']].filter(Boolean).join(', ');
+    const userRating = cafe.userRating || 0;
+    
+    return `
+      <div class="card card-cafe mb-3 pointer animate-in" data-id="${cafe.id}" data-index="${index}" style="animation-delay: ${index * 0.05}s">
+        <div class="card-body d-flex gap-3">
+          ${createAvatar(cafe)}
+          <div class="flex-grow-1">
+            <div class="d-flex justify-content-between align-items-start">
+              <div class="fw-bold">${utils.escapeHtml(cafe.name)}</div>
+              <div class="text-secondary small">${cafe.distance.toFixed(1)} km</div>
+            </div>
+            <div class="stars">${utils.renderStars(cafe.rating)} <span class="text-secondary small">(${cafe.rating.toFixed(1)})</span></div>
+            ${address ? `<div class="small text-secondary"><i class="fa-solid fa-location-dot me-1"></i>${utils.escapeHtml(address)}</div>` : ''}
+            <div class="mt-1 d-flex gap-2 flex-wrap small">
+              ${cafe.tags.internet_access === 'yes' ? '<span class="chip"><i class="fa-solid fa-wifi me-1"></i>Wi-Fi</span>' : ''}
+              ${cafe.tags.outdoor_seating === 'yes' ? '<span class="chip"><i class="fa-solid fa-umbrella-beach me-1"></i>Outdoor</span>' : ''}
+            </div>
+            <div class="mt-2 rate">${[1, 2, 3, 4, 5].map(v => `
+              <i class="fa-solid fa-star ${userRating && v <= userRating ? 'text-warning' : ''}" data-v="${v}"></i>
+            `).join(' ')}</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  
+  function createAvatar(cafe) {
+    const name = (cafe.name || '').toLowerCase();
+    const brand = Object.keys(BRAND_SVGS).find(key => name.includes(key));
+    
+    if (brand) {
+      return `
+        <div class="avatar" title="${brand}">
+          <img src="${BRAND_SVGS[brand]}" alt="${brand}" loading="lazy">
+        </div>
+      `;
+    }
+    
+    const letter = (cafe.name || '?').trim().charAt(0).toUpperCase();
+    return `
+      <div class="avatar">
+        <div class="letter">${letter}</div>
+      </div>
+    `;
+  }
+  
+  function addCardInteractivity(cafes) {
+    // Hover to highlight marker
+    $$('.card-cafe').forEach(card => {
+      const index = parseInt(card.dataset.index);
+      
+      card.addEventListener('mouseenter', () => {
+        if (state.markers[index]) {
+          state.markers[index].openPopup();
+        }
+      });
+      
+      card.addEventListener('click', e => {
+        if (!e.target.closest('.rate')) {
+          if (state.markers[index]) {
+            state.map.setView(state.markers[index].getLatLng(), 16);
+            state.markers[index].openPopup();
+          }
+        }
+      });
+    });
+    
+    // Rating functionality
+    $$('.rate i').forEach(star => {
+      star.addEventListener('click', e => {
+        const card = e.target.closest('.card-cafe');
+        const cafeId = card.dataset.id;
+        const ratingValue = parseInt(e.target.dataset.v);
+        
+        utils.setUserRating(cafeId, ratingValue);
+        
+        // Update the cafe object
+        const cafe = state.list.find(c => String(c.id) === cafeId);
+        if (cafe) {
+          cafe.userRating = ratingValue;
+          cafe.rating = utils.mixRating(cafe.smartRating, ratingValue);
+          renderResults();
+        }
+      });
+    });
+  }
+  
+  // ------------ Geolocation ------------
+  function geolocate() {
+    if (!navigator.geolocation) {
+      utils.toast('Geolocation is not supported by your browser', 'error');
+      return;
+    }
+    
+    utils.toast('Getting your location...', 'info');
+    
+    navigator.geolocation.getCurrentPosition(
+      position => {
+        const { latitude, longitude } = position.coords;
+        state.bias = { lat: latitude, lon: longitude };
+        utils.toast('Using your current location', 'success');
+        searchAt(latitude, longitude, false, 14);
+      },
+      error => {
+        utils.toast('Could not get your location. Try searching by city.', 'error');
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 600000
+      }
+    );
+  }
+  
+  // ------------ IP-Based Location ------------
+  async function tryIPBias() {
+    try {
+      const response = await utils.fetchWithTimeout('https://ipapi.co/json/', 6000);
+      const data = await response.json();
+      
+      if (data && data.country_code) {
+        state.country = data.country_code.toLowerCase();
+        const countryOption = ISO.find(item => item[0] === state.country);
+        
+        if (countryOption) {
+          dom.country.value = state.country;
+        }
+        
+        if (data.latitude && data.longitude) {
+          state.bias = { lat: data.latitude, lon: data.longitude };
+        }
+      }
+    } catch (error) {
+      // Silent fail - not critical functionality
+    }
+  }
+  
+  // Initialize the application when the DOM is fully loaded
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
 </script>
 </body>
 </html>
