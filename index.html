@@ -7,7 +7,6 @@
 <meta name="description" content="Find cafés anywhere in the world. Autocomplete, cluster map, ratings, zero API keys." />
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.8em' font-size='80'>☕</text></svg>'">
 
-<!-- libs -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
 <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet">
@@ -16,98 +15,58 @@
 
 <style>
   :root{
-    --ink:#eafff6;
-    --muted:#a9d3c5;
-    --bg1:#0e1814;
-    --bg2:#0b221a;
-    --panel:#0f2a20cc;
-    --line:#214c3d;
-    --mint:#38e39b;
-    --mint2:#1fc57f;
-    --chip:#173e31;
+    --ink:#eafff6; --muted:#a9d3c5; --bg1:#0e1814; --bg2:#0b221a;
+    --panel:#0f2a20cc; --line:#214c3d; --mint:#38e39b; --mint2:#1fc57f;
     --cup:#7a5238; --foam:#fff; --steam:#9bf2cf;
-
-    --radius:16px;
-    --shadow:0 8px 24px rgba(0,0,0,.28);
+    --radius:16px; --shadow:0 8px 24px rgba(0,0,0,.28);
   }
-  *{box-sizing:border-box}
-  html,body{height:100%}
-  body{
-    color:var(--ink);
-    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial;
+  html,body{height:100%} body{
+    color:var(--ink); font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial;
     background: radial-gradient(1200px 500px at 20% -10%, #1a3a30 0, var(--bg1) 55%, var(--bg2) 100%);
     overflow-x:hidden;
   }
-
-  header{
-    position:sticky; top:0; z-index:30;
-    background:linear-gradient(180deg, rgba(15,42,32,.95), rgba(15,42,32,.65));
-    backdrop-filter: blur(6px);
-    box-shadow: var(--shadow);
-  }
-  .brand{
-    font-weight:900; font-size:2rem; letter-spacing:.4px;
-    display:flex; align-items:center; gap:.6rem;
-    color:#eafff9; text-shadow:0 2px 12px rgba(56,227,155,.35);
-  }
-  .brand i{ color:#62ffd0; filter:drop-shadow(0 0 6px #2eeaa066); }
-
+  header{position:sticky; top:0; z-index:30; background:linear-gradient(180deg, rgba(15,42,32,.95), rgba(15,42,32,.65)); backdrop-filter: blur(6px); box-shadow:var(--shadow)}
+  .brand{font-weight:900; font-size:2rem; letter-spacing:.4px; display:flex; align-items:center; gap:.6rem; color:#eafff9; text-shadow:0 2px 12px rgba(56,227,155,.35)}
+  .brand i{ color:#62ffd0; filter:drop-shadow(0 0 6px #2eeaa066) }
   .panel{ background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow) }
-
-  .search-wrap{ position:relative }
-  .chip-input{
-    background:#0d2a20; border:1px solid var(--line); border-radius:14px; padding:.7rem .9rem;
-    display:flex; align-items:center; gap:.7rem;
-  }
+  .chip-input{ background:#0d2a20; border:1px solid var(--line); border-radius:14px; padding:.7rem .9rem; display:flex; align-items:center; gap:.7rem }
   .chip-input input{ all:unset; color:var(--ink); width:460px; max-width:60vw }
   .btn-mint{ background:linear-gradient(180deg,var(--mint),var(--mint2)); color:#062016; font-weight:800; border:0; border-radius:12px; padding:.65rem 1rem; box-shadow:0 10px 24px #22d1893f }
   .btn-mint:hover{ filter:brightness(1.05) }
-
   .suggest{ position:absolute; top:100%; left:0; right:0; z-index:50; display:none }
   .suggest a{ display:flex; align-items:center; gap:.55rem; padding:.65rem .8rem; color:var(--ink); text-decoration:none; background:#0f231c; border-bottom:1px solid #1a4536 }
   .suggest a:hover{ background:#123427 }
 
   #map{ height:62vh; border-radius:var(--radius); box-shadow:var(--shadow); position:relative }
-  .leaflet-control-zoom{ z-index:1001 }   /* make sure zoom buttons work */
+  /* Fullscreen actually working */
+  #map.map-full{ position:fixed !important; inset:0; width:100% !important; height:100% !important; border-radius:0 !important; z-index:2000 }
+  .leaflet-control-zoom{ z-index:1001 } /* zoom buttons always clickable */
 
-  /* floating map buttons */
-  .map-float{ position:absolute; left:12px; bottom:12px; z-index:1002; display:flex; flex-direction:column; gap:.6rem; pointer-events:auto }
-  .float-btn{
-    width:54px; height:54px; border-radius:50%; border:1px solid var(--line);
-    background:#0f2a20; color:var(--ink); display:flex; align-items:center; justify-content:center; cursor:pointer;
-    box-shadow:var(--shadow);
-  }
+  .map-float{ position:absolute; left:12px; bottom:12px; z-index:1002; display:flex; flex-direction:column; gap:.6rem }
+  .float-btn{ width:54px; height:54px; border-radius:50%; border:1px solid var(--line); background:#0f2a20; color:var(--ink); display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:var(--shadow) }
   .float-btn:hover{ background:#123628 }
 
-  /* brown/white cup marker with mint steam */
   .cup{ position:relative; width:26px; height:18px; border-radius:4px 4px 6px 6px; background:var(--cup); border:2px solid #543a29 }
   .cup:after{ content:""; position:absolute; right:-8px; top:4px; width:8px; height:8px; border:2px solid #543a29; border-left:none; border-radius:0 8px 8px 0 }
   .foam{ position:absolute; top:-6px; left:2px; right:2px; height:6px; background:var(--foam); border-radius:6px 6px 0 0 }
-  .steam{ position:absolute; top:-18px; left:4px; right:4px; height:14px;
-    background: radial-gradient(circle at 30% 60%, var(--steam) 22%, transparent 50%),
-               radial-gradient(circle at 70% 40%, var(--steam) 22%, transparent 50%);
-    filter:blur(1px); opacity:.8; animation:steam 2.6s ease-in-out infinite }
+  .steam{ position:absolute; top:-18px; left:4px; right:4px; height:14px; background:
+    radial-gradient(circle at 30% 60%, var(--steam) 22%, transparent 50%),
+    radial-gradient(circle at 70% 40%, var(--steam) 22%, transparent 50%); filter:blur(1px); opacity:.8; animation:steam 2.6s ease-in-out infinite }
   @keyframes steam{0%{transform:translateY(8px);opacity:.35}50%{transform:translateY(-2px);opacity:1}100%{transform:translateY(-10px);opacity:.35}}
 
   .results{ max-height:62vh; overflow:auto; scrollbar-width:thin; scrollbar-color:#1e4a3a transparent }
   .card-cafe{ background:#0e231b; border:1px solid var(--line); border-radius:14px }
   .avatar{ width:52px; height:52px; border-radius:14px; background:#fff; border:1px solid #eaeaea; display:flex; align-items:center; justify-content:center; overflow:hidden }
-  .avatar img{ width:100%; height:100%; object-fit:cover }
   .avatar .letter{ font-weight:900; color:#222 }
+  .avatar img{ width:100%; height:100%; object-fit:cover }
   .stars i{ color:#ffc34d }
   .chip{ background:#103c2f; border:1px solid var(--line); padding:.25rem .55rem; border-radius:999px; font-size:.85rem }
-
-  .btn-route{ background:linear-gradient(180deg,var(--mint),var(--mint2)); color:#062016; border:0; }
-  .btn-route:hover{ filter:brightness(1.05) }
-
-  #kpi{ color:var(--muted) }
-  .loader{ display:none; text-align:center; padding:14px }
+  .btn-route{ background:linear-gradient(180deg,var(--mint),var(--mint2)); color:#062016; border:0 }
 
   @media (max-width: 992px){ #map{height:50vh}.results{max-height:50vh} }
 </style>
 </head>
 <body>
-
 <header class="py-3">
   <div class="container d-flex align-items-center justify-content-between">
     <div class="brand"><i class="fa-solid fa-mug-saucer"></i> Coffee Finder Pro</div>
@@ -127,7 +86,7 @@
 
 <main class="container my-3">
   <section class="p-3 panel">
-    <div class="row g-2 align-items-stretch search-wrap">
+    <div class="row g-2 align-items-stretch position-relative">
       <div class="col-lg-8 position-relative">
         <div class="chip-input">
           <i class="fa-solid fa-magnifying-glass text-success"></i>
@@ -204,13 +163,11 @@
   </div>
 </footer>
 
-<!-- libs -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
 <script>
-/* ---------------- CONFIG ---------------- */
 const CFG = {
   photon:'https://photon.komoot.io/api/',
   nominatim:'https://nominatim.openstreetmap.org/search',
@@ -221,198 +178,110 @@ const CFG = {
   ],
   tO: 20000
 };
+const ISO=[["","Global"],["sa","Saudi Arabia"],["us","United States"],["gb","United Kingdom"],["ae","United Arab Emirates"],["tr","Türkiye"],["eg","Egypt"],["fr","France"],["de","Germany"],["es","Spain"],["it","Italy"],["jp","Japan"],["in","India"],["id","Indonesia"],["pk","Pakistan"],["ru","Russia"],["br","Brazil"],["mx","Mexico"],["ca","Canada"],["za","South Africa"]];
+const BRAND_SVGS={"starbucks":"https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/starbucks.svg","dunkin":"https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/dunkindonuts.svg","tim":"https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/timhortons.svg","% arabica":"https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/percent.svg"};
+const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
+const dom={lang:$('#lang'),country:$('#country'),query:$('#query'),sugg:$('#suggestions'),btnSearch:$('#btnSearch'),radius:$('#radius'),fOpen:$('#fOpen'),fWifi:$('#fWifi'),fOutdoor:$('#fOutdoor'),minR:$('#minRating'),minRVal:$('#minRatingVal'),sort:$('#sort'),loader:$('#loader'),results:$('#results'),nores:$('#nores'),kpi:$('#kpi'),mapEl:$('#map'),btnFS:$('#btnFullscreen'),btnHere:$('#btnSearchHere'),btnLoc:$('#btnLocate')};
+const state={lang:'en',country:'',bias:null,map:null,cluster:null,origin:null,list:[],markers:[]};
 
-const ISO = [
-  ["","Global"],["sa","Saudi Arabia"],["us","United States"],["gb","United Kingdom"],["ae","United Arab Emirates"],
-  ["tr","Türkiye"],["eg","Egypt"],["fr","France"],["de","Germany"],["es","Spain"],["it","Italy"],["jp","Japan"],
-  ["in","India"],["id","Indonesia"],["pk","Pakistan"],["ru","Russia"],["br","Brazil"],["mx","Mexico"],["ca","Canada"],["za","South Africa"]
-];
-
-const BRAND_SVGS = {
-  "starbucks":"https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/starbucks.svg",
-  "dunkin":"https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/dunkindonuts.svg",
-  "tim":"https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/timhortons.svg",
-  "% arabica":"https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/percent.svg"
-};
-
-/* ---------------- STATE & DOM ---------------- */
-const $=s=>document.querySelector(s); const $$=s=>document.querySelectorAll(s);
-const dom = {
-  lang:$('#lang'), country:$('#country'),
-  query:$('#query'), sugg:$('#suggestions'),
-  btnSearch:$('#btnSearch'), radius:$('#radius'),
-  fOpen:$('#fOpen'), fWifi:$('#fWifi'), fOutdoor:$('#fOutdoor'),
-  minR:$('#minRating'), minRVal:$('#minRatingVal'),
-  sort:$('#sort'), loader:$('#loader'), results:$('#results'), nores:$('#nores'),
-  kpi:$('#kpi'), mapEl:$('#map'),
-  btnFS:$('#btnFullscreen'), btnHere:$('#btnSearchHere'), btnLoc:$('#btnLocate')
-};
-
-const state = {
-  lang:'en', country:'', bias:null,
-  map:null, cluster:null, origin:null,
-  list:[], markers:[]
-};
-
-/* ---------------- INIT ---------------- */
 (function init(){
-  $('#yr').textContent = new Date().getFullYear();
-  dom.country.innerHTML = ISO.map(([c,n])=>`<option value="${c}">${c?c.toUpperCase()+' — ':''}${n}</option>`).join('');
-
-  initMap();
-  bind();
-  // small bias: try to use IP country (best effort, optional)
-  tryIPBias();
+  $('#yr').textContent=new Date().getFullYear();
+  dom.country.innerHTML=ISO.map(([c,n])=>`<option value="${c}">${c?c.toUpperCase()+' — ':''}${n}</option>`).join('');
+  initMap(); bind(); tryIPBias();
 })();
 
 function initMap(){
-  state.map = L.map('map',{zoomControl:true, preferCanvas:true}).setView([23.8859,45.0792],5);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    {maxZoom:19, attribution:'&copy; OpenStreetMap'}).addTo(state.map);
-  state.cluster = L.markerClusterGroup({showCoverageOnHover:false,maxClusterRadius:50,chunkedLoading:true});
+  state.map=L.map('map',{zoomControl:true,preferCanvas:true}).setView([23.8859,45.0792],5);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(state.map);
+  state.cluster=L.markerClusterGroup({showCoverageOnHover:false,maxClusterRadius:50,chunkedLoading:true});
   state.map.addLayer(state.cluster);
-
-  dom.btnHere.addEventListener('click', ()=>{ const c=state.map.getCenter(); searchAt(c.lat,c.lng,true); });
-  dom.btnLoc.addEventListener('click', geolocate);
-  dom.btnFS.addEventListener('click', ()=>{ dom.mapEl.classList.toggle('map-full'); setTimeout(()=>state.map.invalidateSize(),150); });
+  dom.btnHere.addEventListener('click',()=>{const c=state.map.getCenter(); searchAt(c.lat,c.lng,true);});
+  dom.btnLoc.addEventListener('click',geolocate);
+  dom.btnFS.addEventListener('click',()=>{ dom.mapEl.classList.toggle('map-full'); setTimeout(()=>state.map.invalidateSize(),150); });
 }
 
-/* ---------------- EVENTS ---------------- */
 function bind(){
-  // autocomplete – fire from first letter; debounce tiny
   let t=null;
-  dom.query.addEventListener('input', ()=>{ clearTimeout(t); t=setTimeout(suggest, 160); });
-  dom.query.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); useTopSuggestion(); } });
+  dom.query.addEventListener('input',()=>{clearTimeout(t); t=setTimeout(suggest,160);});
+  dom.query.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); useTopSuggestion(); }});
+  dom.sugg.addEventListener('click',e=>{ const a=e.target.closest('a[data-lat]'); if(!a)return; hideSuggest(); searchAt(+a.dataset.lat,+a.dataset.lon,false,13); });
+  document.addEventListener('click',e=>{ if(!dom.sugg.contains(e.target)&&e.target!==dom.query){ hideSuggest(); }});
 
-  dom.sugg.addEventListener('click', e=>{
-    const a=e.target.closest('a[data-lat]'); if(!a) return;
-    hideSuggest();
-    searchAt(parseFloat(a.dataset.lat), parseFloat(a.dataset.lon), false, 13);
-  });
-
-  dom.btnSearch.addEventListener('click', useTopSuggestion);
-
-  dom.radius.addEventListener('change', ()=>{ if(state.origin) searchAt(state.origin.lat,state.origin.lon,false,state.map.getZoom()); });
-
-  dom.sort.addEventListener('change', render);
-  dom.fOpen.addEventListener('change', render);
-  dom.fWifi.addEventListener('change', render);
-  dom.fOutdoor.addEventListener('change', render);
-
-  dom.minR.addEventListener('input', ()=>{ dom.minRVal.textContent=parseFloat(dom.minR.value).toFixed(1); render(); });
-
-  dom.lang.addEventListener('change', ()=>{ state.lang=dom.lang.value; suggest(); });
-
-  dom.country.addEventListener('change', panToCountry);
-
-  // close suggestions when clicking away
-  document.addEventListener('click', e=>{
-    if(!dom.sugg.contains(e.target) && e.target!==dom.query){ hideSuggest(); }
-  });
+  dom.btnSearch.addEventListener('click',useTopSuggestion);
+  dom.radius.addEventListener('change',()=>{ if(state.origin) searchAt(state.origin.lat,state.origin.lon,false,state.map.getZoom()); });
+  dom.sort.addEventListener('change',render);
+  dom.fOpen.addEventListener('change',render); dom.fWifi.addEventListener('change',render); dom.fOutdoor.addEventListener('change',render);
+  dom.minR.addEventListener('input',()=>{ dom.minRVal.textContent=parseFloat(dom.minR.value).toFixed(1); render(); });
+  dom.lang.addEventListener('change',()=>{ state.lang=dom.lang.value; suggest(); });
+  dom.country.addEventListener('change',panToCountry);
 }
 
-/* ---------------- SUGGESTIONS ---------------- */
 function hideSuggest(){ dom.sugg.style.display='none'; dom.sugg.innerHTML=''; }
 async function suggest(){
-  const q = dom.query.value.trim();
-  if(q.length<1){ hideSuggest(); return; }
-
+  const q=dom.query.value.trim(); if(q.length<1){hideSuggest(); return;}
   try{
-    const items = await photon(q);
-    if(items.length){ paintSuggest(items); return; }
-    // fallback
+    const items=await photon(q); if(items.length){ paintSuggest(items); return; }
     paintSuggest(await nomi(q));
   }catch(_){ hideSuggest(); }
 }
 function paintSuggest(items){
-  dom.sugg.innerHTML = items.slice(0,8).map(i=>`
-    <a data-lat="${i.lat}" data-lon="${i.lon}"><i class="fa-solid fa-location-dot text-success"></i>${esc(i.label)}</a>
-  `).join('');
+  dom.sugg.innerHTML=items.slice(0,8).map(i=>`<a data-lat="${i.lat}" data-lon="${i.lon}"><i class="fa-solid fa-location-dot text-success"></i>${esc(i.label)}</a>`).join('');
   dom.sugg.style.display='block';
 }
 async function useTopSuggestion(){
   if(dom.sugg.firstElementChild){ dom.sugg.firstElementChild.click(); return; }
-  const q = dom.query.value.trim();
-  if(!q) { dom.query.focus(); return; }
-  const items = await photon(q).catch(()=>nomi(q));
+  const q=dom.query.value.trim(); if(!q){ dom.query.focus(); return; }
+  const items=await photon(q).catch(()=>nomi(q));
   if(items && items[0]){
-    // Riyadh fix: prefer SA hit if present
-    let best = items[0];
-    if(/riyadh/i.test(q)){
-      const sa = items.find(i=>/saudi/i.test(i.label));
-      if(sa) best = sa;
-    }
+    let best=items[0];
+    if(/riyadh/i.test(q)){ const sa=items.find(i=>/saudi/i.test(i.label)); if(sa) best=sa; }
     searchAt(best.lat,best.lon,false,13);
   }
 }
-
-/* ---------------- GEOCODERS ---------------- */
 async function photon(q){
-  const u=new URL(CFG.photon);
-  u.searchParams.set('q',q); u.searchParams.set('limit','8'); u.searchParams.set('lang',state.lang);
-  u.searchParams.set('layer','city,town,village,locality');
+  const u=new URL(CFG.photon); u.searchParams.set('q',q); u.searchParams.set('limit','8'); u.searchParams.set('lang',state.lang); u.searchParams.set('layer','city,town,village,locality');
   if(state.country) u.searchParams.set('osm_tag','countrycode:'+state.country);
   if(state.bias){ u.searchParams.set('lat',state.bias.lat); u.searchParams.set('lon',state.bias.lon); }
   const r=await fetchTO(u,10000); const j=await r.json();
-  return (j.features||[]).map(f=>{
-    const p=f.properties||{}; const label=[p.name,p.city,p.state,p.country].filter(Boolean).join(', ');
-    return {label, lat:f.geometry.coordinates[1], lon:f.geometry.coordinates[0], imp:p.importance||0};
-  }).sort((a,b)=>(b.imp||0)-(a.imp||0));
+  return (j.features||[]).map(f=>{const p=f.properties||{}; const label=[p.name,p.city,p.state,p.country].filter(Boolean).join(', '); return {label, lat:f.geometry.coordinates[1], lon:f.geometry.coordinates[0], imp:p.importance||0};}).sort((a,b)=>(b.imp||0)-(a.imp||0));
 }
 async function nomi(q){
-  const u=new URL(CFG.nominatim);
-  u.searchParams.set('format','json'); u.searchParams.set('addressdetails','1'); u.searchParams.set('limit','5');
-  u.searchParams.set('q',q); u.searchParams.set('accept-language',state.lang);
+  const u=new URL(CFG.nominatim); u.searchParams.set('format','json'); u.searchParams.set('addressdetails','1'); u.searchParams.set('limit','5'); u.searchParams.set('q',q); u.searchParams.set('accept-language',state.lang);
   if(state.country) u.searchParams.set('countrycodes',state.country);
   const r=await fetchTO(u,12000); const j=await r.json();
-  return j.map(x=>({label:x.display_name, lat:parseFloat(x.lat), lon:parseFloat(x.lon)}));
+  return j.map(x=>({label:x.display_name, lat:+x.lat, lon:+x.lon}));
 }
 
-/* ---------------- COUNTRY PAN ---------------- */
 async function panToCountry(){
   state.country = dom.country.value || '';
-  hideSuggest();
-  if(!state.country){ state.bias=null; return; }
-
-  const u=new URL(CFG.nominatim);
-  u.searchParams.set('format','json'); u.searchParams.set('limit','1');
-  u.searchParams.set('q', ISO.find(i=>i[0]===state.country)?.[1] || state.country);
-  u.searchParams.set('countrycodes', state.country);
+  hideSuggest(); if(!state.country){ state.bias=null; return; }
+  const u=new URL(CFG.nominatim); u.searchParams.set('format','json'); u.searchParams.set('limit','1'); u.searchParams.set('q', ISO.find(i=>i[0]===state.country)?.[1]||state.country); u.searchParams.set('countrycodes',state.country);
   try{
-    const r=await fetchTO(u,12000); const j=await r.json();
-    if(!j[0]) return;
+    const r=await fetchTO(u,12000); const j=await r.json(); if(!j[0]) return;
     const b=j[0].boundingbox; const sw=[+b[0], +b[2]], ne=[+b[1], +b[3]];
-    state.map.fitBounds([sw,ne],{maxZoom:6});
-    state.bias = { lat:(sw[0]+ne[0])/2, lon:(sw[1]+ne[1])/2 };
-
-    // trigger an initial search from country center so user sees data
-    searchAt(state.bias.lat, state.bias.lon, false, 9);
+    state.map.fitBounds([sw,ne],{maxZoom:6}); state.bias={lat:(sw[0]+ne[0])/2, lon:(sw[1]+ne[1])/2};
+    searchAt(state.bias.lat,state.bias.lon,false,9);
   }catch(_){}
 }
 
-/* ---------------- SEARCH ---------------- */
-function start(){ dom.loader.style.display='block'; dom.results.innerHTML=''; dom.nores.classList.add('d-none'); }
+function start(){ dom.loader.style.display='block'; dom.results.innerHTML=''; dom.nores.classList.add('d-none'); dom.kpi.textContent='Searching…'; state.cluster.clearLayers(); state.markers=[]; }
 function stop(){ dom.loader.style.display='none'; }
 
 function searchAt(lat,lon,fromMap=false,zoom=13){
-  hideSuggest();
-  state.origin={lat,lon};
-  state.map.setView([lat,lon],zoom);
-  start();
-  findCafes(lat,lon, parseInt(dom.radius.value,10));
+  hideSuggest(); state.origin={lat,lon}; state.map.setView([lat,lon],zoom);
+  start(); findCafes(lat,lon, parseInt(dom.radius.value,10));
 }
 
 async function findCafes(lat,lon,radius){
-  // Broader query: cafes + coffee shops + common brand names (best-effort)
-  const brandRegex = 'Starbucks|Dunkin|%25 Arabica|Tim Hortons|Costa|Second Cup|Gloria Jeans';
+  const brands='Starbucks|Dunkin|%25 Arabica|Tim Hortons|Costa|Second Cup|Gloria Jeans';
   const q = `
     [out:json][timeout:50];
     (
       node["amenity"="cafe"](around:${radius},${lat},${lon});
       way["amenity"="cafe"](around:${radius},${lat},${lon});
       node["shop"="coffee"](around:${radius},${lat},${lon});
-      node["name"~"${brandRegex}",i](around:${radius},${lat},${lon});
-      way["name"~"${brandRegex}",i](around:${radius},${lat},${lon});
+      node["name"~"${brands}",i](around:${radius},${lat},${lon});
+      way["name"~"${brands}",i](around:${radius},${lat},${lon});
     );
     out center tags;
   `;
@@ -426,86 +295,80 @@ async function findCafes(lat,lon,radius){
       const d = haversine(lat,lon,c.lat,c.lon);
       const s = smartScore(t,d);
       const user = getUser(e.id);
-      return { id:e.id, lat:c.lat, lon:c.lon, name, tags:t, distance:d, smart:s, user, rating:mix(s,user) };
+      return { id:e.id, lat:c.lat, lon:c.lon, name, tags:t, distance:d, smart:s, user, rating: mix(s,user) };
     });
     render();
-  }catch(_){
-    stop(); dom.kpi.textContent='Overpass error. Try again.';
+  }catch(err){
+    stop(); dom.kpi.textContent='Search failed (Overpass). Please try again.';
+    dom.results.innerHTML = `<div class="text-center text-secondary py-4">Network error talking to Overpass. Click “Search this area” or “Find” to retry.</div>`;
   }
 }
 
+/* robust Overpass (POST form-encoded, then GET ?data=) */
 async function overpass(body){
   for(const ep of CFG.overpass){
+    /* POST as application/x-www-form-urlencoded */
     try{
-      const ctrl=new AbortController(); const t=setTimeout(()=>ctrl.abort(),CFG.tO);
-      const r=await fetch(ep,{method:'POST',body,signal:ctrl.signal}); clearTimeout(t);
-      if(r.ok) return r.json();
+      const r1 = await fetchTO(ep, CFG.tO, {
+        method:'POST',
+        headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8','Accept':'application/json'},
+        body:'data='+encodeURIComponent(body)
+      });
+      if(r1.ok) return r1.json();
+    }catch(_){}
+    /* GET fallback */
+    try{
+      const r2 = await fetchTO(ep+'?data='+encodeURIComponent(body), CFG.tO);
+      if(r2.ok) return r2.json();
     }catch(_){}
   }
   throw new Error('All endpoints failed');
 }
 
-/* ---------------- RENDER ---------------- */
+/* RENDER */
 function render(){
   stop();
   let list = state.list.slice();
-
-  if(dom.fWifi.checked) list = list.filter(c=>c.tags.internet_access==='yes');
-  if(dom.fOutdoor.checked) list = list.filter(c=>c.tags.outdoor_seating==='yes');
-  if(dom.fOpen.checked) list = list.filter(isOpen);
+  if(dom.fWifi.checked) list=list.filter(c=>c.tags.internet_access==='yes');
+  if(dom.fOutdoor.checked) list=list.filter(c=>c.tags.outdoor_seating==='yes');
+  if(dom.fOpen.checked) list=list.filter(isOpen);
   list = list.filter(c=>c.rating >= parseFloat(dom.minR.value||0));
-
-  const s = dom.sort.value;
+  const s=dom.sort.value;
   list.sort((a,b)=> s==='name' ? (a.name||'').localeCompare(b.name||'')
-                : s==='rating' ? (b.rating - a.rating)
-                : s==='hours' ? ((b.tags.opening_hours?1:0) - (a.tags.opening_hours?1:0))
-                : (a.distance - b.distance));
-
-  // markers
-  state.cluster.clearLayers(); state.markers=[];
+                  : s==='rating' ? (b.rating-a.rating)
+                  : s==='hours' ? ((b.tags.opening_hours?1:0)-(a.tags.opening_hours?1:0))
+                  : (a.distance-b.distance));
+  /* markers */
   const icon=L.divIcon({className:'', html:`<div class="steam"></div><div class="cup"><div class="foam"></div></div>`, iconSize:[26,26], iconAnchor:[13,18]});
+  state.cluster.clearLayers(); state.markers=[];
   list.forEach((c,i)=>{ const m=L.marker([c.lat,c.lon],{icon}).bindPopup(popup(c)); m.on('mouseover',()=>m.openPopup()); state.cluster.addLayer(m); state.markers.push(m); });
-
   if(!list.length){ dom.results.innerHTML=''; dom.nores.classList.remove('d-none'); dom.kpi.textContent='No cafés'; return; }
-  dom.nores.classList.add('d-none');
-  dom.results.innerHTML = list.map((c,i)=> card(c, i)).join('');
-  dom.kpi.textContent = `Showing ${list.length} cafés`;
-
-  // list interactions
-  $$('#results .card-cafe').forEach((el,i)=>{
-    el.addEventListener('mouseenter',()=> state.markers[i]?.openPopup());
-    el.addEventListener('click', e=>{
-      if(!e.target.closest('.rate')){ state.map.setView(state.markers[i].getLatLng(),16); state.markers[i].openPopup(); }
-    });
-  });
+  dom.nores.classList.add('d-none'); dom.results.innerHTML=list.map((c,i)=>card(c,i)).join('');
+  dom.kpi.textContent=`Showing ${list.length} cafés`;
+  /* interactions */
+  $$('#results .card-cafe').forEach((el,i)=>{ el.addEventListener('mouseenter',()=>state.markers[i]?.openPopup()); el.addEventListener('click',e=>{ if(!e.target.closest('.rate')){ state.map.setView(state.markers[i].getLatLng(),16); state.markers[i].openPopup(); } }); });
   $$('.rate i').forEach(star=>{
-    star.addEventListener('click', e=>{
-      const id = star.closest('.card-cafe').dataset.id;
-      const v = +star.dataset.v;
-      setUser(id, v);
-      const obj = state.list.find(x=>String(x.id)===String(id));
+    star.addEventListener('click',e=>{
+      const id=star.closest('.card-cafe').dataset.id; const v=+star.dataset.v;
+      setUser(id,v); const obj=state.list.find(x=>String(x.id)===String(id));
       if(obj){ obj.user=v; obj.rating=mix(obj.smart,v); render(); }
     });
   });
 }
-
 function popup(c){
   const addr=[c.tags['addr:street'],c.tags['addr:city']].filter(Boolean).join(', ');
-  return `
-    <div><strong>${esc(c.name)}</strong></div>
+  return `<div><strong>${esc(c.name)}</strong></div>
     <div class="stars my-1">${stars(c.rating)} <span class="text-secondary small">(${c.rating.toFixed(1)})</span></div>
     <div class="small text-secondary">${c.distance.toFixed(1)} km</div>
-    ${addr ? `<div class="small"><i class="fa-solid fa-location-dot me-1"></i>${esc(addr)}</div>` : ''}
+    ${addr?`<div class="small"><i class="fa-solid fa-location-dot me-1"></i>${esc(addr)}</div>`:''}
     <div class="mt-2 d-flex gap-1 flex-wrap">
       <a class="btn btn-sm btn-route" target="_blank" href="${directions(c.lat,c.lon)}"><i class="fa-solid fa-route me-1"></i>Directions</a>
       <a class="btn btn-sm btn-outline-light" target="_blank" href="https://www.openstreetmap.org/?mlat=${c.lat}&mlon=${c.lon}#map=18/${c.lat}/${c.lon}">OSM</a>
     </div>`;
 }
-
-function card(c, idx){
+function card(c,idx){
   const addr=[c.tags['addr:street'],c.tags['addr:city']].filter(Boolean).join(', ');
-  return `
-  <div class="card card-cafe mb-3 pointer" data-id="${c.id}">
+  return `<div class="card card-cafe mb-3 pointer" data-id="${c.id}">
     <div class="card-body d-flex gap-3">
       ${avatar(c)}
       <div class="flex-grow-1">
@@ -514,43 +377,32 @@ function card(c, idx){
           <div class="text-secondary small">${c.distance.toFixed(1)} km</div>
         </div>
         <div class="stars">${stars(c.rating)} <span class="text-secondary small">(${c.rating.toFixed(1)})</span></div>
-        ${addr ? `<div class="small text-secondary"><i class="fa-solid fa-location-dot me-1"></i>${esc(addr)}</div>` : ''}
+        ${addr?`<div class="small text-secondary"><i class="fa-solid fa-location-dot me-1"></i>${esc(addr)}</div>`:''}
         <div class="mt-1 d-flex gap-2 flex-wrap small">
           ${c.tags.internet_access==='yes'?'<span class="chip"><i class="fa-solid fa-wifi me-1"></i>Wi-Fi</span>':''}
           ${c.tags.outdoor_seating==='yes'?'<span class="chip"><i class="fa-solid fa-umbrella-beach me-1"></i>Outdoor</span>':''}
         </div>
-        <div class="mt-2 rate">
-          ${[1,2,3,4,5].map(v=>`<i class="fa-solid fa-star ${c.user && v<=c.user?'text-warning':''}" data-v="${v}"></i>`).join(' ')}
-        </div>
+        <div class="mt-2 rate">${[1,2,3,4,5].map(v=>`<i class="fa-solid fa-star ${c.user&&v<=c.user?'text-warning':''}" data-v="${v}"></i>`).join(' ')}</div>
       </div>
     </div>
   </div>`;
 }
+function avatar(c){ const name=(c.name||'').toLowerCase(); const brand=Object.keys(BRAND_SVGS).find(k=>name.includes(k)); if(brand){ return `<div class="avatar" title="${brand}"><img src="${BRAND_SVGS[brand]}" alt="${brand}"></div>`; } const l=(c.name||'?').trim().charAt(0).toUpperCase(); return `<div class="avatar"><div class="letter">${l}</div></div>`; }
 
-function avatar(c){
-  const name=(c.name||'').toLowerCase();
-  const brand = Object.keys(BRAND_SVGS).find(k=>name.includes(k));
-  if(brand){
-    return `<div class="avatar" title="${brand}"><img src="${BRAND_SVGS[brand]}" alt="${brand}"></div>`;
-  }
-  const l=(c.name||'?').trim().charAt(0).toUpperCase();
-  return `<div class="avatar"><div class="letter">${l}</div></div>`;
-}
-
-/* ---------------- HELPERS ---------------- */
+/* helpers */
 function esc(s){return s?s.replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])):''}
-function fetchTO(url,ms){ const ctl=new AbortController(); const t=setTimeout(()=>ctl.abort(),ms); return fetch(url,{signal:ctl.signal}).finally(()=>clearTimeout(t)); }
+function fetchTO(url,ms,opt={}){ const ctl=new AbortController(); const t=setTimeout(()=>ctl.abort(),ms); return fetch(url,{signal:ctl.signal, ...opt}).finally(()=>clearTimeout(t)); }
 function haversine(a,b,c,d){const R=6371, dLat=deg(c-a), dLon=deg(d-b); const x=Math.sin(dLat/2)**2+Math.cos(deg(a))*Math.cos(deg(c))*Math.sin(dLon/2)**2; return 2*R*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
 function deg(v){return v*Math.PI/180}
 function directions(lat,lon){ return /iPad|iPhone|iPod/.test(navigator.userAgent)?`http://maps.apple.com/?daddr=${lat},${lon}`:`https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`; }
 function smartScore(t,d){ let s=2.7; if(t.opening_hours)s+=0.7; if(t.internet_access==='yes')s+=0.5; if(t.outdoor_seating==='yes')s+=0.4; if(t.brand)s+=0.2; if(/starbucks|dunkin|tim|arabica|costa/i.test(t.name||'')) s+=0.3; if(d>8)s-=0.8; else if(d>5)s-=0.5; else if(d>3)s-=0.2; return Math.max(0,Math.min(5,s)); }
 function mix(s,u){ return u? Math.max(0,Math.min(5,0.7*s+0.3*u)) : s; }
 function isOpen(c){ const s=c.tags.opening_hours; if(!s) return true; if(s.includes('24/7'))return true; const m=/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/.exec(s); if(!m) return true; const now=new Date(), mins=now.getHours()*60+now.getMinutes(); const o=+m[1]*60+ +m[2], cl=+m[3]*60+ +m[4]; return (cl>o)?(mins>=o&&mins<=cl):(mins>=o||mins<=cl); }
-function stars(v){ let h=''; const f=Math.floor(v); const half=(v-f)>=0.25&&(v-f)<0.75; for(let i=0;i<f;i++)h+='<i class="fa-solid fa-star"></i>'; if(half)h+='<i class="fa-solid fa-star-half-stroke"></i>'; for(let i=(half?f+1:f);i<5;i++)h+='<i class="fa-regular fa-star"></i>'; return h; }
+function stars(v){ let h=''; const f=Math.floor(v); const half=(v-f)>=0.25&&(v-f)<0.75; for(let i=0;i<f;i++)h+='<i class="fa-solid fa-star"></i>'; if(half)h+='<i class="fa-solid fa-star-half-stroke"></i>'; for(let i=(half?f+1:f); i<5; i++)h+='<i class="fa-regular fa-star"></i>'; return h; }
 function getUser(id){ const v=localStorage.getItem('cf_rate_'+id); return v?parseFloat(v):null }
 function setUser(id,v){ localStorage.setItem('cf_rate_'+id,String(v)) }
 
-/* ---------------- GEOLOCATE & IP BIAS ---------------- */
+/* geolocation & IP bias */
 function geolocate(){
   if(!navigator.geolocation){ dom.kpi.textContent='Geolocation not supported'; return; }
   navigator.geolocation.getCurrentPosition(
@@ -562,11 +414,7 @@ function geolocate(){
 async function tryIPBias(){
   try{
     const r=await fetchTO('https://ipapi.co/json/',6000); const j=await r.json();
-    if(j && j.country_code){
-      state.country = j.country_code.toLowerCase();
-      const idx = ISO.findIndex(k=>k[0]===state.country); if(idx>=0) dom.country.value=state.country;
-      if(j.latitude && j.longitude){ state.bias = {lat:j.latitude, lon:j.longitude}; }
-    }
+    if(j && j.country_code){ state.country=j.country_code.toLowerCase(); const idx=ISO.findIndex(k=>k[0]===state.country); if(idx>=0) dom.country.value=state.country; if(j.latitude&&j.longitude){ state.bias={lat:j.latitude,lon:j.longitude}; } }
   }catch(_){}
 }
 </script>
