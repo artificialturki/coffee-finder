@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Coffee Finder Pro ☕️</title>
-<meta name="description" content="Coffee Finder Pro — Find cafés in Saudi Arabia & UAE with map, filters, effects, and premium features." />
+<title>☕️ Coffee Finder Pro — KSA & UAE</title>
+<meta name="description" content="Coffee Finder Pro — أقوى أداة للعثور على المقاهي في السعودية والإمارات بخريطة تفاعلية، فلاتر، مفضلة، ثيمات، وخلفية خيالية." />
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.8em' font-size='80'>☕</text></svg>">
 
 <!-- مكتبات -->
@@ -15,16 +15,21 @@
 
 <style>
 :root{
-  --primary:#0b1411;--accent:#39eba1;--bg:#0f2a20;--text:#f5fff9;
+  --bg:#0b1411;--panel:#12221a;--accent:#39eba1;--text:#f5fff9;
 }
-[data-theme="light"]{--primary:#ffffff;--accent:#007bff;--bg:#f9f9f9;--text:#222;}
-[data-theme="neon"]{--primary:#000;--accent:#ff00ff;--bg:#111;--text:#0ff;}
+[data-theme="light"]{--bg:#ffffff;--panel:#f0f0f0;--accent:#007bff;--text:#111;}
+[data-theme="neon"]{--bg:#000;--panel:#111;--accent:#ff00ff;--text:#0ff;}
 
-body{background:var(--primary);color:var(--text);font-family:"Cairo",sans-serif;overflow-x:hidden;}
-header{background:var(--bg);padding:.8rem;border-bottom:2px solid var(--accent);}
-.brand{font-weight:900;font-size:1.8rem;color:var(--accent);cursor:pointer;text-shadow:0 0 10px var(--accent);}
-.btn-theme{margin-left:10px;padding:6px 12px;border-radius:8px;background:var(--accent);border:0;color:#000;cursor:pointer;}
+body{background:var(--bg);color:var(--text);font-family:"Cairo",sans-serif;overflow-x:hidden;}
+header{background:var(--panel);padding:.8rem;border-bottom:2px solid var(--accent);}
+.brand{font-weight:900;font-size:1.8rem;color:var(--accent);cursor:pointer;text-shadow:0 0 12px var(--accent);}
 
+/* خلفية نجوم */
+.bg-stars,.bg-stars-2{position:fixed;inset:0;z-index:-1;pointer-events:none}
+.bg-stars{background-image:radial-gradient(2px 2px at 20% 20%, #aaffee66 50%, transparent 52%),radial-gradient(2px 2px at 80% 40%, #aaffee55 50%, transparent 52%),radial-gradient(1.5px 1.5px at 40% 80%, #aaffee55 50%, transparent 52%);}
+.bg-stars-2{opacity:.4;filter:blur(.5px)}
+
+/* خريطة */
 #map{height:60vh;border-radius:12px;margin-top:1rem;}
 .map-cup{position:relative;width:28px;height:20px;border-radius:6px;background:#6d4c41;border:2px solid #3e2723;}
 .map-cup:after{content:'';position:absolute;top:-6px;left:4px;width:20px;height:6px;border-radius:6px 6px 0 0;background:#fff;}
@@ -33,17 +38,21 @@ header{background:var(--bg);padding:.8rem;border-bottom:2px solid var(--accent);
 
 /* نتائج */
 .results{max-height:50vh;overflow:auto;}
-.card-cafe{background:var(--bg);border:1px solid var(--accent);border-radius:12px;padding:1rem;margin:.5rem 0;}
+.card-cafe{background:var(--panel);border:1px solid var(--accent);border-radius:12px;padding:1rem;margin:.5rem 0;}
 .star i{color:gold;}
+.favorite{cursor:pointer;color:#999;}
+.favorite.active{color:red;}
+
+/* PWA icons */
+.apps{margin-top:1rem;display:flex;gap:1rem;justify-content:center;}
+.apps img{height:40px;filter:grayscale(1);opacity:.8;}
+
 footer{text-align:center;padding:1rem;font-size:.8rem;color:var(--text);}
 .subscribe{background:var(--accent);color:#000;padding:.6rem 1rem;border-radius:20px;font-weight:bold;margin:1rem auto;display:inline-block;cursor:pointer;}
-
-/* أيقونات تحميل */
-.apps{margin-top:1rem;display:flex;gap:1rem;justify-content:center;}
-.apps img{height:40px;filter:grayscale(1);opacity:.7;}
 </style>
 </head>
 <body>
+<div class="bg-stars" id="stars1"></div><div class="bg-stars bg-stars-2" id="stars2"></div>
 
 <header class="d-flex justify-content-between align-items-center">
   <div class="brand">Coffee Finder Pro</div>
@@ -55,35 +64,46 @@ footer{text-align:center;padding:1rem;font-size:.8rem;color:var(--text);}
       <option value="es">Español</option>
     </select>
     <select id="country" class="form-select form-select-sm d-inline-block" style="width:auto;">
-      <option value="sa">🇸🇦 Saudi Arabia</option>
-      <option value="ae">🇦🇪 UAE</option>
+      <option value="sa">🇸🇦 السعودية</option>
+      <option value="ae">🇦🇪 الإمارات</option>
     </select>
-    <button class="btn-theme" id="themeBtn"><i class="fa-solid fa-palette"></i></button>
+    <button class="btn btn-sm btn-success" id="themeBtn"><i class="fa-solid fa-palette"></i></button>
   </div>
 </header>
 
 <main class="container my-3">
+  <!-- بحث -->
   <div class="d-flex gap-2">
     <input id="query" class="form-control" placeholder="ابحث عن مدينة (حتى 50 كم)">
     <button id="searchBtn" class="btn btn-success"><i class="fa fa-search"></i></button>
   </div>
 
+  <!-- خريطة -->
   <div id="map"></div>
+
+  <!-- أيقونات المتاجر -->
   <div class="apps">
     <img src="https://upload.wikimedia.org/wikipedia/commons/5/5f/Available_on_the_App_Store_%28black%29_SVG.svg" alt="App Store">
     <img src="https://upload.wikimedia.org/wikipedia/commons/c/cd/Get_it_on_Google_play.svg" alt="Google Play">
   </div>
 
+  <!-- زر الاشتراك -->
   <div class="subscribe">Subscribe Now ⭐</div>
 
+  <!-- النتائج -->
   <h4 class="mt-4">النتائج:</h4>
   <div class="results" id="results"></div>
+
+  <!-- المفضلة -->
+  <h4 class="mt-4">المفضلة ❤️</h4>
+  <div class="results" id="favorites"></div>
 </main>
 
 <footer>© 2025 Coffee Finder Pro — KSA & UAE</footer>
 
 <audio id="clickSound" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg"></audio>
 
+<!-- مكتبات -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script>
@@ -93,23 +113,55 @@ const markers=L.markerClusterGroup().addTo(map);
 
 function addCafe(lat,lng,name,rating){
   const cupIcon=L.divIcon({className:'',html:'<div class="map-cup"><div class="steam"></div></div>',iconSize:[30,30],iconAnchor:[15,15]});
-  const m=L.marker([lat,lng],{icon:cupIcon}).bindPopup(`<b>${name}</b><br>⭐ ${rating}`);
+  const m=L.marker([lat,lng],{icon:cupIcon}).bindPopup(`<b>${name}</b><br>⭐ ${rating} <i class="fa fa-heart favorite"></i>`);
+  m.on("popupopen",()=>{
+    const favIcon=document.querySelector(".leaflet-popup .favorite");
+    favIcon.onclick=()=>toggleFavorite(name,rating);
+  });
   markers.addLayer(m);
-  document.getElementById("results").innerHTML+=
-    `<div class="card-cafe"><div><strong>${name}</strong></div>
-    <div class="star">${"★".repeat(rating)}${"☆".repeat(5-rating)}</div></div>`;
+  renderResult(name,rating);
 }
+
+function renderResult(name,rating){
+  const div=document.createElement("div");
+  div.className="card-cafe";
+  div.innerHTML=`<div><strong>${name}</strong> <i class="fa fa-heart favorite"></i></div>
+  <div class="star">${"★".repeat(rating)}${"☆".repeat(5-rating)}</div>`;
+  div.querySelector(".favorite").onclick=()=>toggleFavorite(name,rating);
+  document.getElementById("results").appendChild(div);
+}
+
+function toggleFavorite(name,rating){
+  let favs=JSON.parse(localStorage.getItem("favorites")||"[]");
+  const exists=favs.find(f=>f.name===name);
+  if(exists){favs=favs.filter(f=>f.name!==name);}
+  else{favs.push({name,rating});}
+  localStorage.setItem("favorites",JSON.stringify(favs));
+  renderFavorites();
+}
+
+function renderFavorites(){
+  const favs=JSON.parse(localStorage.getItem("favorites")||"[]");
+  const cont=document.getElementById("favorites");
+  cont.innerHTML="";
+  favs.forEach(f=>{
+    cont.innerHTML+=`<div class="card-cafe"><strong>${f.name}</strong><div class="star">${"★".repeat(f.rating)}${"☆".repeat(5-f.rating)}</div></div>`;
+  });
+}
+
+function playClick(){document.getElementById("clickSound").play();}
+
+document.getElementById("searchBtn").onclick=()=>{playClick();alert("بحث تجريبي: أضف بياناتك!");};
+document.getElementById("themeBtn").onclick=()=>{toggleTheme();playClick();};
+
+let themeIndex=0,themes=["","light","neon"];
+function toggleTheme(){themeIndex=(themeIndex+1)%themes.length;document.body.setAttribute("data-theme",themes[themeIndex]);}
 
 // بيانات تجريبية
 addCafe(24.7136,46.6753,"Starbucks Riyadh",5);
 addCafe(25.2048,55.2708,"Costa Dubai",4);
 
-document.getElementById("searchBtn").onclick=()=>playClick();
-document.getElementById("themeBtn").onclick=()=>{toggleTheme();playClick();};
-function playClick(){document.getElementById("clickSound").play();}
-
-let themeIndex=0,themes=["","light","neon"];
-function toggleTheme(){themeIndex=(themeIndex+1)%themes.length;document.body.setAttribute("data-theme",themes[themeIndex]);}
+renderFavorites();
 </script>
 </body>
 </html>
