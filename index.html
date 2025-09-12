@@ -1,1140 +1,515 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Coffee Finder Pro ☕ - الإصدار المتطور</title>
-    <meta name="description" content="أقوى أداة للعثور على المقاهي في المملكة العربية السعودية. واجهة متطورة، خريطة تفاعلية، وميزات فريدة.">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.8em' font-size='80'>☕</text></svg>">
-
-    <!-- المكتبات -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
-    <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet">
-    <link href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" rel="stylesheet">
-    <link href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" rel="stylesheet">
-
-    <style>
-        :root {
-            --primary: #3a2c2a;
-            --secondary: #5d4037;
-            --accent: #d7ccc8;
-            --light: #efebe9;
-            --dark: #1e1614;
-            --success: #a5d6a7;
-            --text: #f5f5f5;
-            --text-muted: #bdbdbd;
-            --card-bg: #2d241f;
-            --input-bg: #352b27;
-            --shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-            --transition: all 0.3s ease;
-            --neon-glow: 0 0 10px rgba(255, 255, 255, 0.7), 0 0 20px rgba(255, 255, 255, 0.5);
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-            color: var(--text);
-            min-height: 100vh;
-            line-height: 1.6;
-            transition: var(--transition);
-            overflow-x: hidden;
-        }
-
-        /* تأثير النجوم في الخلفية */
-        .stars {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: -1;
-        }
-
-        .star {
-            position: absolute;
-            background-color: white;
-            border-radius: 50%;
-            animation: twinkle 5s infinite;
-        }
-
-        @keyframes twinkle {
-            0%, 100% { opacity: 0.2; }
-            50% { opacity: 1; }
-        }
-
-        /* الهيدر */
-        header {
-            background: rgba(30, 22, 20, 0.95);
-            backdrop-filter: blur(10px);
-            padding: 1rem 0;
-            box-shadow: var(--shadow);
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-        }
-
-        .brand {
-            font-weight: 800;
-            font-size: 2.2rem;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            color: var(--accent);
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-            transition: var(--transition);
-        }
-
-        .brand:hover {
-            transform: translateY(-2px);
-            text-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
-        }
-
-        .brand i {
-            color: #ffab91;
-            filter: drop-shadow(0 0 8px rgba(255, 171, 145, 0.5));
-            transition: var(--transition);
-        }
-
-        .brand:hover i {
-            transform: rotate(15deg);
-        }
-
-        /* لوحة التحكم */
-        .control-panel {
-            background: var(--card-bg);
-            border-radius: 16px;
-            padding: 1.5rem;
-            box-shadow: var(--shadow);
-            margin-bottom: 1.5rem;
-            transition: var(--transition);
-        }
-
-        .control-panel:hover {
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
-        }
-
-        .search-box {
-            position: relative;
-            margin-bottom: 1.2rem;
-        }
-
-        .search-input {
-            width: 100%;
-            padding: 1rem 1rem 1rem 3rem;
-            border-radius: 50px;
-            border: none;
-            background: var(--input-bg);
-            color: var(--text);
-            font-size: 1rem;
-            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.1);
-            transition: var(--transition);
-        }
-
-        .search-input:focus {
-            outline: none;
-            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2), 0 0 0 2px var(--accent);
-        }
-
-        .search-icon {
-            position: absolute;
-            left: 1.2rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--text-muted);
-        }
-
-        .filter-section {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-        }
-
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
-        .filter-label {
-            font-size: 0.9rem;
-            color: var(--text-muted);
-            font-weight: 600;
-        }
-
-        .filter-select {
-            padding: 0.7rem 1rem;
-            border-radius: 10px;
-            border: none;
-            background: var(--input-bg);
-            color: var(--text);
-            cursor: pointer;
-            transition: var(--transition);
-        }
-
-        .filter-select:focus {
-            outline: none;
-            box-shadow: 0 0 0 2px var(--accent);
-        }
-
-        .toggle-group {
-            display: flex;
-            gap: 0.8rem;
-            flex-wrap: wrap;
-        }
-
-        .toggle-btn {
-            padding: 0.6rem 1rem;
-            border-radius: 50px;
-            border: none;
-            background: var(--input-bg);
-            color: var(--text);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.9rem;
-            transition: var(--transition);
-        }
-
-        .toggle-btn.active {
-            background: var(--accent);
-            color: var(--dark);
-            font-weight: 600;
-        }
-
-        .toggle-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-        }
-
-        /* الخريطة */
-        .map-container {
-            position: relative;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: var(--shadow);
-            height: 60vh;
-            margin-bottom: 1.5rem;
-            transition: var(--transition);
-        }
-
-        #map {
-            height: 100%;
-            width: 100%;
-            z-index: 1;
-        }
-
-        .map-controls {
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
-            z-index: 1000;
-            display: flex;
-            flex-direction: column;
-            gap: 0.8rem;
-        }
-
-        .control-btn {
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            border: none;
-            background: var(--card-bg);
-            color: var(--text);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-            transition: var(--transition);
-        }
-
-        .control-btn:hover {
-            transform: scale(1.1);
-            background: var(--accent);
-            color: var(--dark);
-        }
-
-        /* نتائج البحث */
-        .results-panel {
-            background: var(--card-bg);
-            border-radius: 16px;
-            padding: 1.5rem;
-            box-shadow: var(--shadow);
-            transition: var(--transition);
-        }
-
-        .results-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.2rem;
-        }
-
-        .results-title {
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: var(--accent);
-        }
-
-        .results-count {
-            padding: 0.3rem 0.8rem;
-            background: var(--input-bg);
-            border-radius: 20px;
-            font-size: 0.9rem;
-            font-weight: 600;
-        }
-
-        .results-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 1.2rem;
-            overflow-y: auto;
-            max-height: 60vh;
-            padding-right: 0.5rem;
-        }
-
-        /* شريط التمرير المخصص */
-        .results-grid::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .results-grid::-webkit-scrollbar-track {
-            background: var(--input-bg);
-            border-radius: 4px;
-        }
-
-        .results-grid::-webkit-scrollbar-thumb {
-            background: var(--accent);
-            border-radius: 4px;
-        }
-
-        /* بطاقات المقاهي */
-        .cafe-card {
-            background: var(--input-bg);
-            border-radius: 12px;
-            overflow: hidden;
-            transition: var(--transition);
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .cafe-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-        }
-
-        .cafe-image {
-            height: 160px;
-            background: linear-gradient(45deg, #6d4c41, #8d6e63);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 3rem;
-            position: relative;
-        }
-
-        .cafe-rating {
-            position: absolute;
-            top: 0.8rem;
-            right: 0.8rem;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 0.3rem 0.6rem;
-            border-radius: 20px;
-            display: flex;
-            align-items: center;
-            gap: 0.3rem;
-            font-size: 0.9rem;
-            backdrop-filter: blur(4px);
-        }
-
-        .cafe-rating i {
-            color: #ffd54f;
-        }
-
-        .cafe-details {
-            padding: 1.2rem;
-        }
-
-        .cafe-name {
-            font-size: 1.2rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-            color: var(--text);
-        }
-
-        .cafe-meta {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 0.8rem;
-            font-size: 0.9rem;
-            color: var(--text-muted);
-        }
-
-        .cafe-meta span {
-            display: flex;
-            align-items: center;
-            gap: 0.3rem;
-        }
-
-        .cafe-description {
-            margin-bottom: 1rem;
-            font-size: 0.95rem;
-            line-height: 1.5;
-            color: var(--text);
-        }
-
-        .cafe-features {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            margin-bottom: 1.2rem;
-        }
-
-        .feature-tag {
-            padding: 0.3rem 0.7rem;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            font-size: 0.8rem;
-            display: flex;
-            align-items: center;
-            gap: 0.3rem;
-        }
-
-        .cafe-actions {
-            display: flex;
-            gap: 0.8rem;
-        }
-
-        .action-btn {
-            flex: 1;
-            padding: 0.6rem;
-            border: none;
-            border-radius: 8px;
-            background: var(--primary);
-            color: var(--text);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            font-size: 0.9rem;
-            transition: var(--transition);
-        }
-
-        .action-btn:hover {
-            background: var(--accent);
-            color: var(--dark);
-        }
-
-        /* زر تبديل الثيم */
-        .theme-toggle {
-            position: fixed;
-            bottom: 2rem;
-            right: 2rem;
-            z-index: 1000;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            border: none;
-            background: var(--card-bg);
-            color: var(--text);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-            transition: var(--transition);
-        }
-
-        .theme-toggle:hover {
-            transform: scale(1.1) rotate(30deg);
-        }
-
-        /* الرسوم المتحركة */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .animate-in {
-            animation: fadeIn 0.5s ease forwards;
-        }
-
-        /* تأثير النيون للعناصر المهمة */
-        .neon-effect {
-            box-shadow: var(--neon-glow);
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0% { box-shadow: 0 0 5px rgba(255, 255, 255, 0.5), 0 0 10px rgba(255, 255, 255, 0.3); }
-            50% { box-shadow: 0 0 15px rgba(255, 255, 255, 0.7), 0 0 25px rgba(255, 255, 255, 0.5); }
-            100% { box-shadow: 0 0 5px rgba(255, 255, 255, 0.5), 0 0 10px rgba(255, 255, 255, 0.3); }
-        }
-
-        /* التكيف مع الأجهزة المختلفة */
-        @media (max-width: 1200px) {
-            .filter-section {
-                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            }
-        }
-
-        @media (max-width: 992px) {
-            .brand {
-                font-size: 1.8rem;
-            }
-            
-            .results-grid {
-                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            }
-        }
-
-        @media (max-width: 768px) {
-            .brand {
-                font-size: 1.6rem;
-            }
-            
-            .filter-section {
-                grid-template-columns: 1fr;
-            }
-            
-            .toggle-group {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            
-            .results-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .map-controls {
-                flex-direction: row;
-                top: auto;
-                bottom: 1rem;
-                right: 50%;
-                transform: translateX(50%);
-            }
-            
-            .control-btn {
-                width: 40px;
-                height: 40px;
-            }
-        }
-
-        @media (max-width: 576px) {
-            .brand {
-                font-size: 1.4rem;
-            }
-            
-            .search-input {
-                padding: 0.8rem 0.8rem 0.8rem 2.5rem;
-            }
-            
-            .search-icon {
-                left: 1rem;
-            }
-            
-            .cafe-meta {
-                flex-direction: column;
-                gap: 0.5rem;
-            }
-            
-            .cafe-actions {
-                flex-direction: column;
-            }
-        }
-
-        /* وضع ملء الشاشة للخريطة */
-        .map-fullscreen {
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            z-index: 2000 !important;
-            border-radius: 0 !important;
-        }
-
-        .exit-fullscreen {
-            position: fixed;
-            top: 1rem;
-            right: 1rem;
-            z-index: 2001;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            border: none;
-            background: var(--card-bg);
-            color: var(--text);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-            transition: var(--transition);
-        }
-
-        .exit-fullscreen:hover {
-            background: var(--accent);
-            color: var(--dark);
-        }
-
-        /* مؤشر التحميل */
-        .loader {
-            display: none;
-            text-align: center;
-            padding: 2rem;
-        }
-
-        .coffee-loader {
-            display: inline-block;
-            position: relative;
-            width: 80px;
-            height: 80px;
-        }
-
-        .coffee-loader div {
-            display: inline-block;
-            position: absolute;
-            left: 8px;
-            width: 16px;
-            background: var(--accent);
-            animation: coffee-loader 1.2s cubic-bezier(0, 0.5, 0.5, 1) infinite;
-            border-radius: 20px;
-        }
-
-        .coffee-loader div:nth-child(1) {
-            left: 8px;
-            animation-delay: -0.24s;
-        }
-
-        .coffee-loader div:nth-child(2) {
-            left: 32px;
-            animation-delay: -0.12s;
-        }
-
-        .coffee-loader div:nth-child(3) {
-            left: 56px;
-            animation-delay: 0;
-        }
-
-        @keyframes coffee-loader {
-            0% {
-                top: 8px;
-                height: 64px;
-            }
-            50%, 100% {
-                top: 24px;
-                height: 32px;
-            }
-        }
-
-        /* تأثيرات خاصة للعناصر التفاعلية */
-        .btn-special {
-            position: relative;
-            overflow: hidden;
-        }
-
-        .btn-special::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transition: 0.5s;
-        }
-
-        .btn-special:hover::before {
-            left: 100%;
-        }
-
-        /* تحسينات للوضع العربي */
-        [dir="rtl"] .search-icon {
-            left: auto;
-            right: 1.2rem;
-        }
-
-        [dir="rtl"] .search-input {
-            padding: 1rem 3rem 1rem 1rem;
-        }
-
-        [dir="rtl"] .cafe-rating {
-            right: auto;
-            left: 0.8rem;
-        }
-
-        [dir="rtl"] .map-controls {
-            right: auto;
-            left: 1rem;
-        }
-
-        [dir="rtl"] .theme-toggle {
-            right: auto;
-            left: 2rem;
-        }
-
-        [dir="rtl"] .exit-fullscreen {
-            right: auto;
-            left: 1rem;
-        }
-    </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>☕️ كوفي فندر برو — الإصدار المتطور (ملف واحد)</title>
+<meta name="description" content="أقوى أداة عربية للعثور على المقاهي في السعودية: خريطة تفاعلية بطبقات متعددة، تجميع علامات، فلاتر وميزات متقدمة." />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.8em' font-size='80'>☕</text></svg>">
+
+<!-- مكتبات خارجية -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+<link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet">
+<link href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" rel="stylesheet">
+<link href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" rel="stylesheet">
+
+<style>
+:root{
+  --ink:#f3fff9;--muted:#a9d3c5;--bg1:#0b1411;--bg2:#0c1e17;--panel:#0f2a20cc;--line:#1f4e3f;
+  --mint:#39eba1;--mint2:#1cc57d;--neon:#59ffd4;--accent:#ffd54f;--radius:16px;--shadow:0 8px 24px rgba(0,0,0,.28);
+  --card:#132820;--input:#0e261e;--text:#eafff6;--muted2:#cfe7df;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family: "Cairo", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  color:var(--text);
+  background: radial-gradient(1200px 500px at 20% -10%, #113428 0, var(--bg1) 55%, var(--bg2) 100%);
+  overflow-x:hidden; line-height:1.65;
+}
+
+/* خلفية نجوم متلألئة + بارالاكس */
+.bg-stars,.bg-stars-2{position:fixed;inset:0;z-index:-2;pointer-events:none}
+.bg-stars{background-image:
+ radial-gradient(2px 2px at 12% 18%, #aaffee44 50%, transparent 52%),
+ radial-gradient(2px 2px at 80% 30%, #aaffee33 50%, transparent 52%),
+ radial-gradient(1.5px 1.5px at 60% 70%, #aaffee33 50%, transparent 52%),
+ radial-gradient(1.5px 1.5px at 30% 80%, #aaffee33 50%, transparent 52%)}
+.bg-stars-2{opacity:.55;filter:blur(.4px)}
+
+/* هيدر */
+header{
+  position:sticky;top:0;z-index:50;
+  background:linear-gradient(180deg, rgba(15,42,32,.92), rgba(15,42,32,.62));
+  backdrop-filter:blur(8px);border-bottom:1px solid var(--line);box-shadow:var(--shadow);padding:.75rem 0;
+}
+.brand{font-weight:900;font-size:2rem;display:flex;align-items:center;gap:.6rem;cursor:pointer}
+.brand i{color:var(--neon);filter:drop-shadow(0 0 8px #2eeaa088)}
+.brand .glow{color:#eafff9;text-shadow:0 0 12px #2eeaa088,0 0 22px #2eeaa055}
+
+/* لوحة التحكم */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.chip-input{background:var(--input);border:1px solid var(--line);border-radius:14px;padding:.7rem .9rem;display:flex;align-items:center;gap:.7rem}
+.chip-input input{all:unset;color:var(--text);width:520px;max-width:70vw;font-size:1.05rem}
+.btn-mint{background:linear-gradient(180deg,var(--mint),var(--mint2));color:#062016;font-weight:800;border:0;border-radius:12px;padding:.6rem 1rem;box-shadow:0 10px 24px #22d18940;cursor:pointer}
+.suggest{position:absolute;top:100%;left:0;right:0;z-index:60;display:none;max-height:320px;overflow:auto;border-radius:0 0 var(--radius) var(--radius)}
+.suggest a{display:flex;align-items:center;gap:.55rem;padding:.6rem .8rem;color:var(--text);text-decoration:none;background:#0f231c;border-bottom:1px solid #1a4536}
+.suggest a:hover{background:#123b2d}
+
+/* خريطة */
+#map{height:60vh;min-height:360px;border-radius:var(--radius);box-shadow:var(--shadow);position:relative;outline:1px solid var(--line)}
+.map-full{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;z-index:1050!important;border-radius:0!important}
+.map-float{position:absolute;left:12px;bottom:12px;z-index:1004;display:flex;flex-direction:column;gap:.6rem}
+.float-btn{width:48px;height:48px;border-radius:50%;border:1px solid var(--line);background:#0f2a20;color:var(--text);display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow);cursor:pointer}
+.exit-fs{position:fixed;top:12px;right:12px;z-index:1100;display:none}
+.exit-fs.show{display:block}
+
+/* كروت النتائج */
+.results{max-height:60vh;min-height:220px;overflow:auto;scrollbar-width:thin;scrollbar-color:#1e4a3a transparent}
+.results::-webkit-scrollbar{width:7px}.results::-webkit-scrollbar-thumb{background:#1e4a3a;border-radius:3px}
+.card-cafe{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;transition:transform .25s ease, box-shadow .25s ease}
+.card-cafe:hover{transform:translateY(-4px);box-shadow:0 12px 28px rgba(0,0,0,.35)}
+.avatar{width:52px;height:52px;border-radius:14px;background:#fff;border:1px solid #eaeaea;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.avatar img{width:100%;height:100%;object-fit:cover}.avatar .letter{font-weight:900;color:#222}
+.chip{background:#103c2f;border:1px solid var(--line);padding:.25rem .55rem;border-radius:999px;font-size:.85rem;display:inline-flex;align-items:center;gap:.25rem}
+.btn-route{background:linear-gradient(180deg,var(--mint),var(--mint2));color:#062016;border:0}
+
+/* نجوم التقييم */
+.star i{color:#ffc34d}
+
+/* توست */
+.toast-container{position:fixed;bottom:20px;right:20px;z-index:2100;display:flex;flex-direction:column;gap:10px}
+.toast{background:#0f2a20;color:var(--text);border:1px solid var(--line);padding:12px 16px;border-radius:var(--radius);box-shadow:var(--shadow);display:flex;align-items:center;gap:10px}
+
+/* لودر */
+.loader{text-align:center;padding:2rem;display:none}
+.coffee-loader{display:inline-block;position:relative;width:80px;height:80px}
+.coffee-loader div{display:inline-block;position:absolute;left:8px;width:16px;background:var(--mint);animation:coffee 1.2s cubic-bezier(0,.5,.5,1) infinite;border-radius:20px}
+.coffee-loader div:nth-child(1){left:8px;animation-delay:-.24s}.coffee-loader div:nth-child(2){left:32px;animation-delay:-.12s}.coffee-loader div:nth-child(3){left:56px}
+@keyframes coffee{0%{top:8px;height:64px}50%,100%{top:24px;height:32px}}
+
+/* ظهور بالتمرير */
+.reveal{opacity:0;transform:translateY(12px);transition:opacity .5s ease, transform .5s ease}
+.reveal.in-view{opacity:1;transform:translateY(0)}
+
+/* تجاوب */
+@media (max-width:992px){
+  .chip-input{flex-direction:column;gap:.5rem}.chip-input input{width:100%}
+  .map-float{flex-direction:row;bottom:20px;left:50%;transform:translateX(-50%)}
+  .float-btn{width:44px;height:44px}
+  .exit-fs{top:auto;bottom:16px;left:50%;right:auto;transform:translateX(-50%)}
+}
+</style>
 </head>
 <body>
-    <!-- تأثير النجوم في الخلفية -->
-    <div class="stars" id="stars"></div>
+<div class="bg-stars" id="stars1"></div><div class="bg-stars bg-stars-2" id="stars2"></div>
 
-    <header>
-        <div class="container">
-            <div class="d-flex align-items-center justify-content-between">
-                <div class="brand">
-                    <i class="fas fa-mug-hot"></i>
-                    <span>Coffee Finder Pro</span>
-                </div>
-                <div class="d-flex gap-2">
-                    <select class="filter-select" id="language-selector">
-                        <option value="ar">العربية</option>
-                        <option value="en">English</option>
-                    </select>
-                    <select class="filter-select" id="country-selector">
-                        <option value="sa">المملكة العربية السعودية</option>
-                        <option value="global">العالم</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-    </header>
+<header class="py-3">
+  <div class="container d-flex align-items-center justify-content-between flex-wrap">
+    <div class="brand"><i class="fa-solid fa-mug-saucer"></i> <span class="glow">كوفي فندر برو</span> <span class="ms-2 small text-success-50">السعودية</span></div>
+    <div class="d-flex gap-2">
+      <select id="radius" class="form-select form-select-sm bg-dark text-light border-secondary">
+        <option value="2000">٢ كم</option><option value="5000">٥ كم</option><option value="10000" selected>١٠ كم</option>
+        <option value="20000">٢٠ كم</option><option value="30000">٣٠ كم</option><option value="50000">٥٠ كم</option>
+      </select>
+      <select id="sort" class="form-select form-select-sm bg-dark text-light border-secondary">
+        <option value="rating">حسب التقييم</option><option value="distance">حسب المسافة</option><option value="name">حسب الاسم</option><option value="hours">المفتوح أولاً</option>
+      </select>
+    </div>
+  </div>
+</header>
 
-    <main class="container my-4">
-        <div class="control-panel">
-            <div class="search-box">
-                <i class="fas fa-search search-icon"></i>
-                <input type="text" class="search-input" placeholder="ابحث عن مدينة أو عنوان..." id="search-input">
-            </div>
-            
-            <div class="filter-section">
-                <div class="filter-group">
-                    <span class="filter-label">نطاق البحث</span>
-                    <select class="filter-select" id="radius-selector">
-                        <option value="2000">2 كم</option>
-                        <option value="4000">4 كم</option>
-                        <option value="6000">6 كم</option>
-                        <option value="8000">8 كم</option>
-                        <option value="10000" selected>10 كم</option>
-                    </select>
-                </div>
-                
-                <div class="filter-group">
-                    <span class="filter-label">ترتيب النتائج</span>
-                    <select class="filter-select" id="sort-selector">
-                        <option value="distance">المسافة</option>
-                        <option value="rating">التقييم</option>
-                        <option value="name">الاسم</option>
-                    </select>
-                </div>
-                
-                <div class="filter-group">
-                    <span class="filter-label">المميزات</span>
-                    <div class="toggle-group">
-                        <button class="toggle-btn" id="wifi-toggle">
-                            <i class="fas fa-wifi"></i> واي فاي
-                        </button>
-                        <button class="toggle-btn" id="outdoor-toggle">
-                            <i class="fas fa-umbrella"></i> خارجي
-                        </button>
-                        <button class="toggle-btn active" id="open-toggle">
-                            <i class="fas fa-clock"></i> مفتوح الآن
-                        </button>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="filter-group">
-                <span class="filter-label">أقل تقييم</span>
-                <input type="range" min="0" max="5" step="0.5" value="3.5" class="filter-select" id="rating-filter">
-                <div class="d-flex justify-content-between">
-                    <small>0</small>
-                    <small>3.5</small>
-                    <small>5</small>
-                </div>
-            </div>
+<main class="container my-3">
+  <!-- لوحة البحث والفلاتر -->
+  <section class="p-3 panel">
+    <div class="row g-2 align-items-stretch position-relative">
+      <div class="col-lg-9 position-relative">
+        <div class="chip-input">
+          <i class="fa-solid fa-magnifying-glass text-success"></i>
+          <input id="query" placeholder="ابحث عن مدينة داخل السعودية (مثال: الرياض، جدة، الدمام، أبها)" aria-label="بحث">
+          <button id="btnSearch" class="btn btn-mint"><i class="fa-solid fa-search me-1"></i>ابحث</button>
         </div>
-        
-        <div class="map-container" id="map-container">
-            <div id="map"></div>
-            <div class="map-controls">
-                <button class="control-btn" id="locate-btn" title="تحديد موقعي">
-                    <i class="fas fa-location-arrow"></i>
-                </button>
-                <button class="control-btn" id="layers-btn" title="طبقات الخريطة">
-                    <i class="fas fa-layer-group"></i>
-                </button>
-                <button class="control-btn" id="fullscreen-btn" title="ملء الشاشة">
-                    <i class="fas fa-expand"></i>
-                </button>
-            </div>
-        </div>
-        
-        <div class="results-panel">
-            <div class="results-header">
-                <h2 class="results-title">المقاهي القريبة</h2>
-                <span class="results-count" id="results-count">12 مكان</span>
-            </div>
-            
-            <div class="results-grid" id="results-grid">
-                <!-- سيتم إضافة بطاقات المقاهي هنا ديناميكيًا -->
-            </div>
-        </div>
-    </main>
-
-    <button class="theme-toggle" id="theme-toggle">
-        <i class="fas fa-moon"></i>
-    </button>
-
-    <div class="loader" id="loader">
-        <div class="coffee-loader"><div></div><div></div><div></div></div>
-        <div class="mt-2">جاري البحث عن المقاهي...</div>
+        <div id="suggestions" class="suggest panel"></div>
+      </div>
+      <div class="col-lg-3 d-flex gap-2 flex-wrap">
+        <div class="chip form-check"><input id="fOpen" class="form-check-input ms-1" type="checkbox"><label class="form-check-label" for="fOpen">مفتوح الآن</label></div>
+        <div class="chip form-check"><input id="fWifi" class="form-check-input ms-1" type="checkbox"><label class="form-check-label" for="fWifi">واي فاي</label></div>
+        <div class="chip form-check"><input id="fOutdoor" class="form-check-input ms-1" type="checkbox"><label class="form-check-label" for="fOutdoor">جلسات خارجية</label></div>
+      </div>
     </div>
 
-    <!-- المكتبات -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    <div class="mt-2 d-flex align-items-center gap-3 flex-wrap">
+      <div class="d-flex align-items-center gap-2">
+        <span class="small text-secondary">أقل تقييم</span>
+        <input id="minRating" type="range" min="0" max="5" step="0.5" value="0"><span id="minRatingVal" class="small">0.0</span>
+      </div>
+      <div class="ms-auto small" id="kpi">جاهز</div>
+    </div>
+  </section>
 
-    <script>
-        // إنشاء تأثير النجوم في الخلفية
-        function createStars() {
-            const starsContainer = document.getElementById('stars');
-            const starsCount = 100;
-            
-            for (let i = 0; i < starsCount; i++) {
-                const star = document.createElement('div');
-                star.classList.add('star');
-                
-                // حجم عشوائي للنجمة
-                const size = Math.random() * 3;
-                star.style.width = `${size}px`;
-                star.style.height = `${size}px`;
-                
-                // موقع عشوائي للنجمة
-                star.style.top = `${Math.random() * 100}%`;
-                star.style.left = `${Math.random() * 100}%`;
-                
-                // تأخير عشوائي للوميض
-                star.style.animationDelay = `${Math.random() * 5}s`;
-                
-                starsContainer.appendChild(star);
-            }
-        }
+  <!-- الخريطة + النتائج -->
+  <section class="position-relative mt-3">
+    <div class="row g-3">
+      <div class="col-lg-8 position-relative">
+        <div id="map" class="reveal"></div>
+        <div class="map-float">
+          <button id="btnFullscreen" class="float-btn" title="ملء الشاشة"><i class="fa-solid fa-maximize"></i></button>
+          <button id="btnLayer" class="float-btn" title="تبديل الطبقة"><i class="fa-solid fa-layer-group"></i></button>
+          <button id="btnSearchHere" class="float-btn" title="ابحث في هذه المنطقة"><i class="fa-solid fa-bullseye"></i></button>
+          <button id="btnLocate" class="float-btn" title="موقعي"><i class="fa-solid fa-location-arrow"></i></button>
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="h5 m-0"><i class="fa-solid fa-list me-2"></i>النتائج</div>
+        </div>
+        <div class="loader" id="loader"><div class="coffee-loader"><div></div><div></div><div></div></div><div class="mt-2">جاري البحث عن المقاهي…</div></div>
+        <div id="results" class="results reveal"></div>
+        <div id="nores" class="text-center text-secondary py-4 d-none">
+          <i class="fa-regular fa-face-sad-tear fa-2x mb-2"></i><div>لا توجد نتائج هنا، جرّب منطقة أخرى.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
 
-        // تهيئة الخريطة
-        function initMap() {
-            const map = L.map('map').setView([24.7136, 46.6753], 10); // الرياض كموقع افتراضي
-            
-            // طبقات الخريطة
-            const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(map);
-            
-            const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                maxZoom: 19,
-                attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-            });
-            
-            const baseLayers = {
-                "الخريطة العادية": osmLayer,
-                "الخريطة الفضائية": satelliteLayer
-            };
-            
-            L.control.layers(baseLayers).addTo(map);
-            
-            // إضافة علامات تجميعية
-            const markers = L.markerClusterGroup({
-                showCoverageOnHover: false,
-                maxClusterRadius: 50
-            });
-            
-            map.addLayer(markers);
-            
-            return { map, markers, baseLayers };
-        }
+<footer class="py-4 mt-4">
+  <div class="container small text-center">
+    © <span id="yr"></span> كوفي فندر برو — السعودية · Tiles © OpenStreetMap · البيانات: Overpass/Photon/Nominatim
+  </div>
+</footer>
 
-        // إنشاء بيانات وهمية للمقاهي
-        function generateSampleCafes() {
-            const cafes = [];
-            const features = ["واي فاي", "مقاعد خارجية", "موقف سيارات", "شاحنات", "خدمة التوصيل"];
-            const areas = ["الرياض", "جدة", "الدمام", "مكة", "المدينة", "الخبر", "الطائف", "تبوك"];
-            
-            for (let i = 1; i <= 20; i++) {
-                const area = areas[Math.floor(Math.random() * areas.length)];
-                const lat = 24.6 + Math.random() * 0.5;
-                const lng = 46.5 + Math.random() * 0.5;
-                
-                cafes.push({
-                    id: i,
-                    name: `مقهى ${i} - ${area}`,
-                    description: "وصف المقهى وخدماته المميزة التي يقدمها للزوار.",
-                    rating: (3 + Math.random() * 2).toFixed(1),
-                    distance: (Math.random() * 10).toFixed(1),
-                    features: features.slice(0, 2 + Math.floor(Math.random() * 3)),
-                    lat: lat,
-                    lng: lng,
-                    open: Math.random() > 0.3
-                });
-            }
-            
-            return cafes;
-        }
+<!-- زر الخروج من ملء الشاشة -->
+<div id="exitFS" class="exit-fs"><button class="btn btn-sm btn-mint" id="exitFsBtn"><i class="fa-solid fa-minimize me-1"></i>خروج</button></div>
+<!-- توست -->
+<div class="toast-container"></div>
 
-        // عرض المقاهي على الخريطة
-        function displayCafesOnMap(cafes, map, markers) {
-            markers.clearLayers();
-            
-            cafes.forEach(cafe => {
-                const marker = L.marker([cafe.lat, cafe.lng])
-                    .bindPopup(`
-                        <div style="min-width: 200px;">
-                            <h4>${cafe.name}</h4>
-                            <p>${cafe.description}</p>
-                            <div class="d-flex align-items-center mb-2">
-                                <div class="text-warning">
-                                    ${generateStarRating(cafe.rating)}
-                                </div>
-                                <span class="ms-2">${cafe.rating}</span>
-                            </div>
-                            <p>المسافة: ${cafe.distance} كم</p>
-                            <div class="d-flex flex-wrap gap-1">
-                                ${cafe.features.map(feature => `<span class="badge bg-secondary">${feature}</span>`).join('')}
-                            </div>
-                        </div>
-                    `);
-                
-                markers.addLayer(marker);
-            });
-            
-            if (cafes.length > 0) {
-                const group = new L.featureGroup(markers.getLayers());
-                map.fitBounds(group.getBounds().pad(0.1));
-            }
-        }
+<!-- سكربتات -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script>
+(function(){
+'use strict';
 
-        // توليد تقييم النجوم
-        function generateStarRating(rating) {
-            const fullStars = Math.floor(rating);
-            const halfStar = rating % 1 >= 0.5;
-            const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
-            
-            let starsHTML = '';
-            
-            for (let i = 0; i < fullStars; i++) {
-                starsHTML += '<i class="fas fa-star"></i>';
-            }
-            
-            if (halfStar) {
-                starsHTML += '<i class="fas fa-star-half-alt"></i>';
-            }
-            
-            for (let i = 0; i < emptyStars; i++) {
-                starsHTML += '<i class="far fa-star"></i>';
-            }
-            
-            return starsHTML;
-        }
+/* ==== إعدادات عامة ==== */
+const CFG={
+  country:'sa',
+  defaultView:[24.774265,46.738586], // KSA
+  defaultZoom:6,
+  timeout:20000,
+  photon:'https://photon.komoot.io/api/',
+  nominatim:'https://nominatim.openstreetmap.org/search',
+  overpass:[
+    'https://overpass-api.de/api/interpreter',
+    'https://overpass.kumi.systems/api/interpreter',
+    'https://z.overpass-api.de/api/interpreter'
+  ],
+  cacheTTL: 5*60*1000 // خمس دقائق
+};
 
-        // عرض بطاقات المقاهي
-        function displayCafeCards(cafes) {
-            const resultsGrid = document.getElementById('results-grid');
-            resultsGrid.innerHTML = '';
-            
-            cafes.forEach(cafe => {
-                const card = document.createElement('div');
-                card.className = 'cafe-card animate-in';
-                card.innerHTML = `
-                    <div class="cafe-image">
-                        <i class="fas fa-coffee"></i>
-                        <div class="cafe-rating">
-                            <i class="fas fa-star"></i>
-                            <span>${cafe.rating}</span>
-                        </div>
-                    </div>
-                    <div class="cafe-details">
-                        <h3 class="cafe-name">${cafe.name}</h3>
-                        <div class="cafe-meta">
-                            <span><i class="fas fa-map-marker-alt"></i> ${cafe.distance} كم</span>
-                            <span><i class="fas fa-clock"></i> ${cafe.open ? 'مفتوح الآن' : 'مغلق'}</span>
-                        </div>
-                        <p class="cafe-description">${cafe.description}</p>
-                        <div class="cafe-features">
-                            ${cafe.features.map(feature => `<span class="feature-tag"><i class="fas fa-check"></i> ${feature}</span>`).join('')}
-                        </div>
-                        <div class="cafe-actions">
-                            <button class="action-btn btn-special"><i class="fas fa-directions"></i> الاتجاهات</button>
-                            <button class="action-btn btn-special"><i class="fas fa-heart"></i> حفظ</button>
-                        </div>
-                    </div>
-                `;
-                
-                resultsGrid.appendChild(card);
-            });
-            
-            document.getElementById('results-count').textContent = `${cafes.length} مكان`;
-        }
+/* ==== أدوات ==== */
+const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
+const dom={
+  query:$('#query'), sugg:$('#suggestions'), btnSearch:$('#btnSearch'),
+  radius:$('#radius'), sort:$('#sort'), fOpen:$('#fOpen'), fWifi:$('#fWifi'), fOutdoor:$('#fOutdoor'),
+  minR:$('#minRating'), minRVal:$('#minRatingVal'),
+  kpi:$('#kpi'), mapEl:$('#map'), btnFS:$('#btnFullscreen'), btnLayer:$('#btnLayer'),
+  btnHere:$('#btnSearchHere'), btnLoc:$('#btnLocate'), exitFS:$('#exitFS'), exitFsBtn:$('#exitFsBtn'),
+  results:$('#results'), loader:$('#loader'), nores:$('#nores'),
+  stars1:$('#stars1'), stars2:$('#stars2')
+};
+const state={
+  map:null, cluster:null, baseIdx:0, baseLayers:[], origin:null, list:[], markers:[],
+  isFullscreen:false, overpassAbort:null, suggestAbort:null, cache:new Map()
+};
+const utils={
+  escape:s=>s?s.replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])):'',
+  fetchTimeout:(url,ms,opt={})=>{const c=new AbortController();const t=setTimeout(()=>c.abort(),ms);return fetch(url,{signal:c.signal,...opt}).finally(()=>clearTimeout(t));},
+  hav:(a,b,c,d)=>{const R=6371,dLat=(c-a)*Math.PI/180,dLon=(d-b)*Math.PI/180;const x=Math.sin(dLat/2)**2+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dLon/2)**2;return 2*R*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));},
+  dir:(lat,lon)=>/iPad|iPhone|iPod/.test(navigator.userAgent)?`http://maps.apple.com/?daddr=${lat},${lon}`:`https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`,
+  smart:(tags,d)=>{let s=2.7;if(tags.opening_hours)s+=.7;if(tags.internet_access==='yes')s+=.5;if(tags.outdoor_seating==='yes')s+=.4;if(tags.brand)s+=.2;if(/starbucks|dunkin|tim|arabica|costa/i.test(tags.name||''))s+=.3;if(d>8)s-=.8;else if(d>5)s-=.5;else if(d>3)s-=.2;return Math.max(0,Math.min(5,s));},
+  mix:(sm,u)=>u?Math.max(0,Math.min(5,.7*sm+.3*u)):sm,
+  open:tags=>{const h=tags.opening_hours;if(!h||h.includes('24/7'))return true;const m=/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/.exec(h);if(!m)return true;const now=new Date(),mins=now.getHours()*60+now.getMinutes();const o=+m[1]*60+ +m[2],c=+m[3]*60+ +m[4];return c>o?(mins>=o&&mins<=c):(mins>=o||mins<=c);},
+  getRate:id=>{const v=localStorage.getItem('cf_rate_'+id);return v?parseFloat(v):null;},
+  setRate:(id,v)=>localStorage.setItem('cf_rate_'+id,String(v)),
+  stars:r=>{let h='',f=Math.floor(r),half=(r-f)>=.25&&(r-f)<.75;for(let i=0;i<f;i++)h+='<i class="fa-solid fa-star"></i>';if(half)h+='<i class="fa-solid fa-star-half-stroke"></i>';for(let i=(half?f+1:f);i<5;i++)h+='<i class="fa-regular fa-star"></i>';return h;},
+  toast:(msg,type='info')=>{const c=document.querySelector('.toast-container');const t=document.createElement('div');t.className='toast '+type;t.innerHTML=`<i class="fa-solid fa-${type==='error'?'circle-exclamation':type==='success'?'circle-check':'circle-info'}"></i><span>${msg}</span>`;c.appendChild(t);setTimeout(()=>{t.style.opacity='0';setTimeout(()=>t.remove(),300)},3000);},
+  cacheGet:key=>{const it=state.cache.get(key);if(!it)return null;if(Date.now()-it.ts>CFG.cacheTTL){state.cache.delete(key);return null;}return it.data;},
+  cacheSet:(key,data)=>state.cache.set(key,{data,ts:Date.now()})
+};
 
-        // محاكاة البحث
-        function simulateSearch() {
-            const loader = document.getElementById('loader');
-            loader.style.display = 'block';
-            
-            // إخفاء النتائج القديمة
-            document.getElementById('results-grid').innerHTML = '';
-            
-            // محاكاة وقت البحث
-            setTimeout(() => {
-                loader.style.display = 'none';
-                
-                // إنشاء بيانات وهمية
-                const cafes = generateSampleCafes();
-                
-                // عرض النتائج
-                displayCafeCards(cafes);
-                displayCafesOnMap(cafes, map, markers);
-                
-                // إضافة تأثير الظهور التدريجي
-                document.querySelectorAll('.cafe-card').forEach((card, index) => {
-                    card.style.animationDelay = `${index * 0.1}s`;
-                });
-            }, 1500);
-        }
+/* بارالاكس النجوم */
+function parallax(x,y){const dx=(x-innerWidth/2)/innerWidth,dy=(y-innerHeight/2)/innerHeight;dom.stars1.style.transform=`translate(${dx*10}px,${dy*10}px)`;dom.stars2.style.transform=`translate(${dx*-8}px,${dy*-6}px)`;}
+addEventListener('mousemove',e=>parallax(e.clientX,e.clientY),{passive:true});
 
-        // تبديل وضع الملء الشاشة
-        function toggleFullscreen() {
-            const mapContainer = document.getElementById('map-container');
-            const fullscreenBtn = document.getElementById('fullscreen-btn');
-            const exitFullscreen = document.createElement('button');
-            
-            if (!document.fullscreenElement) {
-                mapContainer.classList.add('map-fullscreen');
-                
-                exitFullscreen.className = 'exit-fullscreen';
-                exitFullscreen.innerHTML = '<i class="fas fa-compress"></i>';
-                exitFullscreen.onclick = toggleFullscreen;
-                document.body.appendChild(exitFullscreen);
-                
-                fullscreenBtn.innerHTML = '<i class="fas fa-compress"></i>';
-                
-                if (mapContainer.requestFullscreen) {
-                    mapContainer.requestFullscreen();
-                }
-            } else {
-                mapContainer.classList.remove('map-fullscreen');
-                
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                }
-                
-                fullscreenBtn.innerHTML = '<i class="fas fa-expand"></i>';
-                document.querySelector('.exit-fullscreen')?.remove();
-            }
-        }
+/* ظهور بالتمرير */
+const io=new IntersectionObserver((ents)=>ents.forEach(e=>e.target.classList.toggle('in-view',e.isIntersecting)),{threshold:.08});
 
-        // تبديل الوضع الليلي/النهاري
-        function toggleTheme() {
-            const themeToggle = document.getElementById('theme-toggle');
-            const themeIcon = themeToggle.querySelector('i');
-            const body = document.body;
-            
-            if (body.getAttribute('data-theme') === 'dark') {
-                body.removeAttribute('data-theme');
-                themeIcon.classList.remove('fa-sun');
-                themeIcon.classList.add('fa-moon');
-            } else {
-                body.setAttribute('data-theme', 'dark');
-                themeIcon.classList.remove('fa-moon');
-                themeIcon.classList.add('fa-sun');
-            }
-        }
+/* تهيئة الخريطة */
+function initMap(){
+  state.map=L.map('map',{zoomControl:true,preferCanvas:true}).setView(CFG.defaultView,CFG.defaultZoom);
 
-        // تحديد الموقع الحالي
-        function locateUser() {
-            if (!navigator.geolocation) {
-                alert('متصفحك لا يدعم خاصية تحديد الموقع');
-                return;
-            }
-            
-            const loader = document.getElementById('loader');
-            loader.style.display = 'block';
-            
-            navigator.geolocation.getCurrentPosition(
-                position => {
-                    const { latitude, longitude } = position.coords;
-                    map.setView([latitude, longitude], 15);
-                    loader.style.display = 'none';
-                    
-                    // إضافة علامة للموقع الحالي
-                    L.marker([latitude, longitude])
-                        .addTo(map)
-                        .bindPopup('موقعك الحالي')
-                        .openPopup();
-                },
-                error => {
-                    loader.style.display = 'none';
-                    alert('تعذر الحصول على موقعك: ' + error.message);
-                }
-            );
-        }
+  // طبقتان: عادي + فضائي مع مفتاح تبديل
+  const osm=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'});
+  const esri=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Tiles &copy; Esri'});
+  state.baseLayers=[osm,esri];
+  state.baseLayers[state.baseIdx].addTo(state.map);
 
-        // تهيئة التطبيق عند تحميل الصفحة
-        document.addEventListener('DOMContentLoaded', () => {
-            // إنشاء النجوم في الخلفية
-            createStars();
-            
-            // تهيئة الخريطة
-            const { map, markers, baseLayers } = initMap();
-            
-            // تحميل بيانات وهمية عند البدء
-            simulateSearch();
-            
-            // إضافة مستمعي الأحداث
-            document.getElementById('search-input').addEventListener('keypress', e => {
-                if (e.key === 'Enter') {
-                    simulateSearch();
-                }
-            });
-            
-            document.getElementById('fullscreen-btn').addEventListener('click', toggleFullscreen);
-            document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
-            document.getElementById('locate-btn').addEventListener('click', locateUser);
-            
-            document.querySelectorAll('.toggle-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    btn.classList.toggle('active');
-                    simulateSearch();
-                });
-            });
-            
-            document.querySelectorAll('.filter-select').forEach(select => {
-                select.addEventListener('change', simulateSearch);
-            });
-            
-            document.getElementById('rating-filter').addEventListener('input', simulateSearch);
-            
-            // إضافة تأثير النيون للعناصر المهمة
-            const brand = document.querySelector('.brand');
-            setInterval(() => {
-                brand.classList.toggle('neon-effect');
-            }, 3000);
-        });
-    </script>
+  // تجميع العلامات
+  state.cluster=L.markerClusterGroup({showCoverageOnHover:false,maxClusterRadius:50,chunkedLoading:true,spiderfyOnMaxZoom:true});
+  state.map.addLayer(state.cluster);
+}
+
+/* أحداث الواجهة */
+function bindUI(){
+  io.observe(dom.mapEl); io.observe($('#results'));
+
+  // اقتراحات
+  let t=null;
+  dom.query.addEventListener('input',()=>{clearTimeout(t);t=setTimeout(suggest,140);});
+  dom.query.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();useTop();}});
+
+  // كليك الاقتراح
+  dom.sugg.addEventListener('click',e=>{const a=e.target.closest('a[data-lat]');if(!a)return;hideSuggest();searchAt(parseFloat(a.dataset.lat),parseFloat(a.dataset.lon),false,12);});
+  document.addEventListener('click',e=>{if(!dom.sugg.contains(e.target)&&e.target!==dom.query)hideSuggest();});
+  $('#btnSearch').addEventListener('click',useTop);
+
+  // فلاتر وفرز
+  dom.radius.addEventListener('change',()=>{if(state.origin)searchAt(state.origin.lat,state.origin.lon,false,state.map.getZoom());});
+  dom.sort.addEventListener('change',render);
+  dom.fOpen.addEventListener('change',render);
+  dom.fWifi.addEventListener('change',render);
+  dom.fOutdoor.addEventListener('change',render);
+  dom.minR.addEventListener('input',()=>{dom.minRVal.textContent=parseFloat(dom.minR.value).toFixed(1);render();});
+
+  // أزرار الخريطة
+  $('#btnSearchHere').addEventListener('click',()=>{const c=state.map.getCenter();searchAt(c.lat,c.lng,true);});
+  $('#btnLocate').addEventListener('click',geolocate);
+  $('#btnLayer').addEventListener('click',toggleLayer);
+  $('#btnFullscreen').addEventListener('click',toggleFS);
+  dom.exitFsBtn.addEventListener('click',toggleFS);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&state.isFullscreen)toggleFS();});
+}
+
+/* تبديل الطبقة */
+function toggleLayer(){
+  state.map.removeLayer(state.baseLayers[state.baseIdx]);
+  state.baseIdx=(state.baseIdx+1)%state.baseLayers.length;
+  state.baseLayers[state.baseIdx].addTo(state.map);
+  utils.toast(state.baseIdx===0?'تم التبديل إلى الخريطة العادية':'تم التبديل إلى الخريطة الفضائية','success');
+}
+
+/* ملء الشاشة */
+function toggleFS(){
+  state.isFullscreen=!state.isFullscreen;
+  dom.mapEl.classList.toggle('map-full');
+  $('#btnFullscreen').innerHTML=state.isFullscreen?'<i class="fa-solid fa-minimize"></i>':'<i class="fa-solid fa-maximize"></i>';
+  dom.exitFS.classList.toggle('show',state.isFullscreen);
+  setTimeout(()=>state.map.invalidateSize(),160);
+}
+
+/* إخفاء/إظهار لودر */
+function startLoad(){dom.loader.style.display='block';dom.results.innerHTML='';dom.nores.classList.add('d-none');dom.kpi.textContent='جاري البحث…';state.cluster.clearLayers();state.markers=[];if(state.overpassAbort){state.overpassAbort.abort();}state.overpassAbort=new AbortController();}
+function stopLoad(){dom.loader.style.display='none';}
+
+/* اقتراحات مواقع */
+function hideSuggest(){dom.sugg.style.display='none';dom.sugg.innerHTML='';if(state.suggestAbort){state.suggestAbort.abort();state.suggestAbort=null;}}
+async function suggest(){
+  const q=dom.query.value.trim(); if(q.length<1){hideSuggest();return;}
+  if(state.suggestAbort)state.suggestAbort.abort(); state.suggestAbort=new AbortController();
+  try{
+    const key=`sg:${q}`; let items=utils.cacheGet(key);
+    if(!items){items=await photon(q,state.suggestAbort.signal); if(!items.length)items=await nominatim(q,state.suggestAbort.signal); utils.cacheSet(key,items);}
+    if(items.length)renderSugg(items); else hideSuggest();
+  }catch(_){/* ignore */ }
+}
+async function photon(q,signal){
+  const u=new URL(CFG.photon); u.searchParams.set('q',q);u.searchParams.set('limit','8');u.searchParams.set('lang','ar');u.searchParams.set('layer','city,town,village,locality');u.searchParams.set('osm_tag','countrycode:'+CFG.country);
+  const r=await fetch(u,{signal}); const d=await r.json();
+  return (d.features||[]).map(f=>{const p=f.properties||{};const label=[p.name,p.city,p.state,p.country].filter(Boolean).join('، ');return {label,lat:f.geometry.coordinates[1],lon:f.geometry.coordinates[0],importance:p.importance||0};}).sort((a,b)=>(b.importance||0)-(a.importance||0));
+}
+async function nominatim(q,signal){
+  const u=new URL(CFG.nominatim); u.searchParams.set('format','json');u.searchParams.set('addressdetails','1');u.searchParams.set('limit','5');u.searchParams.set('q',q);u.searchParams.set('accept-language','ar');u.searchParams.set('countrycodes',CFG.country);
+  const r=await fetch(u,{signal}); const d=await r.json(); return d.map(i=>({label:i.display_name,lat:parseFloat(i.lat),lon:parseFloat(i.lon)}));
+}
+function renderSugg(items){
+  dom.sugg.innerHTML=items.slice(0,8).map(i=>`<a data-lat="${i.lat}" data-lon="${i.lon}"><i class="fa-solid fa-location-dot text-success"></i>${utils.escape(i.label)}</a>`).join('');
+  dom.sugg.style.display='block';
+}
+async function useTop(){
+  if(dom.sugg.firstElementChild){dom.sugg.firstElementChild.click();return;}
+  const q=dom.query.value.trim(); if(!q){dom.query.focus();return;}
+  try{let it=await photon(q).catch(()=>nominatim(q)); if(it&&it[0])searchAt(it[0].lat,it[0].lon,false,12);}catch(_){utils.toast('تعذر العثور على الموقع','error');}
+}
+
+/* البحث حول إحداثيات */
+function searchAt(lat,lon,fromMap=false,zoom=12){
+  hideSuggest(); state.origin={lat,lon}; state.map.setView([lat,lon],zoom);
+  startLoad(); const rad=parseInt(dom.radius.value,10); findCafes(lat,lon,rad,state.overpassAbort.signal);
+}
+async function overpass(query,signal){
+  // نحاول POST ثم GET عبر عدة مخدمات
+  for(const ep of CFG.overpass){
+    try{const r=await utils.fetchTimeout(ep,CFG.timeout,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8','Accept':'application/json'},body:'data='+encodeURIComponent(query),signal}); if(r.ok)return await r.json();}catch(_){}
+  }
+  for(const ep of CFG.overpass){
+    try{const r=await utils.fetchTimeout(ep+'?data='+encodeURIComponent(query),CFG.timeout,{signal}); if(r.ok)return await r.json();}catch(_){}
+  }
+  throw new Error('Overpass down');
+}
+async function findCafes(lat,lon,radius,signal){
+  const key=`caf:${lat.toFixed(4)}:${lon.toFixed(4)}:${radius}`; const cached=utils.cacheGet(key);
+  if(cached){processCafes(cached,lat,lon); return;}
+  const q=`[out:json][timeout:25];
+  (
+    node["amenity"="cafe"](around:${radius},${lat},${lon});
+    way["amenity"="cafe"](around:${radius},${lat},${lon});
+    node["shop"="coffee"](around:${radius},${lat},${lon});
+  );
+  out center tags;`;
+  try{
+    const d=await overpass(q,signal); utils.cacheSet(key,d); processCafes(d,lat,lon);
+  }catch(e){
+    if(e.name==='AbortError')return;
+    stopLoad(); dom.kpi.textContent='جاهز';
+    dom.results.innerHTML=`<div class="text-center text-secondary py-4"><i class="fa-solid fa-wifi fa-2x mb-2"></i><div>خطأ بالشبكة. اضغط "ابحث في هذه المنطقة" أو "ابحث" لإعادة المحاولة.</div></div>`;
+    utils.toast('فشل البحث، حاول مجدداً','error');
+  }
+}
+function processCafes(data,olat,olon){
+  const els=data.elements||[];
+  state.list=els.map(el=>{
+    const c=el.type==='way'?el.center:{lat:el.lat,lon:el.lon};
+    const tags=el.tags||{};
+    const name=tags.name||tags.brand||'مقهى';
+    const dist=utils.hav(olat,olon,c.lat,c.lon);
+    const smart=utils.smart(tags,dist);
+    const user=utils.getRate(el.id);
+    const rating=utils.mix(smart,user);
+    return {id:el.id,lat:c.lat,lon:c.lon,name,tags,distance:dist,smartRating:smart,userRating:user,rating};
+  });
+  render(); stopLoad();
+}
+
+/* رسم النتائج */
+function render(){
+  let list=state.list.slice();
+  if(dom.fWifi.checked)list=list.filter(c=>c.tags.internet_access==='yes');
+  if(dom.fOutdoor.checked)list=list.filter(c=>c.tags.outdoor_seating==='yes');
+  if(dom.fOpen.checked)list=list.filter(c=>utils.open(c.tags));
+  const min=parseFloat(dom.minR.value||0); list=list.filter(c=>c.rating>=min);
+  const sort=dom.sort.value||'rating';
+  list.sort((a,b)=>sort==='name'?(a.name||'').localeCompare(b.name||''):sort==='rating'?b.rating-a.rating:sort==='hours'?((b.tags.opening_hours?1:0)-(a.tags.opening_hours?1:0)):a.distance-b.distance);
+
+  // علامات الخريطة
+  drawMarkers(list);
+  // بطاقات
+  drawCards(list);
+
+  dom.kpi.textContent=list.length?`عرض ${list.length} مقهى`:'لا توجد نتائج';
+  dom.nores.classList.toggle('d-none',!!list.length);
+}
+function drawMarkers(list){
+  state.cluster.clearLayers(); state.markers=[];
+  const icon=L.divIcon({className:'',html:'<div style="position:relative;width:26px;height:18px;border-radius:4px 4px 6px 6px;background:#734f35;border:2px solid #523a29"><div style="position:absolute;top:-6px;left:2px;right:2px;height:6px;background:#fff;border-radius:6px 6px 0 0"></div></div>',iconSize:[26,26],iconAnchor:[13,18]});
+  list.forEach((c,i)=>{const m=L.marker([c.lat,c.lon],{icon}).bindPopup(popup(c));m.on('mouseover',()=>m.openPopup());state.cluster.addLayer(m);state.markers.push(m);});
+}
+function popup(c){
+  const addr=[c.tags['addr:street'],c.tags['addr:city']].filter(Boolean).join('، ');
+  return `<div><strong>${utils.escape(c.name)}</strong></div>
+    <div class="star my-1">${utils.stars(c.rating)} <span class="small text-secondary">(${c.rating.toFixed(1)})</span></div>
+    <div class="small text-secondary">${c.distance.toFixed(1)} كم</div>
+    ${addr?`<div class="small"><i class="fa-solid fa-location-dot ms-1"></i>${utils.escape(addr)}</div>`:''}
+    <div class="mt-2 d-flex gap-1 flex-wrap">
+      <a class="btn btn-sm btn-route" target="_blank" href="${utils.dir(c.lat,c.lon)}"><i class="fa-solid fa-route ms-1"></i>الاتجاهات</a>
+      <a class="btn btn-sm btn-outline-light" target="_blank" href="https://www.openstreetmap.org/?mlat=${c.lat}&mlon=${c.lon}#map=18/${c.lat}/${c.lon}">OSM</a>
+    </div>`;
+}
+function logoAvatar(c){
+  const n=(c.name||'').toLowerCase();
+  const logos={
+    "starbucks":"https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/starbucks.svg",
+    "dunkin":"https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/dunkindonuts.svg",
+    "tim":"https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/timhortons.svg",
+    "% arabica":"https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/percent.svg",
+    "costa":"https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/costacoffee.svg",
+    "gloria jeans":"https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/gloriajeans.svg"
+  };
+  const b=Object.keys(logos).find(k=>n.includes(k));
+  if(b) return `<div class="avatar" title="${b}"><img src="${logos[b]}" alt="${b}" loading="lazy"></div>`;
+  const L=(c.name||'?').trim().charAt(0).toUpperCase();
+  return `<div class="avatar"><div class="letter">${L}</div></div>`;
+}
+function drawCards(list){
+  if(!list.length){dom.results.innerHTML='';return;}
+  dom.results.innerHTML=list.map((c,i)=>`
+   <div class="card card-cafe mb-3 reveal" data-id="${c.id}" data-index="${i}">
+     <div class="card-body d-flex gap-3">
+       ${logoAvatar(c)}
+       <div class="flex-grow-1">
+         <div class="d-flex justify-content-between align-items-start">
+           <div class="fw-bold">${utils.escape(c.name)}</div>
+           <div class="small text-secondary">${c.distance.toFixed(1)} كم</div>
+         </div>
+         <div class="star">${utils.stars(c.rating)} <span class="small text-secondary">(${c.rating.toFixed(1)})</span></div>
+         ${[c.tags['addr:street'],c.tags['addr:city']].filter(Boolean).length?`<div class="small text-secondary"><i class="fa-solid fa-location-dot ms-1"></i>${utils.escape([c.tags['addr:street'],c.tags['addr:city']].filter(Boolean).join('، '))}</div>`:''}
+         <div class="mt-1 d-flex gap-2 flex-wrap small">
+           ${c.tags.internet_access==='yes'?'<span class="chip"><i class="fa-solid fa-wifi ms-1"></i>واي فاي</span>':''}
+           ${c.tags.outdoor_seating==='yes'?'<span class="chip"><i class="fa-solid fa-umbrella-beach ms-1"></i>خارجي</span>':''}
+         </div>
+         <div class="mt-2 rate">${[1,2,3,4,5].map(v=>`<i class="fa-solid fa-star ${c.userRating&&v<=c.userRating?'text-warning':''}" data-v="${v}"></i>`).join(' ')}</div>
+       </div>
+     </div>
+   </div>`).join('');
+
+  // reveal عند التمرير
+  $$('.reveal').forEach(el=>io.observe(el));
+
+  // تفاعل البطاقة/التقييم
+  $$('.card-cafe').forEach(card=>{
+    const i=parseInt(card.dataset.index);
+    card.addEventListener('mouseenter',()=>{const m=state.markers[i];if(m)m.openPopup();});
+    card.addEventListener('click',e=>{if(!e.target.closest('.rate')){const m=state.markers[i];if(m){state.map.setView(m.getLatLng(),16);m.openPopup();}}});
+  });
+  $$('.rate i').forEach(st=>{
+    st.addEventListener('click',e=>{
+      const card=e.target.closest('.card-cafe'); const id=card.dataset.id; const v=parseInt(e.target.dataset.v);
+      utils.setRate(id,v); const obj=state.list.find(x=>String(x.id)===id); if(obj){obj.userRating=v;obj.rating=utils.mix(obj.smartRating,v);render();}
+    });
+  });
+}
+
+/* تحديد موقعي */
+function geolocate(){
+  if(!navigator.geolocation){utils.toast('المتصفح لا يدعم تحديد الموقع','error');return;}
+  utils.toast('جاري تحديد موقعك…','info');
+  navigator.geolocation.getCurrentPosition(p=>{
+    const {latitude,longitude}=p.coords; utils.toast('تم تحديد الموقع','success'); searchAt(latitude,longitude,false,13);
+  },err=>utils.toast('تعذّر تحديد الموقع: '+err.message,'error'),{enableHighAccuracy:true,timeout:10000,maximumAge:600000});
+}
+
+/* اقتراحات عبر IP (اختياري خفيف) */
+(async function tryIP(){
+  try{
+    const r=await utils.fetchTimeout('https://ipapi.co/json/',6000); const d=await r.json();
+    if(d && d.country_code && d.country_code.toLowerCase()===CFG.country && d.latitude && d.longitude){
+      // انحياز بسيط للبحث الأول
+      searchAt(d.latitude,d.longitude,false,11);
+    }
+  }catch(_){/* تجاهل */}
+})();
+
+/* تشغيل أولي */
+function init(){
+  $('#yr').textContent=new Date().getFullYear();
+  initMap(); bindUI();
+  // بحث افتراضي: الرياض
+  searchAt(24.7136,46.6753,false,12);
+}
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',init);}else{init();}
+})();
+</script>
 </body>
 </html>
