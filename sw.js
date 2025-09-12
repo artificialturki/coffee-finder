@@ -1,38 +1,77 @@
-function initMap(){
-  state.map = L.map('map', { zoomControl:true, preferCanvas:true })
-    .setView(CFG.defaultView, CFG.defaultZoom);
+const CACHE_NAME = 'pwa-app-v1';
+const urlsToCache = [
+  '/',
+  '/index.html',
+  '/style.css',
+  '/app.js',
+  '/manifest.json',
+  'https://fonts.googleapis.com/css?family=Segoe+UI:300,400,500,700&display=swap'
+];
 
-  // Add **multiple tile sources** as fallback
-  const tiles = [
-    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-    'https://a.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
-    'https://maps.wikimedia.org/osm-intl/{z}/{x}/{y}.png'
-  ];
-  let current = 0;
+// تثبيت Service Worker
+self.addEventListener('install', event => {
+  console.log('Service Worker: Installing...');
+  
+  // فتح الكاش وتخزين الملفات المهمة
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache => {
+        console.log('Service Worker: Caching App Shell');
+        return cache.addAll(urlsToCache);
+      })
+      .then(() => self.skipWaiting())
+  );
+});
 
-  function addLayer(url){
-    return L.tileLayer(url, {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap contributors'
-    }).on('tileerror', ()=> {
-      current++;
-      if(current < tiles.length){
-        state.map.removeLayer(layer);
-        layer = addLayer(tiles[current]);
-        state.map.addLayer(layer);
-      }
-    });
-  }
+// تفعيل Service Worker
+self.addEventListener('activate', event => {
+  console.log('Service Worker: Activated');
+  
+  // حذف الكاش القديم إذا وجد
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cache => {
+          if (cache !== CACHE_NAME) {
+            console.log('Service Worker: Clearing Old Cache');
+            return caches.delete(cache);
+          }
+        })
+      );
+    })
+  );
+});
 
-  let layer = addLayer(tiles[current]);
-  state.map.addLayer(layer);
-
-  // cluster layer
-  state.cluster = L.markerClusterGroup({
-    showCoverageOnHover:false, maxClusterRadius:50, chunkedLoading:true, spiderfyOnMaxZoom:true
-  });
-  state.map.addLayer(state.cluster);
-
-  // Force resize when visible
-  setTimeout(()=> state.map.invalidateSize(), 500);
-}
+// اعتراض الطلبات
+self.addEventListener('fetch', event => {
+  console.log('Service Worker: Fetching', event.request.url);
+  
+  event.respondWith(
+    caches.match(event.request)
+      .then(response => {
+        // إذا وجد الملف في الكاش، نعيده
+        if (response) {
+          return response;
+        }
+        
+        // إذا لم نجده، نحمله من الشبكة
+        return fetch(event.request)
+          .then(response => {
+            // نتحقق من أن الرد صالح للتخزين
+            if (!response || response.status !== 200 || response.type !== 'basic') {
+              return response;
+            }
+            
+            // ننسخ الرد لأننا يمكن أن نستخدمه مرة واحدة فقط
+            const responseToCache = response.clone();
+            
+            caches.open(CACHE_NAME)
+              .then(cache => {
+                cache.put(event.request, responseToCache);
+              });
+              
+            return response;
+          });
+      })
+  );
+});
