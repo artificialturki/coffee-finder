@@ -1,20 +1,25 @@
 {
-  "name": "Coffee Finder",
-  "short_name": "CoffeeFinder",
-  "start_url": "./index.html",
+  "name": "تطبيق ويب تقدمي",
+  "short_name": "PWA App",
+  "description": "تطبيق ويب تقدمي مع خدمة العامل والتخزين المؤقت",
+  "start_url": "/index.html",
   "display": "standalone",
-  "background_color": "#faf8f6",
-  "theme_color": "#3b2f2f",
+  "background_color": "#667eea",
+  "theme_color": "#667eea",
+  "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "icons/icon-192.png",
+      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cGF0aCBmaWxsPSIjZmZmIiBkPSJNMjU2IDhDMTE5IDggOCAxMTkgOCAyNTZzMTExIDI0OCAyNDggMjQ4IDI0OC0xMTEgMjQ4LTI0OFMzOTMgOCAyNTYgOHptMCA0NDhjLTExMC41IDAtMjAwLTg5LjUtMjAtMjAwIDAtMTEwLjUgODkuNS0yMDAgMjAwLTIwMHMyMDAgODkuNSAyMDAgMjAwYzAgMTEwLjUtODkuNSAyMDAtMjAwIDIwMHoiLz48cGF0aCBmaWxsPSIjZmZmIiBkPSJNMjcyLjggMTQ1LjljLTUzLjggMTEuNS-096IDI0Ni40YzAgNTMuOCA0My44IDk3LjYgOTcuNiA5Ny42IDUzLjggMCA5Ny42LTQzLjggOTcuNi05Ny42IDAtNTMuOC00My44LTk3LjYtOTcuNi05Ny42eiIvPjwvc3ZnPg==",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/svg+xml"
     },
     {
-      "src": "icons/icon-512.png",
+      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cGF0aCBmaWxsPSIjZmZmIiBkPSJNMjU2IDhDMTE5IDggOCAxMTkgOCAyNTZzMTExIDI0OCAyNDggMjQ4IDI0OC0xMTEgMjQ4LTI0OFMzOTMgOCAyNTYgOHptMCA0NDhjLTExMC41IDAtMjAwLTg5LjUtMjAtMjAwIDAtMTEwLjUgODkuNS0yMDAgMjAwLTIwMHMyMDAgODkuNSAyMDAgMjAwYzAgMTEwLjUtODkuNSAyMDAtMjAwIDIwMHoiLz48cGF0aCBmaWxsPSIjZmZmIiBkPSJNMjcyLjggMTQ1LjljLTUzLjggMTEuNS05NiA1My44LTk2IDk3LjYgMCA1My44IDQzLjggOTcuNiA5Ny42IDk3LjYgNTMuOCAwIDk3LjYtNDMuOCA5Ny42LTk3LjYgMC01My44LTQzLjgtOTcuNi05Ny42LTk3LjZ6Ii8+PC9zdmc+",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/svg+xml"
     }
-  ]
+  ],
+  "categories": ["productivity", "utilities"],
+  "lang": "ar",
+  "dir": "rtl"
 }
