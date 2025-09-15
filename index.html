@@ -20,7 +20,178 @@
    🗺️ MAP CORE — Leaflet Setup
 ============================ */
 let map, cafesLayer;
+*{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      overflow-x: hidden;
+      background-image:
+        radial-gradient(circle at 15% 50%, rgba(24,220,255,0.08) 0%, transparent 25%),
+        radial-gradient(circle at 85% 30%, rgba(113,88,226,0.08) 0%, transparent 25%),
+        radial-gradient(circle at 50% 80%, rgba(255,77,141,0.06) 0%, transparent 25%);
+    }
 
+    /* Themes (light/dark/space/neon) */
+    [data-theme="light"]{
+      --bg-primary:#f8f9fa; --bg-secondary:#ffffff;
+      --text-primary:#212529; --text-secondary:#495057;
+      --card-bg:#ffffff; --border-color:#dee2e6;
+      --header-bg: linear-gradient(135deg, #734f35, #8b4513);
+    }
+    [data-theme="dark"]{
+      --bg-primary:#0a1929; --bg-secondary:#0f253d;
+      --text-primary:#e9ecef; --text-secondary:#adb5bd;
+      --card-bg:#132238; --border-color:#2a3e5a;
+      --header-bg: linear-gradient(135deg, #132238, #1e3a5f);
+    }
+    [data-theme="space"]{
+      --bg-primary:#0a0e17; --bg-secondary:#0f1525;
+      --text-primary:#e9ecef; --text-secondary:#8b9bb4;
+      --card-bg:#131c2f; --border-color:#24334d;
+      --header-bg: linear-gradient(135deg, #131c2f, #1e2f4f);
+    }
+    [data-theme="neon"]{
+      --bg-primary:#0a0a0a; --bg-secondary:#111;
+      --text-primary:#18dcff; --text-secondary:#ff4d8d;
+      --card-bg:#1a1a1a; --border-color:#333;
+      --header-bg: linear-gradient(135deg, #18dcff, #7158e2);
+    }
+
+    /* =============================
+       🌟 Header with steaming cup
+    ============================== */
+    header.site-header{
+      background: var(--header-bg);
+      padding: 20px;
+      border-radius: 16px;
+      margin: 16px auto 14px;
+      max-width: 1400px;
+      color: white;
+      position:relative;
+      overflow:hidden;
+      box-shadow: var(--shadow);
+      border: 2px solid transparent;
+      background-clip: padding-box;
+    }
+    header.site-header::after{
+      content:''; position:absolute; inset:-2px;
+      z-index:-1; border-radius:18px;
+      background: linear-gradient(90deg,var(--neon-blue),var(--neon-pink),var(--cyber-yellow));
+      animation: borderflow 8s linear infinite; background-size:300% 300%;
+    }
+    @keyframes borderflow{0%{background-position:0 50%}50%{background-position:100% 50%}100%{background-position:0 50%}}
+
+    .brand{
+      display:flex; align-items:center; justify-content:center; gap:14px;
+      font-weight:900; font-size:2.2rem; letter-spacing:.3px;
+    }
+    .brand i{ color:var(--neon-blue); filter: drop-shadow(0 0 6px var(--neon-blue)); }
+
+    .coffee-steam{ display:inline-block; position:relative; width:24px; height:24px; }
+    .steam-bubble{
+      position:absolute; width:16px; height:16px; border-radius:50%;
+      background: radial-gradient(circle at 50% 30%, rgba(255,255,255,.85), rgba(255,255,255,.05));
+      left:4px; opacity:0;
+    }
+    .steam-bubble.one{ animation: steamUp 4s ease-out infinite; }
+    .steam-bubble.two{ animation: steamUp 4s ease-out 1s infinite; }
+    .steam-bubble.three{ animation: steamUp 4s ease-out 2s infinite; }
+    @keyframes steamUp{
+      0%{ transform:translateY(10px) scale(.4); opacity:.65; }
+      100%{ transform: translate(-8px, -50px) scale(1.4); opacity:0; }
+    }
+
+    /* =============================
+       🔍 Search panel + filters
+    ============================== */
+    .search-panel{
+      background:var(--card-bg);
+      border:1px solid var(--border-color);
+      border-radius:16px; padding:18px;
+      margin: 10px auto 14px; max-width:1200px;
+      box-shadow: var(--shadow);
+    }
+    .search-row{ display:flex; gap:10px; flex-wrap:wrap; }
+    .search-row input[type="text"]{
+      flex:1; padding:12px 16px; border-radius:10px; border:1px solid var(--border-color);
+      background: var(--bg-secondary); color: var(--text-primary);
+    }
+    .btn-search{
+      background: linear-gradient(135deg, var(--neon-blue), var(--space-purple));
+      color:white; border:none; font-weight:800; padding:12px 18px; border-radius:10px; white-space:nowrap;
+    }
+    .filters{ display:flex; flex-wrap:wrap; gap:10px; margin-top:12px; }
+    .chip{
+      display:inline-flex; align-items:center; gap:6px; padding:8px 12px; border-radius:20px;
+      background:var(--bg-secondary); border:1px solid var(--border-color); font-size:.95rem;
+    }
+
+    /* =============================
+       🗺️ Map container (fixed on top of page)
+    ============================== */
+    .map-wrap{
+      margin: 12px auto 18px; max-width:1200px;
+      border-radius:16px; overflow:hidden; border:1px solid var(--border-color);
+      box-shadow: var(--shadow);
+      height: 560px;
+    }
+    #map{ width:100%; height:100%; }
+
+    /* Custom cup marker (white cup + brown coffee + animated steam) */
+    .cup-marker{ position:relative; width:34px; height:34px; transform: translate(-17px,-28px); }
+    .cup-marker .cup-body{
+      position:absolute; left:3px; bottom:2px; width:28px; height:18px; border-radius:0 0 8px 8px;
+      background:#fff; border:2px solid #eee;
+      box-shadow:0 2px 6px rgba(0,0,0,.25) inset;
+    }
+    .cup-marker .coffee{
+      position:absolute; left:5px; bottom:14px; width:24px; height:6px; background:#5d4037; border-radius:6px 6px 0 0;
+    }
+    .cup-marker .cup-handle{
+      position:absolute; right:-3px; bottom:8px; width:10px; height:10px; border-radius:50%;
+      border:3px solid #fff; border-left-color:transparent; border-bottom-color:transparent; transform:rotate(20deg);
+    }
+    .cup-marker .steam{ position:absolute; left:12px; bottom:22px; width:6px; height:6px; border-radius:50%;
+      background: radial-gradient(circle at 50% 30%, rgba(255,255,255,.95), rgba(255,255,255,.15));
+      filter: blur(.2px); opacity:0; animation: puff 3.6s ease-out infinite;
+    }
+    .cup-marker .steam.s2{ left:16px; animation-delay: .8s; }
+    .cup-marker .steam.s3{ left:9px;  animation-delay: 1.6s; }
+    @keyframes puff{
+      0%{ transform: translateY(0) scale(.4); opacity:.8; }
+      100%{ transform: translate(-3px, -20px) scale(1.4); opacity:0; }
+    }
+
+    /* =============================
+       🎴 Cafe cards
+    ============================== */
+    .results-section{ max-width:1200px; margin: 6px auto 40px; }
+    .results-header{ background:var(--card-bg); border:1px solid var(--border-color); border-radius:12px; padding:12px 16px; }
+    .cafe-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(320px,1fr)); gap:22px; margin-top:18px; }
+    .cafe-card{
+      background:var(--card-bg); border:1px solid var(--border-color); border-radius:16px; overflow:hidden;
+      box-shadow: var(--shadow); transform: translateY(20px); opacity:0; transition:.6s;
+    }
+    .cafe-card.show{ transform:translateY(0); opacity:1; }
+    .cafe-cover{ height:190px; background:linear-gradient(135deg,#d7ccc8,#5d4037); display:flex; align-items:center; justify-content:center; overflow:hidden; }
+    .cafe-cover img{ width:100%; height:100%; object-fit:cover; transition: transform .5s ease; }
+    .cafe-card:hover .cafe-cover img{ transform:scale(1.08); }
+    .cafe-body{ padding:16px; }
+    .cafe-title{ display:flex; align-items:center; justify-content:space-between; gap:10px; font-weight:800; font-size:1.2rem; color:var(--text-primary); }
+    .cafe-meta{ display:flex; gap:12px; flex-wrap:wrap; font-size:.95rem; color:var(--text-secondary); margin:10px 0; }
+    .tag{ display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:12px; border:1px solid rgba(255,255,255,.2); font-size:.85rem; }
+    .tag.wifi{ background:rgba(24,220,255,.15); color:var(--neon-blue); }
+    .tag.outdoor{ background:rgba(255,209,102,.15); color:var(--warning); }
+    .tag.parking{ background:rgba(0,255,140,.15); color:var(--success); }
+    .tag.snacks{ background:rgba(255,77,141,.15); color:var(--neon-pink); }
+    .actions{ display:flex; gap:10px; margin-top:8px; }
+    .btn-a{ flex:1; padding:10px 12px; border:none; border-radius:10px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; }
+    .btn-a.primary{ background: linear-gradient(135deg, var(--neon-blue), var(--space-purple)); color:white; }
+    .btn-a.secondary{ background: var(--bg-secondary); border:1px solid var(--border-color); color:var(--text-primary); }
+    .btn-a.heart{ background: rgba(255,77,141,.15); color: var(--neon-pink); border:1px solid rgba(255,77,141,.45); }
 /* أيقونة كوب أبيض مع قهوة + بخار (SVG مضمّن) */
 function makeCoffeeIcon() {
   const svg = `
@@ -143,7 +314,367 @@ function goNearby() {
     showNotification && showNotification('تعذّر تحديد موقعك', 'error');
   }, { enableHighAccuracy: true, timeout: 8000 });
 }
+<!-- Search Panel -->
+  <section class="search-panel">
+    <div class="search-row">
+      <input id="searchInput" type="text" placeholder="Search for a city in Saudi Arabia..." data-i18n-placeholder="searchPlaceholder">
+      <button class="btn-search" id="searchBtn"><i class="fas fa-search"></i> <span data-i18n="search">Search</span></button>
+    </div>
+    <div class="filters">
+      <label class="chip"><input type="checkbox" id="wifi"> <span data-i18n="wifi">Wi‑Fi</span></label>
+      <label class="chip"><input type="checkbox" id="outdoor"> <span data-i18n="outdoor">Outdoor</span></label>
+      <label class="chip"><input type="checkbox" id="parking"> <span data-i18n="parking">Parking</span></label>
+      <label class="chip"><input type="checkbox" id="openNow"> <span data-i18n="openNow">Open Now</span></label>
+      <label class="chip" style="gap:8px;">
+        <span data-i18n="radius">Radius</span>:
+        <select id="radius">
+          <option value="1000">1 km</option>
+          <option value="3000" selected>3 km</option>
+          <option value="5000">5 km</option>
+          <option value="10000">10 km</option>
+        </select>
+      </label>
+    </div>
+  </section>
 
+  <!-- Map -->
+  <section class="map-wrap">
+    <div id="map"></div>
+  </section>
+
+  <!-- Results -->
+  <section class="results-section">
+    <div class="results-header d-flex justify-content-between align-items-center">
+      <h2 class="m-0" style="font-size:1.15rem;">
+        <span data-i18n="found">Found</span> <span id="resultsNumber">0</span> <span data-i18n="shops">coffee shops</span>
+      </h2>
+      <select id="sortSelect" class="form-select form-select-sm" style="max-width:200px;">
+        <option value="distance" data-i18n="closest">Closest First</option>
+        <option value="rating" data-i18n="highest">Highest Rated</option>
+        <option value="name" data-i18n="byname">By Name</option>
+      </select>
+    </div>
+    <div id="cafeList" class="cafe-grid"></div>
+  </section>
+
+  <!-- Notifications -->
+  <div id="notifications"></div>
+
+  <!-- Advertisement & Contact -->
+  <section id="ads" class="container" style="max-width:1100px; margin: 20px auto 40px;">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <div style="background:var(--card-bg); border:1px solid var(--border-color); border-radius:16px; padding:18px; box-shadow:var(--shadow);">
+          <h3 style="color:var(--neon-blue); margin-bottom:8px;" data-i18n="adtitle">📢 Advertise your café</h3>
+          <p style="color:var(--text-secondary);" data-i18n="adtext">Promote your coffee shop to thousands of seekers nearby. Beautiful banners, premium placement and fair pricing.</p>
+          <button id="openContact" class="btn btn-sm" style="background:linear-gradient(135deg,var(--neon-blue),var(--space-purple)); color:white; border:none; border-radius:10px; padding:10px 16px;" data-i18n="contact">Contact us</button>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div style="background:var(--card-bg); border:1px solid var(--border-color); border-radius:16px; padding:18px; box-shadow:var(--shadow);">
+          <h3 style="color:var(--neon-pink); margin-bottom:8px;" data-i18n="featuredt">🌟 Featured slots</h3>
+          <p style="color:var(--text-secondary);" data-i18n="featuredd">Get highlighted on map and results for more visibility. Slots are limited.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact Modal -->
+  <div id="contactModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.75); z-index:4200; align-items:center; justify-content:center;">
+    <div style="background:var(--card-bg); border:1px solid var(--border-color); border-radius:16px; padding:22px; width:min(92%,520px); box-shadow:var(--shadow); position:relative;">
+      <button id="closeContact" style="position:absolute; right:12px; top:10px; background:none; border:none; color:var(--text-secondary); font-size:22px;">×</button>
+      <h4 style="margin-bottom:10px;" data-i18n="contact">Contact us</h4>
+      <p style="margin:0 0 8px;"><b>WhatsApp:</b> <a href="https://wa.me/966500000000" target="_blank" style="color:var(--neon-green)">+966 50 000 0000</a></p>
+      <p style="margin:0 0 14px;"><b>Email:</b> <a href="mailto:ads@coffeefinder.sa" style="color:var(--neon-blue)">ads@coffeefinder.sa</a></p>
+      <form id="adForm">
+        <input id="adName" type="text" placeholder="Your Name" required class="form-control mb-2" />
+        <textarea id="adMsg" rows="4" placeholder="Your message..." required class="form-control mb-3"></textarea>
+        <button class="btn btn-primary" style="background:linear-gradient(135deg,var(--neon-blue),var(--space-purple)); border:none;" data-i18n="send">Send</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <h3 style="margin:0 0 8px;">📲 <span data-i18n="getapp">Get the Coffee Finder Pro App</span></h3>
+    <div style="display:flex; gap:16px; justify-content:center; flex-wrap:wrap; margin:14px 0 4px;">
+      <a href="#" class="btn btn-dark" style="display:flex; align-items:center; gap:10px; border-radius:12px; padding:10px 16px;">
+        <i class="fab fa-apple fa-2x"></i><div style="text-align:left;"><small>Download on the</small><br><b>App Store</b></div>
+      </a>
+      <a href="#" class="btn" style="background:#2ecc71; color:white; display:flex; align-items:center; gap:10px; border-radius:12px; padding:10px 16px;">
+        <i class="fab fa-google-play fa-2x"></i><div style="text-align:left;"><small>Get it on</small><br><b>Google Play</b></div>
+      </a>
+    </div>
+
+    <div class="footer-social">
+      <a href="https://twitter.com" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+      <a href="https://facebook.com" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+      <a href="https://instagram.com" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+      <!-- GitHub intentionally removed per request -->
+    </div>
+    <p style="margin:8px 0 2px;">© 2025 Coffee Finder Pro — <span data-i18n="rights">All Rights Reserved</span></p>
+    <p style="margin:0;">☕ <span data-i18n="made">Made with love in Saudi Arabia</span></p>
+    <div style="margin-top:6px; display:flex; gap:14px; justify-content:center; flex-wrap:wrap;">
+      <a href="#" style="color:#cce7ff; text-decoration:none;" data-i18n="privacy">Privacy</a>
+      <a href="#" style="color:#cce7ff; text-decoration:none;" data-i18n="terms">Terms</a>
+      <a href="#" style="color:#cce7ff; text-decoration:none;" data-i18n="contact">Contact</a>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+  // =============================
+  // i18n (Arabic/English)
+  // =============================
+  const i18n = {
+    en: {
+      title: "Coffee Finder Pro",
+      search: "Search",
+      searchPlaceholder: "Search for a city in Saudi Arabia...",
+      wifi: "Wi‑Fi", outdoor:"Outdoor", parking:"Parking", openNow:"Open Now", radius:"Radius",
+      found: "Found", shops:"coffee shops", closest:"Closest First", highest:"Highest Rated", byname:"By Name",
+      adtitle:"📢 Advertise your café", adtext:"Promote your coffee shop to thousands of seekers nearby. Beautiful banners, premium placement and fair pricing.",
+      contact:"Contact us", featuredt:"🌟 Featured slots", featuredd:"Get highlighted on map and results for more visibility. Slots are limited.",
+      send:"Send", getapp:"Get the Coffee Finder Pro App", rights:"All Rights Reserved", made:"Made with ❤️ in Saudi Arabia",
+      privacy:"Privacy", terms:"Terms", near:"Nearby"
+    },
+    ar: {
+      title: "كوفي فايندر برو",
+      search: "بحث",
+      searchPlaceholder: "ابحث عن مدينة داخل السعودية...",
+      wifi:"واي فاي", outdoor:"جلسات خارجية", parking:"مواقف", openNow:"مفتوح الآن", radius:"نطاق",
+      found:"تم العثور على", shops:"مقاهي", closest:"الأقرب أولاً", highest:"الأعلى تقييماً", byname:"حسب الاسم",
+      adtitle:"📢 أعلن عن مقهاك", adtext:"روّج لمقهىك لآلاف الباحثين القريبين. بنرات جذابة ومكانة مميزة وسعر عادل.",
+      contact:"راسلنا", featuredt:"🌟 مساحات مميزة", featuredd:"احصل على إبراز في الخريطة والنتائج لزيادة الظهور. الأماكن محدودة.",
+      send:"إرسال", getapp:"حمّل تطبيق كوفي فايندر برو", rights:"جميع الحقوق محفوظة", made:"صُنع بحب في السعودية",
+      privacy:"الخصوصية", terms:"الشروط", near:"بالقرب مني"
+    }
+  };
+  let lang = "en";
+  function applyI18n(){
+    const dict = i18n[lang];
+    document.querySelectorAll("[data-i18n]").forEach(el=>{ el.textContent = dict[el.getAttribute("data-i18n")] || el.textContent; });
+    document.querySelectorAll("[data-i18n-placeholder]").forEach(el=>{ el.setAttribute("placeholder", dict[el.getAttribute("data-i18n-placeholder")] || el.getAttribute("placeholder")); });
+    document.body.dir = (lang==="ar"?"rtl":"ltr");
+    document.getElementById("langToggle").textContent = (lang==="ar"?"English":"العربية");
+  }
+  document.getElementById("langToggle").addEventListener("click", ()=>{ lang = (lang==="en"?"ar":"en"); applyI18n(); showToast(lang==="ar"?"تم التبديل إلى العربية":"Language switched to English","t-info"); });
+  applyI18n();
+
+  // =============================
+  // Toasts
+  // =============================
+  function showToast(text, cls="t-info"){
+    const box = document.getElementById("notifications");
+    const d = document.createElement("div");
+    d.className = "toast-msg " + cls;
+    d.textContent = text;
+    box.appendChild(d);
+    setTimeout(()=>{ d.style.opacity=.0; setTimeout(()=>d.remove(), 450); }, 3000);
+  }
+
+  // =============================
+  // Scroll energy bar
+  // =============================
+  window.addEventListener("scroll", ()=>{
+    const h=document.documentElement;
+    const p= (h.scrollTop / (h.scrollHeight - h.clientHeight)) * 100;
+    document.getElementById("energyBar").style.width = p + "%";
+  });
+
+  // =============================
+  // Map + Nearby + Search + Cafes
+  // =============================
+  const map = L.map("map", { zoomControl:true, attributionControl:true }).setView([24.7136,46.6753], 12);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
+
+  // Custom "Nearby" control
+  const NearbyControl = L.Control.extend({
+    options:{ position:'topleft' },
+    onAdd: function(){
+      const btn = L.DomUtil.create('button','btn btn-sm');
+      btn.style.background = 'linear-gradient(135deg, var(--neon-blue), var(--space-purple))';
+      btn.style.color = 'white'; btn.style.border='none'; btn.style.padding='8px 10px'; btn.style.borderRadius='8px';
+      btn.innerHTML = '<i class="fas fa-location-crosshairs"></i> ' + (i18n[lang].near);
+      L.DomEvent.on(btn,'click', (e)=>{ L.DomEvent.stopPropagation(e); locateAndSearch(); });
+      return btn;
+    }
+  });
+  map.addControl(new NearbyControl());
+
+  // Cup marker icon as DivIcon
+  function createCupIcon(){
+    return L.divIcon({
+      className:'',
+      html:`<div class="cup-marker"><div class="cup-body"></div><div class="cup-handle"></div><div class="coffee"></div><div class="steam s1"></div><div class="steam s2"></div><div class="steam s3"></div></div>`,
+      iconSize:[34,34], iconAnchor:[17,28], popupAnchor:[0,-24]
+    });
+  }
+
+  const cafeMarkers = L.layerGroup().addTo(map);
+
+  async function searchCity(q){
+    try{
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q+', Saudi Arabia')}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if(data && data.length){
+        const {lat, lon, display_name} = data[0];
+        map.setView([+lat,+lon], 13);
+        showToast((lang==='ar'?'تم إيجاد ':'Found ') + display_name, 't-success');
+        await fetchCafes(+lat,+lon);
+      } else {
+        showToast(lang==='ar'?'لم يتم العثور على المدينة':'City not found','t-error');
+      }
+    }catch(e){ showToast('Search error','t-error'); }
+  }
+
+  async function fetchCafes(lat, lon){
+    cafeMarkers.clearLayers();
+    const radius = document.getElementById("radius").value || 3000;
+    const overpass = "https://overpass-api.de/api/interpreter";
+    const query = `[out:json];(node["amenity"="cafe"](around:${radius},${lat},${lon}););out;`;
+    try{
+      const r = await fetch(overpass, {method:"POST", body:query});
+      const j = await r.json();
+      cafes.length = 0;
+      j.elements.forEach(el=>{
+        const c = {
+          name: el.tags.name || (lang==='ar'?'مقهى بدون اسم':'Unnamed Cafe'),
+          address: el.tags["addr:street"] || (lang==='ar'?'غير معروف':'Unknown'),
+          lat: el.lat, lng: el.lon,
+          rating: (Math.random()*2 + 3).toFixed(1),
+          distance: Math.floor(Math.random()*5)+1,
+          open: Math.random() > 0.25,
+          features: ["wifi","outdoor","parking","snacks"].filter(()=>Math.random()>0.55),
+          image: "https://source.unsplash.com/600x400/?coffee,cafe"
+        };
+        cafes.push(c);
+      });
+      renderCafeList();
+      // Add markers
+      cafes.forEach(c=>{
+        const m = L.marker([c.lat, c.lng], { icon:createCupIcon() }).addTo(cafeMarkers);
+        m.bindPopup(`<b>${c.name}</b><br/>${c.address}<br/><small>${c.rating} ⭐</small>`);
+      });
+      document.getElementById("resultsNumber").textContent = cafes.length;
+      showToast((lang==='ar'?'تم تحميل ':'Loaded ')+cafes.length+(lang==='ar'?' مقهى':' cafes'),'t-success');
+    }catch(e){
+      showToast('Failed to load cafes','t-error');
+    }
+  }
+
+  function locateAndSearch(){
+    if(!navigator.geolocation){ showToast('Geolocation not supported','t-error'); return; }
+    navigator.geolocation.getCurrentPosition((pos)=>{
+      const {latitude, longitude} = pos.coords;
+      map.setView([latitude, longitude], 14);
+      L.circle([latitude, longitude], {radius: 80, color:'#18dcff'}).addTo(map);
+      fetchCafes(latitude, longitude);
+    }, ()=> showToast('Location denied','t-error'));
+  }
+
+  document.getElementById("searchBtn").addEventListener("click", ()=>{
+    const q = document.getElementById("searchInput").value.trim();
+    if(q) searchCity(q);
+  });
+  document.getElementById("searchInput").addEventListener("keypress", (e)=>{
+    if(e.key==='Enter'){ const q=e.target.value.trim(); if(q) searchCity(q); }
+  });
+
+  // =============================
+  // Cafe cards rendering
+  // =============================
+  const cafes = [
+    {name:"Arabica Coffee", address:"Al Malaz, Riyadh", lat:24.7136, lng:46.6753, rating:4.5, distance:1.2, open:true, features:["wifi","outdoor"], image:"https://images.unsplash.com/photo-1554118811-1e0d58224f24"},
+    {name:"Starbucks Riyadh", address:"Sulimaniyah, Riyadh", lat:24.7612, lng:46.6753, rating:4.7, distance:0.8, open:true, features:["wifi","parking"], image:"https://images.unsplash.com/photo-1509042239860-f550ce710b93"},
+    {name:"Deem Coffee", address:"Al Olaya, Riyadh", lat:24.6932, lng:46.6915, rating:4.3, distance:2.3, open:true, features:["outdoor","snacks"], image:"https://images.unsplash.com/photo-1463797221720-6b07e6426c24"}
+  ];
+
+  function renderCafeList(){
+    const list = document.getElementById("cafeList");
+    list.innerHTML = "";
+    const filters = {
+      wifi: document.getElementById("wifi").checked,
+      outdoor: document.getElementById("outdoor").checked,
+      parking: document.getElementById("parking").checked,
+      openNow: document.getElementById("openNow").checked
+    };
+    const sortBy = document.getElementById("sortSelect").value;
+
+    let data = cafes.slice();
+    if(filters.wifi) data = data.filter(c=>c.features.includes("wifi"));
+    if(filters.outdoor) data = data.filter(c=>c.features.includes("outdoor"));
+    if(filters.parking) data = data.filter(c=>c.features.includes("parking"));
+    if(filters.openNow) data = data.filter(c=>c.open);
+
+    if(sortBy==="distance") data.sort((a,b)=>a.distance-b.distance);
+    if(sortBy==="rating") data.sort((a,b)=>b.rating-a.rating);
+    if(sortBy==="name") data.sort((a,b)=>a.name.localeCompare(b.name));
+
+    data.forEach((c, i)=>{
+      const el = document.createElement("div"); el.className="cafe-card";
+      el.innerHTML = `
+        <div class="cafe-cover"><img src="${c.image}" alt="${c.name}"></div>
+        <div class="cafe-body">
+          <div class="cafe-title">${c.name} <span style="color:var(--warning); font-weight:800;"><i class="fa fa-star"></i> ${c.rating}</span></div>
+          <div class="cafe-meta">
+            <span><i class="fas fa-map-marker-alt"></i> ${c.address}</span>
+            <span><i class="fas fa-road"></i> ${c.distance} km</span>
+            <span><i class="fas fa-clock"></i> ${c.open ? (lang==='ar'?'مفتوح':'Open') : (lang==='ar'?'مغلق':'Closed')}</span>
+          </div>
+          <div class="cafe-meta">
+            ${c.features.includes("wifi") ? `<span class="tag wifi"><i class="fa fa-wifi"></i> ${i18n[lang].wifi}</span>` : ""}
+            ${c.features.includes("outdoor") ? `<span class="tag outdoor"><i class="fa fa-umbrella-beach"></i> ${i18n[lang].outdoor}</span>` : ""}
+            ${c.features.includes("parking") ? `<span class="tag parking"><i class="fa fa-car"></i> ${i18n[lang].parking}</span>` : ""}
+            ${c.features.includes("snacks") ? `<span class="tag snacks"><i class="fa fa-cookie-bite"></i> Snacks</span>` : ""}
+          </div>
+          <div class="actions">
+            <button class="btn-a primary" onclick="window.open('https://www.google.com/maps?q=${c.lat},${c.lng}','_blank')"><i class="fas fa-route"></i> ${lang==='ar'?'الطريق':'Directions'}</button>
+            <button class="btn-a secondary" onclick="alert('Details: ${c.name}')"><i class="fas fa-info-circle"></i> ${lang==='ar'?'تفاصيل':'Details'}</button>
+            <button class="btn-a heart" onclick="fav('${c.name}')"><i class="fas fa-heart"></i> ${lang==='ar'?'مفضل':'Favorite'}</button>
+          </div>
+        </div>`;
+      list.appendChild(el);
+      setTimeout(()=>el.classList.add('show'), 100 * i);
+    });
+
+    document.getElementById("resultsNumber").textContent = data.length;
+  }
+  renderCafeList();
+
+  function fav(name){ showToast((lang==='ar'?'تمت إضافة ':'Added ') + name + (lang==='ar'?' إلى المفضلة':' to favorites'),'t-success'); }
+
+  document.getElementById("wifi").addEventListener("change",renderCafeList);
+  document.getElementById("outdoor").addEventListener("change",renderCafeList);
+  document.getElementById("parking").addEventListener("change",renderCafeList);
+  document.getElementById("openNow").addEventListener("change",renderCafeList);
+  document.getElementById("sortSelect").addEventListener("change",renderCafeList);
+
+  // =============================
+  // Weather (Open-Meteo, free, city default Riyadh)
+  // =============================
+  async function getWeather(lat=24.7136, lon=46.6753){
+    try{
+      const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
+      const j = await r.json();
+      showToast(`Weather: ${j.current_weather.temperature}°C · Wind ${j.current_weather.windspeed}km/h`,'t-info');
+    }catch(e){ /* ignore */ }
+  }
+  getWeather();
+
+  // =============================
+  // Contact modal open/close
+  // =============================
+  document.getElementById("openContact").addEventListener("click", ()=>{ document.getElementById("contactModal").style.display='flex'; });
+  document.getElementById("closeContact").addEventListener("click", ()=>{ document.getElementById("contactModal").style.display='none'; });
+  document.getElementById("adForm").addEventListener("submit", (e)=>{
+    e.preventDefault();
+    document.getElementById("contactModal").style.display='none';
+    showToast('Thanks! We will contact you soon.','t-success');
+  
 /* ============================
    🔎 Search & Cafes (تستخدم دوالّك مع تحسينات طفيفة)
 ============================ */
