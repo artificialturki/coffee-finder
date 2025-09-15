@@ -749,17 +749,7 @@
       100% { clip: rect(10px,9999px,130px,0); }
     }
   </style>
-  <!-- 🌡️ الطقس -->
-  <section class="weather-widget container mb-4 p-3"
-           style="background:var(--card-bg); border-radius:12px; border:1px solid var(--border-color); max-width:400px;">
-    <h4><i class="fas fa-cloud-sun"></i> Weather</h4>
-    <p id="weatherInfo">Select a city to see the weather...</p>
-  </section>
-
-  <!-- ⚡ شريط الطاقة -->
-  <div class="energy-bar" style="position:fixed; top:0; left:0; width:0%; height:5px; 
-       background:linear-gradient(90deg,var(--neon-blue),var(--neon-pink)); z-index:3000;"></div>
-
+ 
   <!-- 🌐 مبدل اللغة -->
   <div class="language-switcher" style="position:fixed; top:20px; right:20px; z-index:2000;">
     <button id="langToggle"
@@ -770,23 +760,7 @@
   </div>
 
   <script>
-    // =============================
-    // 🌡️ الطقس (OpenWeatherMap API مجاني)
-    // =============================
-    async function getWeather(city="Riyadh") {
-      try {
-        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=24.7&longitude=46.7&current_weather=true`);
-        const data = await res.json();
-        const temp = data.current_weather.temperature;
-        const wind = data.current_weather.windspeed;
-        document.getElementById("weatherInfo").textContent = `Temp: ${temp}°C | Wind: ${wind} km/h`;
-      } catch (err) {
-        document.getElementById("weatherInfo").textContent = "Weather unavailable.";
-      }
-    }
-    getWeather();
-
-    // =============================
+       // =============================
     // 🗺️ البحث (Nominatim + Overpass)
     // =============================
     async function searchCity(query) {
@@ -980,16 +954,6 @@
   <source src="https://cdn.coverr.co/videos/coverr-coffee-beans-8177/1080p.mp4" type="video/mp4">
 </video>
 
-<!-- Theme Generator -->
-<section class="theme-generator">
-  <h2>🎨 Theme Generator</h2>
-  <p>Pick your favorite colors to customize the site:</p>
-  <label>Primary Color <input type="color" id="primaryColor" value="#734f35"></label>
-  <label>Secondary Color <input type="color" id="secondaryColor" value="#7158e2"></label>
-  <label>Accent Color <input type="color" id="accentColor" value="#18dcff"></label>
-  <button id="applyTheme">Apply Theme</button>
-</section>
-
 <!-- Heatmap -->
 <section class="heatmap-section">
   <h2>🌍 Coffee Heatmap</h2>
@@ -1027,22 +991,8 @@
   opacity:0.25;
 }
 
-/* Theme Generator */
-.theme-generator {
-  padding:30px; margin:50px 0;
-  background:var(--card-bg); border-radius:16px; box-shadow:var(--shadow);
-}
-.theme-generator h2 { margin-bottom:15px; color:var(--neon-blue);}
-.theme-generator label { display:block; margin:10px 0; }
-
 /* Heatmap */
 .heatmap-section { margin:50px 0; padding:20px; background:var(--card-bg); border-radius:16px; }
-
-/* Events Calendar */
-.events-calendar { margin:50px 0; padding:20px; background:var(--card-bg); border-radius:16px;}
-#calendar { display:grid; grid-template-columns: repeat(7,1fr); gap:5px; }
-#calendar div { padding:15px; background:var(--bg-secondary); text-align:center; border-radius:8px; }
-#calendar div.event { background:linear-gradient(135deg,#18dcff,#7158e2); color:white; font-weight:bold; }
 
 /* Compass */
 #compassContainer {
@@ -1056,21 +1006,6 @@
   width:2px; height:35px; background:red;
   position:absolute; top:5px; left:50%;
   transform-origin: bottom center;
-}
-
-/* Sticky Notes */
-.sticky-notes {
-  margin:50px 0; padding:20px;
-  background:var(--card-bg); border-radius:16px;
-}
-#noteInput { width:100%; height:100px; border-radius:8px; padding:10px; margin-bottom:10px;}
-#notesList { display:flex; flex-wrap:wrap; gap:10px; }
-.note {
-  background:#fff59d; padding:15px; border-radius:10px;
-  box-shadow:0 4px 10px rgba(0,0,0,0.2);
-  min-width:120px;
-}
-</style>
 
 <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
 
@@ -1116,37 +1051,6 @@ if(window.DeviceOrientationEvent){
   },true);
 }
 
-// ========== Sticky Notes ==========
-function loadNotes(){
-  const notes=JSON.parse(localStorage.getItem("notes")||"[]");
-  const list=document.getElementById("notesList");
-  list.innerHTML="";
-  notes.forEach((n,i)=>{
-    const div=document.createElement("div");
-    div.className="note";
-    div.textContent=n;
-    div.onclick=()=>{
-      notes.splice(i,1);
-      localStorage.setItem("notes",JSON.stringify(notes));
-      loadNotes();
-    };
-    list.appendChild(div);
-  });
-}
-document.getElementById("saveNote").onclick=()=>{
-  const input=document.getElementById("noteInput");
-  if(input.value.trim()){
-    const notes=JSON.parse(localStorage.getItem("notes")||"[]");
-    notes.push(input.value.trim());
-    localStorage.setItem("notes",JSON.stringify(notes));
-    input.value="";
-    loadNotes();
-    showNotification("Note saved!","success");
-  }
-};
-loadNotes();
-</script>
-<!-- ====================== PART 7 END ====================== -->
 <!-- ====================== PART 8 START ====================== -->
 <!-- 3D Gallery + Mapbox + Charts + Extra Games + TTS + Offline Mode + Sci-Fi Mode -->
 
