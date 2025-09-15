@@ -1,633 +1,1368 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>☕️ كوفي فندر برو — الإصدار المتطور</title>
-<meta name="description" content="أقوى أداة عربية للعثور على المقاهي في السعودية مع ميزات متقدمة وتصميم عصري" />
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.8em' font-size='80'>☕</text></svg>">
-
-<!-- مكتبات خارجية -->
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
-<link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet">
-<link href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" rel="stylesheet">
-<link href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" rel="stylesheet">
-
-<style>
-:root{
-  --ink:#f3fff9;--muted:#a9d3c5;--bg1:#0b1411;--bg2:#0c1e17;--panel:#0f2a20cc;--line:#1f4e3f;
-  --mint:#39eba1;--mint2:#1cc57d;--neon:#59ffd4;--accent:#ffd54f;--radius:16px;--shadow:0 8px 24px rgba(0,0,0,.28);
-  --card:#132820;--input:#0e261e;--text:#eafff6;--muted2:#cfe7df;
-  
-  /* ألوان القهوة للمواضيع */
-  --coffee-theme-1: #734f35;
-  --coffee-theme-2: #8B4513;
-  --coffee-theme-3: #6F4E37;
-  --coffee-theme-4: #5C4033;
-  --coffee-theme-5: #C4A484;
-}
-*{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%}
-body{
-  font-family: "Cairo", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-  color:var(--text);
-  background: radial-gradient(1200px 500px at 20% -10%, #113428 0, var(--bg1) 55%, var(--bg2) 100%);
-  overflow-x:hidden; line-height:1.65;
-  transition: background 0.5s ease;
-}
-
-/* خلفية نجوم متلألئة + بارالاكس */
-.bg-stars,.bg-stars-2{position:fixed;inset:0;z-index:-2;pointer-events:none}
-.bg-stars{background-image:
- radial-gradient(2px 2px at 12% 18%, #aaffee44 50%, transparent 52%),
- radial-gradient(2px 2px at 80% 30%, #aaffee33 50%, transparent 52%),
- radial-gradient(1.5px 1.5px at 60% 70%, #aaffee33 50%, transparent 52%),
- radial-gradient(1.5px 1.5px at 30% 80%, #aaffee33 50%, transparent 52%)}
-.bg-stars-2{opacity:.55;filter:blur(.4px)}
-
-/* هيدر */
-header{
-  position:sticky;top:0;z-index:50;
-  background:linear-gradient(180deg, rgba(15,42,32,.92), rgba(15,42,32,.62));
-  backdrop-filter:blur(8px);border-bottom:1px solid var(--line);box-shadow:var(--shadow);padding:.75rem 0;
-}
-.brand{font-weight:900;font-size:2rem;display:flex;align-items:center;gap:.6rem;cursor:pointer}
-.brand i{color:var(--neon);filter:drop-shadow(0 0 8px #2eeaa088)}
-.brand .glow{color:#eafff9;text-shadow:0 0 12px #2eeaa088,0 0 22px #2eeaa055}
-
-/* لوحة التحكم */
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
-.chip-input{background:var(--input);border:1px solid var(--line);border-radius:14px;padding:.7rem .9rem;display:flex;align-items:center;gap:.7rem}
-.chip-input input{all:unset;color:var(--text);width:520px;max-width:70vw;font-size:1.05rem}
-.btn-mint{background:linear-gradient(180deg,var(--mint),var(--mint2));color:#062016;font-weight:800;border:0;border-radius:12px;padding:.6rem 1rem;box-shadow:0 10px 24px #22d18940;cursor:pointer}
-.suggest{position:absolute;top:100%;left:0;right:0;z-index:60;display:none;max-height:320px;overflow:auto;border-radius:0 0 var(--radius) var(--radius)}
-.suggest a{display:flex;align-items:center;gap:.55rem;padding:.6rem .8rem;color:var(--text);text-decoration:none;background:#0f231c;border-bottom:1px solid #1a4536}
-.suggest a:hover{background:#123b2d}
-
-/* خريطة */
-#map{height:60vh;min-height:360px;border-radius:var(--radius);box-shadow:var(--shadow);position:relative;outline:1px solid var(--line)}
-.map-full{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;z-index:1050!important;border-radius:0!important}
-.map-float{position:absolute;left:12px;bottom:12px;z-index:1004;display:flex;flex-direction:column;gap:.6rem}
-.float-btn{width:48px;height:48px;border-radius:50%;border:1px solid var(--line);background:#0f2a20;color:var(--text);display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow);cursor:pointer}
-.exit-fs{position:fixed;top:12px;right:12px;z-index:1100;display:none}
-.exit-fs.show{display:block}
-
-/* كروت النتائج */
-.results{max-height:60vh;min-height:220px;overflow:auto;scrollbar-width:thin;scrollbar-color:#1e4a3a transparent}
-.results::-webkit-scrollbar{width:7px}.results::-webkit-scrollbar-thumb{background:#1e4a3a;border-radius:3px}
-.card-cafe{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;transition:transform .25s ease, box-shadow .25s ease}
-.card-cafe:hover{transform:translateY(-4px);box-shadow:0 12px 28px rgba(0,0,0,.35)}
-.avatar{width:52px;height:52px;border-radius:14px;background:#fff;border:1px solid #eaeaea;display:flex;align-items:center;justify-content:center;overflow:hidden}
-.avatar img{width:100%;height:100%;object-fit:cover}.avatar .letter{font-weight:900;color:#222}
-.chip{background:#103c2f;border:1px solid var(--line);padding:.25rem .55rem;border-radius:999px;font-size:.85rem;display:inline-flex;align-items:center;gap:.25rem}
-.btn-route{background:linear-gradient(180deg,var(--mint),var(--mint2));color:#062016;border:0}
-
-/* نجوم التقييم */
-.star i{color:#ffc34d}
-
-/* توست */
-.toast-container{position:fixed;bottom:20px;right:20px;z-index:2100;display:flex;flex-direction:column;gap:10px}
-.toast{background:#0f2a20;color:var(--text);border:1px solid var(--line);padding:12px 16px;border-radius:var(--radius);box-shadow:var(--shadow);display:flex;align-items:center;gap:10px}
-
-/* لودر */
-.loader{text-align:center;padding:2rem;display:none}
-.coffee-loader{display:inline-block;position:relative;width:80px;height:80px}
-.coffee-loader div{display:inline-block;position:absolute;left:8px;width:16px;background:var(--mint);animation:coffee 1.2s cubic-bezier(0,.5,.5,1) infinite;border-radius:20px}
-.coffee-loader div:nth-child(1){left:8px;animation-delay:-.24s}.coffee-loader div:nth-child(2){left:32px;animation-delay:-.12s}.coffee-loader div:nth-child(3){left:56px}
-@keyframes coffee{0%{top:8px;height:64px}50%,100%{top:24px;height:32px}}
-
-/* ظهور بالتمرير */
-.reveal{opacity:0;transform:translateY(12px);transition:opacity .5s ease, transform .5s ease}
-.reveal.in-view{opacity:1;transform:translateY(0)}
-
-/* تأثير بخار القهوة */
-.coffee-steam {
-  position: relative;
-  display: inline-block;
-  margin-left: 10px;
-}
-.steam {
-  position: absolute;
-  height: 15px;
-  width: 15px;
-  border-radius: 50%;
-  background-color: rgba(255, 255, 255, 0.7);
-  margin-top: -25px;
-  margin-left: 5px;
-  z-index: 0;
-  opacity: 0;
-}
-.steam.one {
-  -webkit-animation: steam-one 4s ease-out infinite;
-  animation: steam-one 4s ease-out infinite;
-}
-.steam.two {
-  -webkit-animation: steam-two 4s ease-out 0.5s infinite;
-  animation: steam-two 4s ease-out 0.5s infinite;
-}
-.steam.three {
-  -webkit-animation: steam-three 4s ease-out 1s infinite;
-  animation: steam-three 4s ease-out 1s infinite;
-}
-@-webkit-keyframes steam-one {
-  0% {transform: translateY(0) translateX(0) scale(0.25); opacity: 0.2;}
-  100% {transform: translateY(-50px) translateX(-10px) scale(1); opacity: 0;}
-}
-@keyframes steam-one {
-  0% {transform: translateY(0) translateX(0) scale(0.25); opacity: 0.2;}
-  100% {transform: translateY(-50px) translateX(-10px) scale(1); opacity: 0;}
-}
-@-webkit-keyframes steam-two {
-  0% {transform: translateY(0) translateX(0) scale(0.25); opacity: 0.2;}
-  100% {transform: translateY(-45px) translateX(10px) scale(1); opacity: 0;}
-}
-@keyframes steam-two {
-  0% {transform: translateY(0) translateX(0) scale(0.25); opacity: 0.2;}
-  100% {transform: translateY(-45px) translateX(10px) scale(1); opacity: 0;}
-}
-@-webkit-keyframes steam-three {
-  0% {transform: translateY(0) translateX(0) scale(0.25); opacity: 0.2;}
-  100% {transform: translateY(-40px) translateX(-5px) scale(1); opacity: 0;}
-}
-@keyframes steam-three {
-  0% {transform: translateY(0) translateX(0) scale(0.25); opacity: 0.2;}
-  100% {transform: translateY(-40px) translateX(-5px) scale(1); opacity: 0;}
-}
-
-/* قائمة الإعدادات */
-.settings-panel {
-  position: fixed;
-  top: 0;
-  right: -350px;
-  width: 350px;
-  height: 100vh;
-  background: var(--panel);
-  border-left: 1px solid var(--line);
-  z-index: 2000;
-  padding: 20px;
-  overflow-y: auto;
-  transition: right 0.3s ease;
-  box-shadow: -5px 0 15px rgba(0,0,0,0.2);
-}
-.settings-panel.open {
-  right: 0;
-}
-.settings-toggle {
-  position: fixed;
-  top: 80px;
-  right: 20px;
-  z-index: 2001;
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  background: var(--mint);
-  color: #062016;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: var(--shadow);
-  border: 1px solid var(--line);
-}
-
-/* أزرار التحميل */
-.download-buttons {
-  position: fixed;
-  bottom: 20px;
-  left: 20px;
-  z-index: 1000;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.download-btn {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: var(--panel);
-  color: var(--text);
-  border: 1px solid var(--line);
-  padding: 10px 15px;
-  border-radius: 30px;
-  text-decoration: none;
-  transition: all 0.3s ease;
-  box-shadow: var(--shadow);
-}
-.download-btn:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-}
-
-/* شات بوت */
-.chatbot-container {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  z-index: 1000;
-}
-.chatbot-toggle {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: linear-gradient(180deg, var(--mint), var(--mint2));
-  color: #062016;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: var(--shadow);
-  border: none;
-  font-size: 24px;
-}
-.chatbot-window {
-  position: absolute;
-  bottom: 70px;
-  right: 0;
-  width: 320px;
-  height: 400px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 15px;
-  box-shadow: var(--shadow);
-  display: none;
-  flex-direction: column;
-  overflow: hidden;
-}
-.chatbot-header {
-  padding: 15px;
-  background: var(--bg2);
-  border-bottom: 1px solid var(--line);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.chatbot-messages {
-  flex: 1;
-  padding: 15px;
-  overflow-y: auto;
-}
-.chatbot-input {
-  padding: 15px;
-  border-top: 1px solid var(--line);
-  display: flex;
-  gap: 10px;
-}
-.chatbot-input input {
-  flex: 1;
-  background: var(--input);
-  border: 1px solid var(--line);
-  border-radius: 20px;
-  padding: 10px 15px;
-  color: var(--text);
-}
-
-/* تجاوب */
-@media (max-width:992px){
-  .chip-input{flex-direction:column;gap:.5rem}.chip-input input{width:100%}
-  .map-float{flex-direction:row;bottom:20px;left:50%;transform:translateX(-50%)}
-  .float-btn{width:44px;height:44px}
-  .exit-fs{top:auto;bottom:16px;left:50%;right:auto;transform:translateX(-50%)}
-  .settings-panel {
-    width: 300px;
-  }
-  .download-buttons {
-    bottom: 80px;
-    left: 10px;
-  }
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>☕️ كوفي فندر برو — الإصدار الفضائي</title>
+    <meta name="description" content="أقوى أداة عربية للعثور على المقاهي في السعودية مع واجهة فضائية وخيال علمي">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='80'>☕</text></svg>">
+    
+    <!-- مكتبات خارجية -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+    <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet">
+    <link href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" rel="stylesheet">
+    <link href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #734f35;
+            --secondary: #8B4513;
+            --accent: #c4a484;
+            --light: #f5f5f5;
+            --dark: #0a1929;
+            --success: #00ff8c;
+            --warning: #ffd166;
+            --danger: #ff6b6b;
+            --gray: #6c757d;
+            --coffee-light: #d7ccc8;
+            --coffee-dark: #5d4037;
+            --space-blue: #0a1929;
+            --space-purple: #7158e2;
+            --neon-blue: #18dcff;
+            --neon-pink: #ff4d8d;
+            --neon-green: #00ff8c;
+            --cyber-yellow: #ffd166;
+        }
+        
+        [data-theme="light"] {
+            --bg-primary: #f8f9fa;
+            --bg-secondary: #ffffff;
+            --text-primary: #212529;
+            --text-secondary: #495057;
+            --card-bg: #ffffff;
+            --border-color: #dee2e6;
+            --header-bg: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        [data-theme="dark"] {
+            --bg-primary: #0a1929;
+            --bg-secondary: #0f253d;
+            --text-primary: #e9ecef;
+            --text-secondary: #adb5bd;
+            --card-bg: #132238;
+            --border-color: #2a3e5a;
+            --header-bg: linear-gradient(135deg, #132238 0%, #1e3a5f 100%);
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        [data-theme="space"] {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #0f1525;
+            --text-primary: #e9ecef;
+            --text-secondary: #8b9bb4;
+            --card-bg: #131c2f;
+            --border-color: #24334d;
+            --header-bg: linear-gradient(135deg, #131c2f 0%, #1e2f4f 100%);
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Cairo', 'Tahoma', 'Arial', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            transition: all 0.3s ease;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(24, 220, 255, 0.03) 0%, transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(113, 88, 226, 0.03) 0%, transparent 25%),
+                radial-gradient(circle at 50% 80%, rgba(255, 77, 141, 0.03) 0%, transparent 25%);
+        }
+        
+        body.space-theme {
+            background-image: 
+                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Ccircle cx='20' cy='30' r='0.5' fill='%23ffffff' opacity='0.7'/%3E%3Ccircle cx='60' cy='20' r='0.3' fill='%23ffffff' opacity='0.5'/%3E%3Ccircle cx='80' cy='50' r='0.4' fill='%23ffffff' opacity='0.6'/%3E%3Ccircle cx='40' cy='70' r='0.6' fill='%23ffffff' opacity='0.8'/%3E%3Ccircle cx='70' cy='80' r='0.5' fill='%23ffffff' opacity='0.7'/%3E%3C/svg%3E"),
+                radial-gradient(circle at 15% 50%, rgba(24, 220, 255, 0.05) 0%, transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(113, 88, 226, 0.05) 0%, transparent 25%),
+                radial-gradient(circle at 50% 80%, rgba(255, 77, 141, 0.05) 0%, transparent 25%);
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* تحسين الهيدر */
+        header {
+            background: var(--header-bg);
+            color: white;
+            padding: 20px 0;
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            margin: 25px 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' width='100' height='100'%3E%3Ccircle cx='50' cy='50' r='40' fill='none' stroke='rgba(255,255,255,0.05)' stroke-width='2'/%3E%3C/svg%3E");
+            opacity: 0.3;
+        }
+        
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-weight: 800;
+            font-size: 2rem;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .brand i {
+            color: var(--neon-blue);
+            font-size: 2.5rem;
+            filter: drop-shadow(0 0 5px var(--neon-blue));
+        }
+        
+        .coffee-steam {
+            display: inline-block;
+            margin-left: 15px;
+            position: relative;
+        }
+        
+        .steam {
+            position: absolute;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.2));
+            margin-top: -25px;
+            margin-left: 5px;
+            z-index: 0;
+            opacity: 0;
+        }
+        
+        .steam.one {
+            animation: steam-one 4s ease-out infinite;
+        }
+        
+        .steam.two {
+            animation: steam-two 4s ease-out 0.5s infinite;
+        }
+        
+        .steam.three {
+            animation: steam-three 4s ease-out 1s infinite;
+        }
+        
+        @keyframes steam-one {
+            0% {transform: translateY(0) translateX(0) scale(0.25); opacity: 0.6;}
+            100% {transform: translateY(-50px) translateX(-10px) scale(1.5); opacity: 0;}
+        }
+        
+        @keyframes steam-two {
+            0% {transform: translateY(0) translateX(0) scale(0.25); opacity: 0.6;}
+            100% {transform: translateY(-45px) translateX(10px) scale(1.5); opacity: 0;}
+        }
+        
+        @keyframes steam-three {
+            0% {transform: translateY(0) translateX(0) scale(0.25); opacity: 0.6;}
+            100% {transform: translateY(-40px) translateX(-5px) scale(1.5); opacity: 0;}
+        }
+        
+        /* تحسين لوحة البحث */
+        .search-panel {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: var(--shadow);
+            margin-bottom: 30px;
+            border: 1px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .search-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100%;
+            height: 100%;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cpath d='M0,0 L100,100' stroke='rgba(113,88,226,0.03)' stroke-width='1'/%3E%3Cpath d='M0,100 L100,0' stroke='rgba(113,88,226,0.03)' stroke-width='1'/%3E%3C/svg%3E");
+            pointer-events: none;
+        }
+        
+        .search-input {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .search-input input {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 1.1rem;
+            transition: all 0.3s;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+        
+        .search-input input:focus {
+            border-color: var(--neon-blue);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(24, 220, 255, 0.3);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--neon-blue) 0%, var(--space-purple) 100%);
+            border: none;
+            padding: 15px 30px;
+            border-radius: 12px;
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(113, 88, 226, 0.3);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(113, 88, 226, 0.5);
+        }
+        
+        .filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 20px;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .filter-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-secondary);
+            padding: 10px 18px;
+            border-radius: 25px;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s;
+        }
+        
+        .filter-item:hover {
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 10px rgba(24, 220, 255, 0.2);
+        }
+        
+        /* تحسين الخريطة */
+        .map-container {
+            position: relative;
+            margin-bottom: 30px;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            height: 550px;
+            border: 1px solid var(--border-color);
+        }
+        
+        #map {
+            height: 100%;
+            width: 100%;
+            z-index: 1;
+        }
+        
+        .map-controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .map-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 20px;
+            color: var(--neon-blue);
+        }
+        
+        .map-btn:hover {
+            transform: scale(1.08);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+            color: var(--neon-pink);
+        }
+        
+        /* تحسين نتائج البحث */
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding: 15px 20px;
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+        }
+        
+        .results-count {
+            font-weight: 700;
+            color: var(--text-primary);
+            font-size: 1.3rem;
+        }
+        
+        .sort-select {
+            padding: 10px 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+        
+        .cafe-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+        
+        .cafe-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            transition: all 0.3s;
+            border: 1px solid var(--border-color);
+            position: relative;
+        }
+        
+        .cafe-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.2);
+            border-color: var(--neon-blue);
+        }
+        
+        .cafe-image {
+            height: 200px;
+            background: linear-gradient(135deg, var(--coffee-light) 0%, var(--coffee-dark) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 3.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .cafe-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .cafe-info {
+            padding: 25px;
+        }
+        
+        .cafe-name {
+            font-weight: 800;
+            font-size: 1.4rem;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .cafe-name::before {
+            content: '☕';
+            font-size: 1.2rem;
+        }
+        
+        .cafe-meta {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 18px;
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+        
+        .cafe-meta span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .rating {
+            color: var(--warning);
+            font-weight: 700;
+        }
+        
+        .cafe-features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .feature-tag {
+            background: rgba(0, 255, 140, 0.15);
+            color: var(--success);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid rgba(0, 255, 140, 0.3);
+        }
+        
+        .feature-tag.wifi {
+            background: rgba(24, 220, 255, 0.15);
+            color: var(--neon-blue);
+            border: 1px solid rgba(24, 220, 255, 0.3);
+        }
+        
+        .feature-tag.outdoor {
+            background: rgba(255, 209, 102, 0.15);
+            color: var(--warning);
+            border: 1px solid rgba(255, 209, 102, 0.3);
+        }
+        
+        .cafe-actions {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .action-btn {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .action-btn.directions {
+            background: linear-gradient(135deg, var(--neon-blue) 0%, var(--space-purple) 100%);
+            color: white;
+        }
+        
+        .action-btn.details {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+        
+        .action-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        /* تحسين الفوتر */
+        footer {
+            text-align: center;
+            padding: 30px 0;
+            margin-top: 50px;
+            color: var(--text-secondary);
+            border-top: 1px solid var(--border-color);
+        }
+        
+        /* تحسين التجاوب */
+        @media (max-width: 992px) {
+            .cafe-list {
+                grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .brand {
+                font-size: 1.6rem;
+            }
+            
+            .search-input {
+                flex-direction: column;
+            }
+            
+            .filters {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .cafe-list {
+                grid-template-columns: 1fr;
+            }
+            
+            .map-container {
+                height: 400px;
+            }
+            
+            .results-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+            
+            .cafe-image {
+                height: 180px;
+            }
+        }
+        
+        /* عناصر التحكم بالمظهر */
+        .theme-controls {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+        }
+        
+        .theme-btn {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        
+        .theme-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+        }
+        
+        .theme-btn.light {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            color: #495057;
+        }
+        
+        .theme-btn.dark {
+            background: linear-gradient(135deg, #0a1929 0%, #0f253d 100%);
+            color: #adb5bd;
+        }
+        
+        .theme-btn.space {
+            background: linear-gradient(135deg, #0a0e17 0%, #131c2f 100%);
+            color: #8b9bb4;
+        }
+        
+        /* شات بوت */
+        .chatbot-container {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            z-index: 1000;
+        }
+        
+        .chatbot-toggle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--neon-pink) 0%, var(--space-purple) 100%);
+            color: white;
+            border: none;
+            box-shadow: 0 4px 20px rgba(255, 77, 141, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 24px;
+        }
+        
+        .chatbot-toggle:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 25px rgba(255, 77, 141, 0.6);
+        }
+        
+        .chatbot-window {
+            position: absolute;
+            bottom: 70px;
+            left: 0;
+            width: 350px;
+            height: 450px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .chatbot-header {
+            padding: 20px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .chatbot-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .message {
+            padding: 12px 18px;
+            border-radius: 18px;
+            max-width: 80%;
+            line-height: 1.5;
+        }
+        
+        .message.bot {
+            background: var(--bg-secondary);
+            align-self: flex-start;
+            border-bottom-left-radius: 5px;
+        }
+        
+        .message.user {
+            background: linear-gradient(135deg, var(--neon-blue) 0%, var(--space-purple) 100%);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 5px;
+        }
+        
+        .chatbot-input {
+            padding: 20px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 12px;
+        }
+        
+        .chatbot-input input {
+            flex: 1;
+            padding: 12px 18px;
+            border: 1px solid var(--border-color);
+            border-radius: 25px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+        
+        .chatbot-input button {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--neon-blue) 0%, var(--space-purple) 100%);
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        
+        /* تأثيرات التحميل */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 60px;
+            flex-direction: column;
+            gap: 25px;
+        }
+        
+        .coffee-loader {
+            display: inline-block;
+            position: relative;
+            width: 80px;
+            height: 80px;
+        }
+        
+        .coffee-loader div {
+            display: inline-block;
+            position: absolute;
+            left: 8px;
+            width: 16px;
+            background: var(--neon-blue);
+            animation: coffee-loader 1.2s cubic-bezier(0, 0.5, 0.5, 1) infinite;
+            border-radius: 20px;
+        }
+        
+        .coffee-loader div:nth-child(1) {
+            left: 8px;
+            animation-delay: -0.24s;
+        }
+        
+        .coffee-loader div:nth-child(2) {
+            left: 32px;
+            animation-delay: -0.12s;
+        }
+        
+        .coffee-loader div:nth-child(3) {
+            left: 56px;
+            animation-delay: 0;
+        }
+        
+        @keyframes coffee-loader {
+            0% { top: 8px; height: 64px; }
+            50%, 100% { top: 24px; height: 32px; }
+        }
+        
+        /* تأثيرات النيون */
+        .neon-text {
+            text-shadow: 0 0 5px var(--neon-blue), 0 0 10px var(--neon-blue), 0 0 15px var(--neon-blue), 0 0 20px var(--space-purple);
+        }
+        
+        /* تأثيرات الفضاء */
+        .space-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.3;
+            pointer-events: none;
+        }
+        
+        /* مؤشر التحميل */
+        .progress-bar {
+            height: 5px;
+            width: 100%;
+            background: var(--bg-secondary);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        
+        .progress {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--neon-blue), var(--neon-pink));
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+    </style>
 </head>
-<body>
-<div class="bg-stars" id="stars1"></div><div class="bg-stars bg-stars-2" id="stars2"></div>
-
-<!-- إشعارات الصوت -->
-<audio id="clickSound" src="https://assets.mixkit.co/sfx/preview/mixkit-select-click-1109.mp3" preload="auto"></audio>
-<audio id="successSound" src="https://assets.mixkit.co/sfx/preview/mixkit-success-bell-901.mp3" preload="auto"></audio>
-<audio id="errorSound" src="https://assets.mixkit.co/sfx/preview/mixkit-warning-alarm-buzzer-2851.mp3" preload="auto"></audio>
-
-<header class="py-3">
-  <div class="container d-flex align-items-center justify-content-between flex-wrap">
-    <div class="brand"><i class="fa-solid fa-mug-saucer"></i> <span class="glow">كوفي فندر برو</span> <span class="ms-2 small text-success-50">السعودية</span>
-      <div class="coffee-steam">
-        <div class="steam one"></div>
-        <div class="steam two"></div>
-        <div class="steam three"></div>
-      </div>
+<body class="space-theme" data-theme="space">
+    <!-- خلفية الفضاء -->
+    <div class="space-bg"></div>
+    
+    <div class="container">
+        <!-- الهيدر -->
+        <header>
+            <div class="brand">
+                <i class="fas fa-mug-hot"></i>
+                <span class="neon-text">كوفي فندر برو</span>
+                <div class="coffee-steam">
+                    <div class="steam one"></div>
+                    <div class="steam two"></div>
+                    <div class="steam three"></div>
+                </div>
+            </div>
+        </header>
+        
+        <!-- لوحة البحث -->
+        <section class="search-panel">
+            <div class="search-input">
+                <input type="text" id="searchInput" placeholder="ابحث عن مدينة أو منطقة في السعودية...">
+                <button class="btn-primary" id="searchBtn">
+                    <i class="fas fa-search"></i> بحث
+                </button>
+            </div>
+            
+            <div class="filters">
+                <div class="filter-item">
+                    <input type="checkbox" id="openNow">
+                    <label for="openNow">مفتوح الآن</label>
+                </div>
+                
+                <div class="filter-item">
+                    <input type="checkbox" id="wifi">
+                    <label for="wifi">واي فاي</label>
+                </div>
+                
+                <div class="filter-item">
+                    <input type="checkbox" id="outdoor">
+                    <label for="outdoor">جلسات خارجية</label>
+                </div>
+                
+                <div class="filter-item">
+                    <label for="radius">نطاق البحث:</label>
+                    <select id="radius">
+                        <option value="1">1 كم</option>
+                        <option value="3">3 كم</option>
+                        <option value="5" selected>5 كم</option>
+                        <option value="10">10 كم</option>
+                        <option value="20">20 كم</option>
+                        <option value="30">30 كم</option>
+                        <option value="50">50 كم</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+        
+        <!-- الخريطة -->
+        <section class="map-container">
+            <div id="map"></div>
+            <div class="map-controls">
+                <button class="map-btn" id="locateBtn">
+                    <i class="fas fa-location-arrow"></i>
+                </button>
+                <button class="map-btn" id="layerBtn">
+                    <i class="fas fa-layer-group"></i>
+                </button>
+                <button class="map-btn" id="fullscreenBtn">
+                    <i class="fas fa-expand"></i>
+                </button>
+            </div>
+        </section>
+        
+        <!-- نتائج البحث -->
+        <section class="results-section">
+            <div class="results-header">
+                <h2 class="results-count">عثرنا على <span id="resultsNumber">12</span> مقهى</h2>
+                <select class="sort-select" id="sortSelect">
+                    <option value="distance">الأقرب أولاً</option>
+                    <option value="rating">الأعلى تقييماً</option>
+                    <option value="name">حسب الاسم</option>
+                </select>
+            </div>
+            
+            <div class="cafe-list" id="cafeList">
+                <!-- سيتم إضافة المقاهي ديناميكياً -->
+            </div>
+        </section>
+        
+        <!-- الفوتر -->
+        <footer>
+            <p>© 2023 كوفي فندر برو - جميع الحقوق محفوظة</p>
+            <p>تم إنشاء هذا التطبيق لعشاق القهوة في المملكة العربية السعودية</p>
+        </footer>
     </div>
-    <div class="d-flex gap-2">
-      <select id="radius" class="form-select form-select-sm bg-dark text-light border-secondary">
-        <option value="2000">٢ كم</option><option value="5000">٥ كم</option><option value="10000" selected>١٠ كم</option>
-        <option value="20000">٢٠ كم</option><option value="30000">٣٠ كم</option><option value="50000">٥٠ كم</option>
-      </select>
-      <select id="sort" class="form-select form-select-sm bg-dark text-light border-secondary">
-        <option value="rating">حسب التقييم</option><option value="distance">حسب المسافة</option><option value="name">حسب الاسم</option><option value="hours">المفتوح أولاً</option>
-      </select>
-    </div>
-  </div>
-</header>
 
-<main class="container my-3">
-  <!-- لوحة البحث والفلاتر -->
-  <section class="p-3 panel">
-    <div class="row g-2 align-items-stretch position-relative">
-      <div class="col-lg-9 position-relative">
-        <div class="chip-input">
-          <i class="fa-solid fa-magnifying-glass text-success"></i>
-          <input id="query" placeholder="ابحث عن مدينة داخل السعودية (مثال: الرياض، جدة، الدمام، أبها)" aria-label="بحث">
-          <button id="btnSearch" class="btn btn-mint"><i class="fa-solid fa-search me-1"></i>ابحث</button>
+    <!-- عناصر التحكم بالمظهر -->
+    <div class="theme-controls">
+        <button class="theme-btn light" data-theme="light" title="المظهر الفاتح">
+            <i class="fas fa-sun"></i>
+        </button>
+        <button class="theme-btn dark" data-theme="dark" title="المظهر الداكن">
+            <i class="fas fa-moon"></i>
+        </button>
+        <button class="theme-btn space" data-theme="space" title="مظهر الفضاء">
+            <i class="fas fa-rocket"></i>
+        </button>
+    </div>
+    
+    <!-- شات بوت -->
+    <div class="chatbot-container">
+        <button class="chatbot-toggle" id="chatbotToggle">
+            <i class="fas fa-robot"></i>
+        </button>
+        <div class="chatbot-window" id="chatbotWindow">
+            <div class="chatbot-header">
+                <h5 class="m-0">مساعد القهوة</h5>
+                <button class="btn-close" id="closeChatbot"></button>
+            </div>
+            <div class="chatbot-messages" id="chatbotMessages">
+                <div class="message bot">
+                    مرحباً! أنا مساعدك للعثور على أفضل المقاهي. كيف يمكنني مساعدتك؟
+                </div>
+            </div>
+            <div class="chatbot-input">
+                <input type="text" id="chatbotInput" placeholder="اكتب رسالتك هنا...">
+                <button id="sendMessage">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
         </div>
-        <div id="suggestions" class="suggest panel"></div>
-      </div>
-      <div class="col-lg-3 d-flex gap-2 flex-wrap">
-        <div class="chip form-check"><input id="fOpen" class="form-check-input ms-1" type="checkbox"><label class="form-check-label" for="fOpen">مفتوح الآن</label></div>
-        <div class="chip form-check"><input id="fWifi" class="form-check-input ms-1" type="checkbox"><label class="form-check-label" for="fWifi">واي فاي</label></div>
-        <div class="chip form-check"><input id="fOutdoor" class="form-check-input ms-1" type="checkbox"><label class="form-check-label" for="fOutdoor">جلسات خارجية</label></div>
-      </div>
     </div>
 
-    <div class="mt-2 d-flex align-items-center gap-3 flex-wrap">
-      <div class="d-flex align-items-center gap-2">
-        <span class="small text-secondary">أقل تقييم</span>
-        <input id="minRating" type="range" min="0" max="5" step="0.5" value="0"><span id="minRatingVal" class="small">0.0</span>
-      </div>
-      <div class="ms-auto small" id="kpi">جاهز</div>
-    </div>
-  </section>
+    <!-- السكربتات -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    
+    <script>
+        // بيانات وهمية للمقاهي
+        const cafeData = [
+            {
+                id: 1,
+                name: "مقهى العربية",
+                address: "حي الملز، الرياض",
+                lat: 24.7136,
+                lng: 46.6753,
+                rating: 4.5,
+                distance: 1.2,
+                open: true,
+                features: ["wifi", "outdoor"],
+                image: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1147&q=80"
+            },
+            {
+                id: 2,
+                name: "ستاربكس الرياض",
+                address: "حي السليمانية، الرياض",
+                lat: 24.7612,
+                lng: 46.6753,
+                rating: 4.7,
+                distance: 0.8,
+                open: true,
+                features: ["wifi", "parking"],
+                image: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=987&q=80"
+            },
+            {
+                id: 3,
+                name: "ديم القهوة",
+                address: "حي العليا، الرياض",
+                lat: 24.6932,
+                lng: 46.6915,
+                rating: 4.3,
+                distance: 2.3,
+                open: true,
+                features: ["outdoor", "snacks"],
+                image: "https://images.unsplash.com/photo-1463797221720-6b07e6426c24?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2071&q=80"
+            },
+            {
+                id: 4,
+                name: "مقهى البن المعطر",
+                address: "حي النخيل، الرياض",
+                lat: 24.8126,
+                lng: 46.6415,
+                rating: 4.2,
+                distance: 3.1,
+                open: false,
+                features: ["wifi"],
+                image: "https://images.unsplash.com/photo-1442512595331-e89e73853f31?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80"
+            },
+            {
+                id: 5,
+                name: "قهوة الكيف",
+                address: "حي الورود، الرياض",
+                lat: 24.7523,
+                lng: 46.7001,
+                rating: 4.6,
+                distance: 1.8,
+                open: true,
+                features: ["wifi", "outdoor", "parking"],
+                image: "https://images.unsplash.com/photo-1559924701-b0ce87b3a57c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80"
+            },
+            {
+                id: 6,
+                name: "مقهى النخبة",
+                address: "حي العقيق، الرياض",
+                lat: 24.7216,
+                lng: 46.6553,
+                rating: 4.4,
+                distance: 2.7,
+                open: true,
+                features: ["wifi", "snacks"],
+                image: "https://images.unsplash.com/photo-1511537190424-bbbab87ac5eb?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80"
+            },
+            {
+                id: 7,
+                name: "كافيه ريش",
+                address: "حي الياسمين، الرياض",
+                lat: 24.7812,
+                lng: 46.6912,
+                rating: 4.8,
+                distance: 0.9,
+                open: true,
+                features: ["wifi", "outdoor", "parking", "snacks"],
+                image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80"
+            },
+            {
+                id: 8,
+                name: "مقهى السكرية",
+                address: "حي الربيع، الرياض",
+                lat: 24.8012,
+                lng: 46.6315,
+                rating: 4.1,
+                distance: 3.5,
+                open: false,
+                features: ["wifi", "snacks"],
+                image: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80"
+            }
+        ];
 
-  <!-- الخريطة + النتائج -->
-  <section class="position-relative mt-3">
-    <div class="row g-3">
-      <div class="col-lg-8 position-relative">
-        <div id="map" class="reveal"></div>
-        <div class="map-float">
-          <button id="btnFullscreen" class="float-btn" title="ملء الشاشة"><i class="fa-solid fa-maximize"></i></button>
-          <button id="btnLayer" class="float-btn" title="تبديل الطبقة"><i class="fa-solid fa-layer-group"></i></button>
-          <button id="btnSearchHere" class="float-btn" title="ابحث في هذه المنطقة"><i class="fa-solid fa-bullseye"></i></button>
-          <button id="btnLocate" class="float-btn" title="موقعي"><i class="fa-solid fa-location-arrow"></i></button>
-        </div>
-      </div>
-      <div class="col-lg-4">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <div class="h5 m-0"><i class="fa-solid fa-list me-2"></i>النتائج</div>
-        </div>
-        <div class="loader" id="loader"><div class="coffee-loader"><div></div><div></div><div></div></div><div class="mt-2">جاري البحث عن المقاهي…</div></div>
-        <div id="results" class="results reveal"></div>
-        <div id="nores" class="text-center text-secondary py-4 d-none">
-          <i class="fa-regular fa-face-sad-tear fa-2x mb-2"></i><div>لا توجد نتائج هنا، جرّب منطقة أخرى.</div>
-        </div>
-      </div>
-    </div>
-  </section>
-</main>
-
-<footer class="py-4 mt-4">
-  <div class="container small text-center">
-    © <span id="yr"></span> كوفي فندر برو — السعودية · Tiles © OpenStreetMap · البيانات: Overpass/Photon/Nominatim
-  </div>
-</footer>
-
-<!-- زر الخروج من ملء الشاشة -->
-<div id="exitFS" class="exit-fs"><button class="btn btn-sm btn-mint" id="exitFsBtn"><i class="fa-solid fa-minimize me-1"></i>خروج</button></div>
-<!-- توست -->
-<div class="toast-container"></div>
-
-<!-- إعدادات التطبيق -->
-<button class="settings-toggle" id="settingsToggle"><i class="fas fa-cog"></i></button>
-<div class="settings-panel" id="settingsPanel">
-  <h4><i class="fas fa-sliders-h me-2"></i>إعدادات التطبيق</h4>
-  
-  <div class="mt-4">
-    <h5>المظهر والموضوع</h5>
-    <div class="d-flex gap-2 flex-wrap mt-3">
-      <button class="btn btn-sm theme-btn" data-theme="default" style="background: var(--mint); color: #062016">افتراضي</button>
-      <button class="btn btn-sm theme-btn" data-theme="coffee1" style="background: var(--coffee-theme-1); color: white">قهوة 1</button>
-      <button class="btn btn-sm theme-btn" data-theme="coffee2" style="background: var(--coffee-theme-2); color: white">قهوة 2</button>
-      <button class="btn btn-sm theme-btn" data-theme="coffee3" style="background: var(--coffee-theme-3); color: white">قهوة 3</button>
-      <button class="btn btn-sm theme-btn" data-theme="coffee4" style="background: var(--coffee-theme-4); color: white">قهوة 4</button>
-    </div>
-  </div>
-  
-  <div class="mt-4">
-    <h5>الأصوات</h5>
-    <div class="form-check form-switch">
-      <input class="form-check-input" type="checkbox" id="soundEffects" checked>
-      <label class="form-check-label" for="soundEffects">تشغيل المؤثرات الصوتية</label>
-    </div>
-  </div>
-  
-  <div class="mt-4">
-    <h5>اللغة</h5>
-    <select class="form-select bg-dark text-light border-secondary" id="languageSelect">
-      <option value="ar" selected>العربية</option>
-      <option value="en">English</option>
-      <option value="fr">Français</option>
-      <option value="es">Español</option>
-    </select>
-  </div>
-  
-  <div class="mt-4">
-    <h5>ميزات متقدمة</h5>
-    <div class="form-check form-switch">
-      <input class="form-check-input" type="checkbox" id="arMode">
-      <label class="form-check-label" for="arMode">وضع الواقع المعزز (تجريبي)</label>
-    </div>
-    <div class="form-check form-switch">
-      <input class="form-check-input" type="checkbox" id="aiRecommendations" checked>
-      <label class="form-check-label" for="aiRecommendations">توصيات الذكاء الاصطناعي</label>
-    </div>
-    <div class="form-check form-switch">
-      <input class="form-check-input" type="checkbox" id="vibrationFeedback">
-      <label class="form-check-label" for="vibrationFeedback">الاهتزاز عند التفاعل</label>
-    </div>
-  </div>
-</div>
-
-<!-- أزرار التحميل -->
-<div class="download-buttons">
-  <a href="#" class="download-btn" id="downloadIOS">
-    <i class="fab fa-apple fa-2x"></i>
-    <div>
-      <div class="small">حمّل على</div>
-      <div>App Store</div>
-    </div>
-  </a>
-  <a href="#" class="download-btn" id="downloadAndroid">
-    <i class="fab fa-android fa-2x"></i>
-    <div>
-      <div class="small">حمّل على</div>
-      <div>Google Play</div>
-    </div>
-  </a>
-</div>
-
-<!-- شات بوت -->
-<div class="chatbot-container">
-  <button class="chatbot-toggle" id="chatbotToggle"><i class="fas fa-robot"></i></button>
-  <div class="chatbot-window" id="chatbotWindow">
-    <div class="chatbot-header">
-      <h5 class="m-0">مساعد القهوة</h5>
-      <button class="btn btn-sm btn-close" id="closeChatbot"></button>
-    </div>
-    <div class="chatbot-messages" id="chatbotMessages">
-      <div class="alert alert-info">
-        مرحباً! أنا مساعدك للعثور على أفضل المقاهي. كيف يمكنني مساعدتك؟
-      </div>
-    </div>
-    <div class="chatbot-input">
-      <input type="text" id="chatbotInput" placeholder="اكتب رسالتك هنا...">
-      <button class="btn btn-mint" id="sendMessage"><i class="fas fa-paper-plane"></i></button>
-    </div>
-  </div>
-</div>
-
-<!-- سكربتات -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-<script>
-// ... (الكود الأصلي مع إضافة الميزات الجديدة) ...
-
-// وظائف إضافية للميزات الجديدة
-function initAdvancedFeatures() {
-  // إعدادات التطبيق
-  const settingsToggle = document.getElementById('settingsToggle');
-  const settingsPanel = document.getElementById('settingsPanel');
-  
-  settingsToggle.addEventListener('click', () => {
-    settingsPanel.classList.toggle('open');
-    playSound('click');
-  });
-  
-  // تغيير الألوان
-  const themeButtons = document.querySelectorAll('.theme-btn');
-  themeButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const theme = btn.dataset.theme;
-      changeTheme(theme);
-      playSound('click');
-    });
-  });
-  
-  // الأصوات
-  const soundEffects = document.getElementById('soundEffects');
-  soundEffects.addEventListener('change', (e) => {
-    localStorage.setItem('soundEnabled', e.target.checked);
-  });
-  
-  // تحميل التطبيق
-  const downloadIOS = document.getElementById('downloadIOS');
-  const downloadAndroid = document.getElementById('downloadAndroid');
-  
-  downloadIOS.addEventListener('click', (e) => {
-    e.preventDefault();
-    alert('سيتم توفير التطبيق على متجر Apple قريباً');
-    playSound('click');
-  });
-  
-  downloadAndroid.addEventListener('click', (e) => {
-    e.preventDefault();
-    alert('سيتم توفير التطبيق على متجر Google Play قريباً');
-    playSound('click');
-  });
-  
-  // الشات بوت
-  const chatbotToggle = document.getElementById('chatbotToggle');
-  const chatbotWindow = document.getElementById('chatbotWindow');
-  const closeChatbot = document.getElementById('closeChatbot');
-  const sendMessage = document.getElementById('sendMessage');
-  const chatbotInput = document.getElementById('chatbotInput');
-  const chatbotMessages = document.getElementById('chatbotMessages');
-  
-  chatbotToggle.addEventListener('click', () => {
-    chatbotWindow.style.display = chatbotWindow.style.display === 'flex' ? 'none' : 'flex';
-    playSound('click');
-  });
-  
-  closeChatbot.addEventListener('click', () => {
-    chatbotWindow.style.display = 'none';
-    playSound('click');
-  });
-  
-  sendMessage.addEventListener('click', handleChatbotMessage);
-  chatbotInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') handleChatbotMessage();
-  });
-  
-  // الاهتزاز عند التفاعل
-  document.addEventListener('click', (e) => {
-    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'A' || e.target.parentElement.tagName === 'BUTTON') {
-      if (document.getElementById('vibrationFeedback').checked && navigator.vibrate) {
-        navigator.vibrate(10);
-      }
-    }
-  });
-}
-
-function changeTheme(theme) {
-  const body = document.body;
-  body.setAttribute('data-theme', theme);
-  localStorage.setItem('theme', theme);
-}
-
-function playSound(type) {
-  if (!document.getElementById('soundEffects').checked) return;
-  
-  const sound = document.getElementById(type + 'Sound');
-  if (sound) {
-    sound.currentTime = 0;
-    sound.play().catch(e => console.log('لم يتم تشغيل الصوت:', e));
-  }
-}
-
-function handleChatbotMessage() {
-  const message = chatbotInput.value.trim();
-  if (!message) return;
-  
-  // إضافة رسالة المستخدم
-  addMessage(message, 'user');
-  chatbotInput.value = '';
-  
-  // محاكاة رد المساعد
-  setTimeout(() => {
-    const response = generateChatbotResponse(message);
-    addMessage(response, 'bot');
-  }, 1000);
-}
-
-function addMessage(text, sender) {
-  const messageDiv = document.createElement('div');
-  messageDiv.className = `alert ${sender === 'user' ? 'alert-secondary' : 'alert-info'}`;
-  messageDiv.innerHTML = text;
-  chatbotMessages.appendChild(messageDiv);
-  chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
-}
-
-function generateChatbotResponse(message) {
-  const lowerMessage = message.toLowerCase();
-  
-  if (lowerMessage.includes('مرحبا') || lowerMessage.includes('اهلا')) {
-    return 'مرحباً! كيف يمكنني مساعدتك في العثور على أفضل المقاهي؟';
-  } else if (lowerMessage.includes('قهوة') || lowerMessage.includes('مقهى')) {
-    return 'أحب القهوة أيضاً! هل تبحث عن مقهى قريب منك؟';
-  } else if (lowerMessage.includes('مساعدة') || lowerMessage.includes('مساعده')) {
-    return 'يمكنني مساعدتك في:<br>1. العثور على مقاهي قريبة<br>2. معرفة آراء الآخرين<br>3. تصفية النتائج حسب تفضيلاتك<br>ما الذي تحتاج إليه؟';
-  } else {
-    return 'هذا سؤال مثير للاهتمام! للأسف أنا لا أزال أتعلم، لكن يمكنني مساعدتك في العثور على أفضل المقاهي في منطقتك.';
-  }
-}
-
-// تهيئة الميزات المتقدمة عند تحميل الصفحة
-document.addEventListener('DOMContentLoaded', () => {
-  initAdvancedFeatures();
-  
-  // تحميل الإعدادات المحفوظة
-  const savedTheme = localStorage.getItem('theme') || 'default';
-  changeTheme(savedTheme);
-  
-  const soundEnabled = localStorage.getItem('soundEnabled') !== 'false';
-  document.getElementById('soundEffects').checked = soundEnabled;
-});
-</script>
+        // تهيئة الخريطة
+        let map, markers = [];
+        
+        function initMap() {
+            // إحداثيات مركز المملكة العربية السعودية
+            const saudiCenter = [24.7136, 46.6753];
+            
+            // إنشاء الخريطة
+            map = L.map('map', {
+                zoomControl: false,
+                attributionControl: false
+            }).setView(saudiCenter, 12);
+            
+            // إضافة طبقة الخريطة
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+            
+            // إضافة عناصر التحكم في الخريطة
+            L.control.zoom({ position: 'bottomright' }).addTo(map);
+            
+            // إضافة علامات للمقاهي
+            addMarkersToMap();
+            
+            return map;
+        }
+        
+        // إضافة علامات إلى الخريطة
+        function addMarkersToMap() {
+            // مسح العلامات القديمة
+            markers.forEach(marker => map.removeLayer(marker));
+            markers = [];
+            
+            // إضافة علامات جديدة
+            cafeData.forEach(cafe => {
+                // إنشاء أيقونة مخصصة
+                const icon = L.divIcon({
+                    className: 'custom-marker',
+                    html: `<div style="background: linear-gradient(135deg, ${cafe.open ? '#00ff8c' : '#ff6b6b'}, ${cafe.open ? '#00b36b' : '#cc5555'}); 
+                            width: 30px; height: 30px; border-radius: 50%; border: 3px solid white; 
+                            display: flex; align-items: center; justify-content: center; color: white;
+                            box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+                            <i class="fas fa-coffee" style="font-size: 12px;"></i>
+                          </div>`,
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 15]
+                });
+                
+                const marker = L.marker([cafe.lat, cafe.lng], { icon }).addTo(map);
+                
+                // إضافة نافذة منبثقة
+                marker.bindPopup(`
+                    <div style="text-align: right; direction: rtl; min-width: 250px;">
+                        <h4 style="margin-bottom: 10px; color: #333;">${cafe.name}</h4>
+                        <p style="margin: 5px 0; color: #666;">
+                            <i class="fas fa-map-marker-alt" style="color: #7158e2;"></i> 
+                            ${cafe.address}
+                        </p>
+                        <p style="margin: 5px 0; color: #666;">
+                            <i class="fas fa-star" style="color: #ffd166;"></i> 
+                            التقييم: ${cafe.rating}
+                        </p>
+                        <p style="margin: 5px 0; color: #666;">
+                            <i class="fas fa-road" style="color: #18dcff;"></i> 
+                            المسافة: ${cafe.distance} كم
+                        </p>
+                        <p style="margin: 5px 0; color: ${cafe.open ? '#00ff8c' : '#ff6b6b'};">
+                            <i class="fas fa-clock"></i> 
+                            ${cafe.open ? 'مفتوح الآن' : 'مغلق حالياً'}
+                        </p>
+                        <div style="margin-top: 15px;">
+                            <button onclick="showDirections(${cafe.lat}, ${cafe.lng})" 
+                                    style="background: linear-gradient(135deg, #18dcff, #7158e2); 
+                                           border: none; padding: 8px 15px; border-radius: 5px; 
+                                           color: white; cursor: pointer; width: 100%;">
+                                <i class="fas fa-route"></i> عرض الاتجاهات
+                            </button>
+                        </div>
+                    </div>
+                `);
+                
+                markers.push(marker);
+            });
+        }
+        
+        // عرض الاتجاهات
+        function showDirections(lat, lng) {
+            // افتح تطبيق الخرائط الافتراضي
+            window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank');
+        }
+        
+        // البحث عن المدن
+        function searchCity(query) {
+            if (!query) return;
+            
+            // محاكاة البحث عن مدينة (في التطبيق الحقيقي، سيتم استخدام API)
+            const cities = {
+                "الرياض": { lat: 24.7136, lng: 46.6753, zoom: 12 },
+                "جدة": { lat: 21.4858, lng: 39.1925, zoom: 12 },
+                "الدمام": { lat: 26.4207, lng: 50.0888, zoom: 12 },
+                "مكة": { lat: 21.3891, lng: 39.8579, zoom: 12 },
+                "المدينة": { lat: 24.5247, lng: 39.5692, zoom: 12 },
+                "الخبر": { lat: 26.2172, lng: 50.1971, zoom: 13 },
+                "الطائف": { lat: 21.4373, lng: 40.5127, zoom: 12 },
+                "تبوك": { lat: 28.3835, lng: 36.5662, zoom: 12 },
+                "أبها": { lat: 18.2465, lng: 42.5117, zoom: 12 },
+                "حائل": { lat: 27.5219, lng: 41.6906, zoom: 12 }
+            };
+            
+            const cityKeys = Object.keys(cities);
+            const foundCity = cityKeys.find(city => city.includes(query));
+            
+            if (foundCity) {
+                const { lat, lng, zoom } = cities[foundCity];
+                map.setView([lat, lng], zoom);
+                
+                // عرض رسالة نجاح
+                showNotification(`تم العثور على ${foundCity}`, 'success');
+            } else {
+                // عرض رسالة خطأ
+                showNotification('لم يتم العثور على المدينة المطلوبة', 'error');
+            }
+        }
+        
+        // عرض الإشعارات
+        function showNotification(message, type = 'info') {
+            // إنشاء عنصر الإشعار
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 20px;
+                border-radius: 10px;
+                color: white;
+                font-weight: 600;
+                z-index: 10000;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                transition: all 0.3s ease;
+                transform: translateX(100%);
+            `;
+            
+            // تخصيص النمط حسب النوع
+            if (type === 'success') {
+                notification.style.background = 'linear-gradient(135deg, #00ff8c, #00b36b)';
+            } else if (type === 'error') {
+                notification.style.background = 'linear-gradient(135deg, #ff6b6b, #cc5555)';
+            } else {
+                notification.style.background = 'linear-gradient(135deg, #18dcff, #7158e2)';
+            }
+            
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            // عرض الإشعار
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+            }, 100);
+            
+            // إخفاء الإشعار بعد 3 ثوان
+            setTimeout(() => {
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
+        }
+        
+        // عرض قائمة المقاهي
+        function renderCafeList() {
+            const cafeList = document.getElementById('cafeList');
+            cafeList.innerHTML = '';
+            
+            cafeData.forEach(cafe => {
+                const cafeCard = document.createElement('div');
+                cafeCard.className = 'cafe-card';
+                cafeCard.innerHTML = `
+                    <div class="cafe-image">
+                        <img src="${cafe.image}" alt="${cafe.name}">
+                    </div>
+                    <div class="cafe-info">
+                        <h3 class="cafe-name">${cafe.name}</h3>
+                        <div class="cafe-meta">
+                            <span><i class="fas fa-map-marker-alt"></i> ${cafe.distance} كم</span>
+                            <span class="rating"><i class="fas fa-star"></i> ${cafe.rating}</span>
+                            <span><i class="fas fa-clock"></i> ${cafe.open ? 'مفتوح' : 'مغلق'}</span>
+                        </div>
+                        <div class="cafe-features">
+                            ${cafe.features.includes('wifi') ? '<span class="feature-tag wifi"><i class="fas fa-wifi"></i> واي فاي</span>' : ''}
+                            ${cafe.features.includes('outdoor') ? '<span class="feature-tag outdoor"><i class="fas fa-umbrella-beach"></i> خارجي</span>' : ''}
+                            ${cafe.features.includes('parking') ? '<span class="feature-tag"><i class="fas fa-car"></i> موقف سيارات</span>' : ''}
+                            ${cafe.features.includes('snacks') ? '<span class="feature-tag"><i class="fas fa-utensils"></i> وجبات خفيفة</span>' : ''}
+                        </div>
+                        <div class="cafe-actions">
+                            <button class="action-btn directions" onclick="showDirections(${cafe.lat}, ${cafe.lng})">
+                                <i class="fas fa-route"></i> اتجاهات
+                            </button>
+                            <button class="action-btn details" onclick="alert('تفاصيل عن ${cafe.name}')">
+                                <i class="fas fa-info-circle"></i> تفاصيل
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                cafeList.appendChild(cafeCard);
+            });
+            
+            // تأثير الظهور المتتالي للبطاقات
+            setTimeout(() => {
+                document.querySelectorAll('.cafe-card').forEach((card, index) => {
+                    setTimeout(() => {
+                        card.style.opacity = '1';
+                        card.style.transform = 'translateY(0)';
+                    }, index * 100);
+                });
+            }, 100);
+        }
+        
+        // تهيئة التطبيق عند تحميل الصفحة
+        document.addEventListener('DOMContentLoaded', function() {
+            // تهيئة الخريطة
+            initMap();
+            
+            // عرض قائمة المقاهي
+            renderCafeList();
+            
+            // إضافة أحداث للأزرار
+            document.getElementById('searchBtn').addEventListener('click', function() {
+                const searchText = document.getElementById('searchInput').value;
+                if (searchText) {
+                    searchCity(searchText);
+                }
+            });
+            
+            document.getElementById('locateBtn').addEventListener('click', function() {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(function(position) {
+                        const { latitude, longitude } = position.coords;
+                        map.setView([latitude, longitude], 14);
+                    }, function(error) {
+                        showNotification('تعذر الحصول على الموقع', 'error');
+                    });
+                } else {
+                    showNotification('المتصفح لا يدعم تحديد الموقع', 'error');
+                }
+            });
+            
+            document.getElementById('fullscreenBtn').addEventListener('click', function() {
+                const mapContainer = document.querySelector('.map-container');
+                if (!document.fullscreenElement) {
+                    if (mapContainer.requestFullscreen) {
+                        mapContainer.requestFullscreen();
+                    }
+                } else {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    }
+                }
+            });
+            
+            // أحداث الشات بوت
+            document.getElementById('chatbotToggle').addEventListener('click', function() {
+                const chatbotWindow = document.getElementById('chatbotWindow');
+                chatbotWindow.style.display = chatbotWindow.style.display === 'flex' ? 'none' : 'flex';
+            });
+            
+            document.getElementById('closeChatbot').addEventListener('click', function() {
+                document.getElementById('chatbotWindow').style.display = 'none';
+            });
+            
+            document.getElementById('sendMessage').addEventListener('click', function() {
+                const input = document.getElementById('chatbotInput');
+                const message = input.value.trim();
+                
+                if (message) {
+                    // إضافة رسالة المستخدم
+                    addChatMessage(message, 'user');
+                    input.value = '';
+                    
+                    // محاكاة رد المساعد
+                    setTimeout(() => {
+                        const responses = [
+                            "أهلاً بك! كيف يمكنني مساعدتك في العثور على أفضل المقاهي؟",
+                            "هل تبحث عن مقهى قريب من موقعك الحالي؟",
+                            "يمكنني مساعدتك في العثور على مقاهي توفر خدمة الواي فاي أو جلسات خارجية",
+                            "ما هي المدينة التي تبحث فيها عن مقاهي؟",
+                            "هل تفضل مقهى هادئ للعمل أو مقهى صاخب للاجتماعات؟"
+                        ];
+                        
+                        const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+                        addChatMessage(randomResponse, 'bot');
+                    }, 1000);
+                }
+            });
+            
+            // أحداث تغيير المظهر
+            document.querySelectorAll('.theme-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const theme = this.dataset.theme;
+                    document.body.setAttribute('data-theme', theme);
+                    
+                    // إضافة تأثير الفضاء للمظهر الفضائي
+                    if (theme === 'space') {
+                        document.body.classList.add('space-theme');
+                    } else {
+                        document.body.classList.remove('space-theme');
+                    }
+                    
+                    // حفظ التفضيل
+                    localStorage.setItem('theme', theme);
+                });
+            });
+            
+            // تحميل التفضيلات المحفوظة
+            const savedTheme = localStorage.getItem('theme') || 'space';
+            document.body.setAttribute('data-theme', savedTheme);
+            
+            if (savedTheme === 'space') {
+                document.body.classList.add('space-theme');
+            }
+        });
+        
+        // إضافة رسالة إلى الشات بوت
+        function addChatMessage(text, sender) {
+            const messagesContainer = document.getElementById('chatbotMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            messageDiv.textContent = text;
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+    </script>
 </body>
 </html>
