@@ -249,7 +249,25 @@
        🗺️ الخريطة
     ============================== */
   
+<!-- Map -->
+  <section class="map-wrap">
+    <div id="map"></div>
+  </section>
 
+  <!-- Results -->
+  <section class="results-section">
+    <div class="results-header d-flex justify-content-between align-items-center">
+      <h2 class="m-0" style="font-size:1.15rem;">
+        <span data-i18n="found">Found</span> <span id="resultsNumber">0</span> <span data-i18n="shops">coffee shops</span>
+      </h2>
+      <select id="sortSelect" class="form-select form-select-sm" style="max-width:200px;">
+        <option value="distance" data-i18n="closest">Closest First</option>
+        <option value="rating" data-i18n="highest">Highest Rated</option>
+        <option value="name" data-i18n="byname">By Name</option>
+      </select>
+    </div>
+    <div id="cafeList" class="cafe-grid"></div>
+  </section>
     #map { width: 100%; height: 100%; }
 
   </style>
