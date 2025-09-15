@@ -1,1368 +1,252 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>☕️ كوفي فندر برو — الإصدار الفضائي</title>
-    <meta name="description" content="أقوى أداة عربية للعثور على المقاهي في السعودية مع واجهة فضائية وخيال علمي">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='80'>☕</text></svg>">
-    
-    <!-- مكتبات خارجية -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
-    <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet">
-    <link href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" rel="stylesheet">
-    <link href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" rel="stylesheet">
-    
-    <style>
-        :root {
-            --primary: #734f35;
-            --secondary: #8B4513;
-            --accent: #c4a484;
-            --light: #f5f5f5;
-            --dark: #0a1929;
-            --success: #00ff8c;
-            --warning: #ffd166;
-            --danger: #ff6b6b;
-            --gray: #6c757d;
-            --coffee-light: #d7ccc8;
-            --coffee-dark: #5d4037;
-            --space-blue: #0a1929;
-            --space-purple: #7158e2;
-            --neon-blue: #18dcff;
-            --neon-pink: #ff4d8d;
-            --neon-green: #00ff8c;
-            --cyber-yellow: #ffd166;
-        }
-        
-        [data-theme="light"] {
-            --bg-primary: #f8f9fa;
-            --bg-secondary: #ffffff;
-            --text-primary: #212529;
-            --text-secondary: #495057;
-            --card-bg: #ffffff;
-            --border-color: #dee2e6;
-            --header-bg: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-            --shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-        }
-        
-        [data-theme="dark"] {
-            --bg-primary: #0a1929;
-            --bg-secondary: #0f253d;
-            --text-primary: #e9ecef;
-            --text-secondary: #adb5bd;
-            --card-bg: #132238;
-            --border-color: #2a3e5a;
-            --header-bg: linear-gradient(135deg, #132238 0%, #1e3a5f 100%);
-            --shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-        }
-        
-        [data-theme="space"] {
-            --bg-primary: #0a0e17;
-            --bg-secondary: #0f1525;
-            --text-primary: #e9ecef;
-            --text-secondary: #8b9bb4;
-            --card-bg: #131c2f;
-            --border-color: #24334d;
-            --header-bg: linear-gradient(135deg, #131c2f 0%, #1e2f4f 100%);
-            --shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-        }
-        
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-        
-        body {
-            font-family: 'Cairo', 'Tahoma', 'Arial', sans-serif;
-            background-color: var(--bg-primary);
-            color: var(--text-primary);
-            line-height: 1.6;
-            transition: all 0.3s ease;
-            overflow-x: hidden;
-            background-image: 
-                radial-gradient(circle at 15% 50%, rgba(24, 220, 255, 0.03) 0%, transparent 25%),
-                radial-gradient(circle at 85% 30%, rgba(113, 88, 226, 0.03) 0%, transparent 25%),
-                radial-gradient(circle at 50% 80%, rgba(255, 77, 141, 0.03) 0%, transparent 25%);
-        }
-        
-        body.space-theme {
-            background-image: 
-                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Ccircle cx='20' cy='30' r='0.5' fill='%23ffffff' opacity='0.7'/%3E%3Ccircle cx='60' cy='20' r='0.3' fill='%23ffffff' opacity='0.5'/%3E%3Ccircle cx='80' cy='50' r='0.4' fill='%23ffffff' opacity='0.6'/%3E%3Ccircle cx='40' cy='70' r='0.6' fill='%23ffffff' opacity='0.8'/%3E%3Ccircle cx='70' cy='80' r='0.5' fill='%23ffffff' opacity='0.7'/%3E%3C/svg%3E"),
-                radial-gradient(circle at 15% 50%, rgba(24, 220, 255, 0.05) 0%, transparent 25%),
-                radial-gradient(circle at 85% 30%, rgba(113, 88, 226, 0.05) 0%, transparent 25%),
-                radial-gradient(circle at 50% 80%, rgba(255, 77, 141, 0.05) 0%, transparent 25%);
-        }
-        
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
-        
-        /* تحسين الهيدر */
-        header {
-            background: var(--header-bg);
-            color: white;
-            padding: 20px 0;
-            border-radius: 16px;
-            box-shadow: var(--shadow);
-            margin: 25px 0;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        header::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' width='100' height='100'%3E%3Ccircle cx='50' cy='50' r='40' fill='none' stroke='rgba(255,255,255,0.05)' stroke-width='2'/%3E%3C/svg%3E");
-            opacity: 0.3;
-        }
-        
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            font-weight: 800;
-            font-size: 2rem;
-            position: relative;
-            z-index: 2;
-        }
-        
-        .brand i {
-            color: var(--neon-blue);
-            font-size: 2.5rem;
-            filter: drop-shadow(0 0 5px var(--neon-blue));
-        }
-        
-        .coffee-steam {
-            display: inline-block;
-            margin-left: 15px;
-            position: relative;
-        }
-        
-        .steam {
-            position: absolute;
-            height: 20px;
-            width: 20px;
-            border-radius: 50%;
-            background: linear-gradient(to bottom, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.2));
-            margin-top: -25px;
-            margin-left: 5px;
-            z-index: 0;
-            opacity: 0;
-        }
-        
-        .steam.one {
-            animation: steam-one 4s ease-out infinite;
-        }
-        
-        .steam.two {
-            animation: steam-two 4s ease-out 0.5s infinite;
-        }
-        
-        .steam.three {
-            animation: steam-three 4s ease-out 1s infinite;
-        }
-        
-        @keyframes steam-one {
-            0% {transform: translateY(0) translateX(0) scale(0.25); opacity: 0.6;}
-            100% {transform: translateY(-50px) translateX(-10px) scale(1.5); opacity: 0;}
-        }
-        
-        @keyframes steam-two {
-            0% {transform: translateY(0) translateX(0) scale(0.25); opacity: 0.6;}
-            100% {transform: translateY(-45px) translateX(10px) scale(1.5); opacity: 0;}
-        }
-        
-        @keyframes steam-three {
-            0% {transform: translateY(0) translateX(0) scale(0.25); opacity: 0.6;}
-            100% {transform: translateY(-40px) translateX(-5px) scale(1.5); opacity: 0;}
-        }
-        
-        /* تحسين لوحة البحث */
-        .search-panel {
-            background: var(--card-bg);
-            border-radius: 16px;
-            padding: 25px;
-            box-shadow: var(--shadow);
-            margin-bottom: 30px;
-            border: 1px solid var(--border-color);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .search-panel::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 100%;
-            height: 100%;
-            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cpath d='M0,0 L100,100' stroke='rgba(113,88,226,0.03)' stroke-width='1'/%3E%3Cpath d='M0,100 L100,0' stroke='rgba(113,88,226,0.03)' stroke-width='1'/%3E%3C/svg%3E");
-            pointer-events: none;
-        }
-        
-        .search-input {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 20px;
-            position: relative;
-            z-index: 2;
-        }
-        
-        .search-input input {
-            flex: 1;
-            padding: 15px 20px;
-            border: 2px solid var(--border-color);
-            border-radius: 12px;
-            font-size: 1.1rem;
-            transition: all 0.3s;
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-        }
-        
-        .search-input input:focus {
-            border-color: var(--neon-blue);
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(24, 220, 255, 0.3);
-        }
-        
-        .btn-primary {
-            background: linear-gradient(135deg, var(--neon-blue) 0%, var(--space-purple) 100%);
-            border: none;
-            padding: 15px 30px;
-            border-radius: 12px;
-            color: white;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 4px 15px rgba(113, 88, 226, 0.3);
-        }
-        
-        .btn-primary:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(113, 88, 226, 0.5);
-        }
-        
-        .filters {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            margin-top: 20px;
-            position: relative;
-            z-index: 2;
-        }
-        
-        .filter-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: var(--bg-secondary);
-            padding: 10px 18px;
-            border-radius: 25px;
-            border: 1px solid var(--border-color);
-            transition: all 0.3s;
-        }
-        
-        .filter-item:hover {
-            border-color: var(--neon-blue);
-            box-shadow: 0 0 10px rgba(24, 220, 255, 0.2);
-        }
-        
-        /* تحسين الخريطة */
-        .map-container {
-            position: relative;
-            margin-bottom: 30px;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: var(--shadow);
-            height: 550px;
-            border: 1px solid var(--border-color);
-        }
-        
-        #map {
-            height: 100%;
-            width: 100%;
-            z-index: 1;
-        }
-        
-        .map-controls {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            z-index: 2;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        
-        .map-btn {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: 20px;
-            color: var(--neon-blue);
-        }
-        
-        .map-btn:hover {
-            transform: scale(1.08);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.25);
-            color: var(--neon-pink);
-        }
-        
-        /* تحسين نتائج البحث */
-        .results-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 25px;
-            padding: 15px 20px;
-            background: var(--card-bg);
-            border-radius: 12px;
-            box-shadow: var(--shadow);
-            border: 1px solid var(--border-color);
-        }
-        
-        .results-count {
-            font-weight: 700;
-            color: var(--text-primary);
-            font-size: 1.3rem;
-        }
-        
-        .sort-select {
-            padding: 10px 20px;
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            font-size: 1rem;
-        }
-        
-        .cafe-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-            gap: 25px;
-            margin-bottom: 40px;
-        }
-        
-        .cafe-card {
-            background: var(--card-bg);
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: var(--shadow);
-            transition: all 0.3s;
-            border: 1px solid var(--border-color);
-            position: relative;
-        }
-        
-        .cafe-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 12px 30px rgba(0,0,0,0.2);
-            border-color: var(--neon-blue);
-        }
-        
-        .cafe-image {
-            height: 200px;
-            background: linear-gradient(135deg, var(--coffee-light) 0%, var(--coffee-dark) 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 3.5rem;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .cafe-image img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        
-        .cafe-info {
-            padding: 25px;
-        }
-        
-        .cafe-name {
-            font-weight: 800;
-            font-size: 1.4rem;
-            margin-bottom: 12px;
-            color: var(--text-primary);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .cafe-name::before {
-            content: '☕';
-            font-size: 1.2rem;
-        }
-        
-        .cafe-meta {
-            display: flex;
-            gap: 20px;
-            margin-bottom: 18px;
-            color: var(--text-secondary);
-            font-size: 1rem;
-        }
-        
-        .cafe-meta span {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        
-        .rating {
-            color: var(--warning);
-            font-weight: 700;
-        }
-        
-        .cafe-features {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        
-        .feature-tag {
-            background: rgba(0, 255, 140, 0.15);
-            color: var(--success);
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            border: 1px solid rgba(0, 255, 140, 0.3);
-        }
-        
-        .feature-tag.wifi {
-            background: rgba(24, 220, 255, 0.15);
-            color: var(--neon-blue);
-            border: 1px solid rgba(24, 220, 255, 0.3);
-        }
-        
-        .feature-tag.outdoor {
-            background: rgba(255, 209, 102, 0.15);
-            color: var(--warning);
-            border: 1px solid rgba(255, 209, 102, 0.3);
-        }
-        
-        .cafe-actions {
-            display: flex;
-            gap: 12px;
-        }
-        
-        .action-btn {
-            flex: 1;
-            padding: 12px 20px;
-            border: none;
-            border-radius: 10px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        
-        .action-btn.directions {
-            background: linear-gradient(135deg, var(--neon-blue) 0%, var(--space-purple) 100%);
-            color: white;
-        }
-        
-        .action-btn.details {
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            border: 1px solid var(--border-color);
-        }
-        
-        .action-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
-        
-        /* تحسين الفوتر */
-        footer {
-            text-align: center;
-            padding: 30px 0;
-            margin-top: 50px;
-            color: var(--text-secondary);
-            border-top: 1px solid var(--border-color);
-        }
-        
-        /* تحسين التجاوب */
-        @media (max-width: 992px) {
-            .cafe-list {
-                grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            }
-        }
-        
-        @media (max-width: 768px) {
-            .brand {
-                font-size: 1.6rem;
-            }
-            
-            .search-input {
-                flex-direction: column;
-            }
-            
-            .filters {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            
-            .cafe-list {
-                grid-template-columns: 1fr;
-            }
-            
-            .map-container {
-                height: 400px;
-            }
-            
-            .results-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 15px;
-            }
-            
-            .cafe-image {
-                height: 180px;
-            }
-        }
-        
-        /* عناصر التحكم بالمظهر */
-        .theme-controls {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            z-index: 1000;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            background: var(--card-bg);
-            padding: 15px;
-            border-radius: 16px;
-            box-shadow: var(--shadow);
-            border: 1px solid var(--border-color);
-        }
-        
-        .theme-btn {
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            border: none;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-        }
-        
-        .theme-btn:hover {
-            transform: scale(1.1);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-        }
-        
-        .theme-btn.light {
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            color: #495057;
-        }
-        
-        .theme-btn.dark {
-            background: linear-gradient(135deg, #0a1929 0%, #0f253d 100%);
-            color: #adb5bd;
-        }
-        
-        .theme-btn.space {
-            background: linear-gradient(135deg, #0a0e17 0%, #131c2f 100%);
-            color: #8b9bb4;
-        }
-        
-        /* شات بوت */
-        .chatbot-container {
-            position: fixed;
-            bottom: 30px;
-            left: 30px;
-            z-index: 1000;
-        }
-        
-        .chatbot-toggle {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--neon-pink) 0%, var(--space-purple) 100%);
-            color: white;
-            border: none;
-            box-shadow: 0 4px 20px rgba(255, 77, 141, 0.4);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: 24px;
-        }
-        
-        .chatbot-toggle:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 25px rgba(255, 77, 141, 0.6);
-        }
-        
-        .chatbot-window {
-            position: absolute;
-            bottom: 70px;
-            left: 0;
-            width: 350px;
-            height: 450px;
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            box-shadow: var(--shadow);
-            display: none;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        
-        .chatbot-header {
-            padding: 20px;
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .chatbot-messages {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-        
-        .message {
-            padding: 12px 18px;
-            border-radius: 18px;
-            max-width: 80%;
-            line-height: 1.5;
-        }
-        
-        .message.bot {
-            background: var(--bg-secondary);
-            align-self: flex-start;
-            border-bottom-left-radius: 5px;
-        }
-        
-        .message.user {
-            background: linear-gradient(135deg, var(--neon-blue) 0%, var(--space-purple) 100%);
-            color: white;
-            align-self: flex-end;
-            border-bottom-right-radius: 5px;
-        }
-        
-        .chatbot-input {
-            padding: 20px;
-            border-top: 1px solid var(--border-color);
-            display: flex;
-            gap: 12px;
-        }
-        
-        .chatbot-input input {
-            flex: 1;
-            padding: 12px 18px;
-            border: 1px solid var(--border-color);
-            border-radius: 25px;
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-        }
-        
-        .chatbot-input button {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--neon-blue) 0%, var(--space-purple) 100%);
-            color: white;
-            border: none;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-        }
-        
-        /* تأثيرات التحميل */
-        .loading {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 60px;
-            flex-direction: column;
-            gap: 25px;
-        }
-        
-        .coffee-loader {
-            display: inline-block;
-            position: relative;
-            width: 80px;
-            height: 80px;
-        }
-        
-        .coffee-loader div {
-            display: inline-block;
-            position: absolute;
-            left: 8px;
-            width: 16px;
-            background: var(--neon-blue);
-            animation: coffee-loader 1.2s cubic-bezier(0, 0.5, 0.5, 1) infinite;
-            border-radius: 20px;
-        }
-        
-        .coffee-loader div:nth-child(1) {
-            left: 8px;
-            animation-delay: -0.24s;
-        }
-        
-        .coffee-loader div:nth-child(2) {
-            left: 32px;
-            animation-delay: -0.12s;
-        }
-        
-        .coffee-loader div:nth-child(3) {
-            left: 56px;
-            animation-delay: 0;
-        }
-        
-        @keyframes coffee-loader {
-            0% { top: 8px; height: 64px; }
-            50%, 100% { top: 24px; height: 32px; }
-        }
-        
-        /* تأثيرات النيون */
-        .neon-text {
-            text-shadow: 0 0 5px var(--neon-blue), 0 0 10px var(--neon-blue), 0 0 15px var(--neon-blue), 0 0 20px var(--space-purple);
-        }
-        
-        /* تأثيرات الفضاء */
-        .space-bg {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-            opacity: 0.3;
-            pointer-events: none;
-        }
-        
-        /* مؤشر التحميل */
-        .progress-bar {
-            height: 5px;
-            width: 100%;
-            background: var(--bg-secondary);
-            border-radius: 3px;
-            overflow: hidden;
-            margin-top: 10px;
-        }
-        
-        .progress {
-            height: 100%;
-            width: 0%;
-            background: linear-gradient(90deg, var(--neon-blue), var(--neon-pink));
-            border-radius: 3px;
-            transition: width 0.3s ease;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>☕ Coffee Finder Pro — Ultimate Free Edition</title>
+
+  <!-- مكتبات -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+  <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet">
+
+  <style>
+    :root {
+      --primary: #734f35;
+      --neon-blue: #18dcff;
+      --neon-pink: #ff4d8d;
+      --warning: #ffd166;
+    }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      background: #0a0e17;
+      color: #eee;
+      overflow-x: hidden;
+    }
+    header {
+      background: linear-gradient(135deg, #734f35, #8B4513);
+      color: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin: 20px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .brand {
+      font-size: 2rem;
+      font-weight: bold;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+    }
+    .brand i { color: var(--neon-blue); text-shadow: 0 0 5px var(--neon-blue); }
+
+    /* بخار القهوة */
+    .coffee-steam { position: relative; display: inline-block; }
+    .steam {
+      position: absolute; width: 15px; height: 15px;
+      border-radius: 50%; background: rgba(255,255,255,0.6);
+      animation: rise 4s ease-in-out infinite;
+      opacity: 0;
+    }
+    .steam.one { left: -10px; animation-delay: 0s; }
+    .steam.two { left: 0px; animation-delay: 1s; }
+    .steam.three { left: 10px; animation-delay: 2s; }
+    @keyframes rise {
+      0% { transform: translateY(0) scale(0.4); opacity: 0.7; }
+      100% { transform: translateY(-60px) scale(1.2); opacity: 0; }
+    }
+
+    #map { height: 500px; border-radius: 12px; margin: 20px 0; }
+
+    .cafe-card {
+      background: #131c2f;
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 15px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      transition: transform 0.3s;
+    }
+    .cafe-card:hover { transform: translateY(-5px); border:1px solid var(--neon-blue); }
+    .cafe-card h5 { margin-bottom: 8px; }
+
+    /* إشعارات */
+    .notification {
+      position: fixed; top: 20px; right: 20px;
+      background: linear-gradient(135deg, var(--neon-blue), var(--neon-pink));
+      color: white; padding: 12px 18px; border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+      opacity: 0; transform: translateX(100%);
+      transition: all 0.5s;
+      z-index: 1000;
+    }
+    .notification.show { opacity: 1; transform: translateX(0); }
+
+    /* Chatbot */
+    .chatbot-toggle {
+      position: fixed; bottom: 25px; left: 25px;
+      width: 60px; height: 60px; border-radius: 50%;
+      border: none; cursor: pointer;
+      background: linear-gradient(135deg, var(--neon-pink), #7158e2);
+      color: white; font-size: 22px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+    }
+    .chatbot-window {
+      position: fixed; bottom: 100px; left: 25px;
+      width: 320px; height: 420px; background: #131c2f;
+      border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      display: none; flex-direction: column; overflow: hidden;
+    }
+    .chatbot-messages { flex:1; padding:10px; overflow-y:auto; }
+    .chatbot-input { display:flex; gap:5px; padding:10px; }
+    .chatbot-input input { flex:1; border-radius:20px; border:none; padding:8px; }
+  </style>
 </head>
-<body class="space-theme" data-theme="space">
-    <!-- خلفية الفضاء -->
-    <div class="space-bg"></div>
-    
-    <div class="container">
-        <!-- الهيدر -->
-        <header>
-            <div class="brand">
-                <i class="fas fa-mug-hot"></i>
-                <span class="neon-text">كوفي فندر برو</span>
-                <div class="coffee-steam">
-                    <div class="steam one"></div>
-                    <div class="steam two"></div>
-                    <div class="steam three"></div>
-                </div>
-            </div>
-        </header>
-        
-        <!-- لوحة البحث -->
-        <section class="search-panel">
-            <div class="search-input">
-                <input type="text" id="searchInput" placeholder="ابحث عن مدينة أو منطقة في السعودية...">
-                <button class="btn-primary" id="searchBtn">
-                    <i class="fas fa-search"></i> بحث
-                </button>
-            </div>
-            
-            <div class="filters">
-                <div class="filter-item">
-                    <input type="checkbox" id="openNow">
-                    <label for="openNow">مفتوح الآن</label>
-                </div>
-                
-                <div class="filter-item">
-                    <input type="checkbox" id="wifi">
-                    <label for="wifi">واي فاي</label>
-                </div>
-                
-                <div class="filter-item">
-                    <input type="checkbox" id="outdoor">
-                    <label for="outdoor">جلسات خارجية</label>
-                </div>
-                
-                <div class="filter-item">
-                    <label for="radius">نطاق البحث:</label>
-                    <select id="radius">
-                        <option value="1">1 كم</option>
-                        <option value="3">3 كم</option>
-                        <option value="5" selected>5 كم</option>
-                        <option value="10">10 كم</option>
-                        <option value="20">20 كم</option>
-                        <option value="30">30 كم</option>
-                        <option value="50">50 كم</option>
-                    </select>
-                </div>
-            </div>
-        </section>
-        
-        <!-- الخريطة -->
-        <section class="map-container">
-            <div id="map"></div>
-            <div class="map-controls">
-                <button class="map-btn" id="locateBtn">
-                    <i class="fas fa-location-arrow"></i>
-                </button>
-                <button class="map-btn" id="layerBtn">
-                    <i class="fas fa-layer-group"></i>
-                </button>
-                <button class="map-btn" id="fullscreenBtn">
-                    <i class="fas fa-expand"></i>
-                </button>
-            </div>
-        </section>
-        
-        <!-- نتائج البحث -->
-        <section class="results-section">
-            <div class="results-header">
-                <h2 class="results-count">عثرنا على <span id="resultsNumber">12</span> مقهى</h2>
-                <select class="sort-select" id="sortSelect">
-                    <option value="distance">الأقرب أولاً</option>
-                    <option value="rating">الأعلى تقييماً</option>
-                    <option value="name">حسب الاسم</option>
-                </select>
-            </div>
-            
-            <div class="cafe-list" id="cafeList">
-                <!-- سيتم إضافة المقاهي ديناميكياً -->
-            </div>
-        </section>
-        
-        <!-- الفوتر -->
-        <footer>
-            <p>© 2023 كوفي فندر برو - جميع الحقوق محفوظة</p>
-            <p>تم إنشاء هذا التطبيق لعشاق القهوة في المملكة العربية السعودية</p>
-        </footer>
-    </div>
+<body>
 
-    <!-- عناصر التحكم بالمظهر -->
-    <div class="theme-controls">
-        <button class="theme-btn light" data-theme="light" title="المظهر الفاتح">
-            <i class="fas fa-sun"></i>
-        </button>
-        <button class="theme-btn dark" data-theme="dark" title="المظهر الداكن">
-            <i class="fas fa-moon"></i>
-        </button>
-        <button class="theme-btn space" data-theme="space" title="مظهر الفضاء">
-            <i class="fas fa-rocket"></i>
-        </button>
+<header>
+  <div class="brand">
+    <i class="fas fa-mug-hot"></i> Coffee Finder Pro
+    <div class="coffee-steam">
+      <div class="steam one"></div>
+      <div class="steam two"></div>
+      <div class="steam three"></div>
     </div>
-    
-    <!-- شات بوت -->
-    <div class="chatbot-container">
-        <button class="chatbot-toggle" id="chatbotToggle">
-            <i class="fas fa-robot"></i>
-        </button>
-        <div class="chatbot-window" id="chatbotWindow">
-            <div class="chatbot-header">
-                <h5 class="m-0">مساعد القهوة</h5>
-                <button class="btn-close" id="closeChatbot"></button>
-            </div>
-            <div class="chatbot-messages" id="chatbotMessages">
-                <div class="message bot">
-                    مرحباً! أنا مساعدك للعثور على أفضل المقاهي. كيف يمكنني مساعدتك؟
-                </div>
-            </div>
-            <div class="chatbot-input">
-                <input type="text" id="chatbotInput" placeholder="اكتب رسالتك هنا...">
-                <button id="sendMessage">
-                    <i class="fas fa-paper-plane"></i>
-                </button>
-            </div>
-        </div>
-    </div>
+  </div>
+  <div class="input-group mt-3">
+    <input type="text" id="searchInput" class="form-control" placeholder="Search city in Saudi Arabia...">
+    <button class="btn btn-warning" id="searchBtn"><i class="fas fa-search"></i></button>
+  </div>
+  <div class="mt-2">
+    <label>Radius:</label>
+    <select id="radius">
+      <option value="1000">1 km</option>
+      <option value="3000" selected>3 km</option>
+      <option value="5000">5 km</option>
+      <option value="10000">10 km</option>
+    </select>
+  </div>
+</header>
 
-    <!-- السكربتات -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-    
-    <script>
-        // بيانات وهمية للمقاهي
-        const cafeData = [
-            {
-                id: 1,
-                name: "مقهى العربية",
-                address: "حي الملز، الرياض",
-                lat: 24.7136,
-                lng: 46.6753,
-                rating: 4.5,
-                distance: 1.2,
-                open: true,
-                features: ["wifi", "outdoor"],
-                image: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1147&q=80"
-            },
-            {
-                id: 2,
-                name: "ستاربكس الرياض",
-                address: "حي السليمانية، الرياض",
-                lat: 24.7612,
-                lng: 46.6753,
-                rating: 4.7,
-                distance: 0.8,
-                open: true,
-                features: ["wifi", "parking"],
-                image: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=987&q=80"
-            },
-            {
-                id: 3,
-                name: "ديم القهوة",
-                address: "حي العليا، الرياض",
-                lat: 24.6932,
-                lng: 46.6915,
-                rating: 4.3,
-                distance: 2.3,
-                open: true,
-                features: ["outdoor", "snacks"],
-                image: "https://images.unsplash.com/photo-1463797221720-6b07e6426c24?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2071&q=80"
-            },
-            {
-                id: 4,
-                name: "مقهى البن المعطر",
-                address: "حي النخيل، الرياض",
-                lat: 24.8126,
-                lng: 46.6415,
-                rating: 4.2,
-                distance: 3.1,
-                open: false,
-                features: ["wifi"],
-                image: "https://images.unsplash.com/photo-1442512595331-e89e73853f31?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80"
-            },
-            {
-                id: 5,
-                name: "قهوة الكيف",
-                address: "حي الورود، الرياض",
-                lat: 24.7523,
-                lng: 46.7001,
-                rating: 4.6,
-                distance: 1.8,
-                open: true,
-                features: ["wifi", "outdoor", "parking"],
-                image: "https://images.unsplash.com/photo-1559924701-b0ce87b3a57c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80"
-            },
-            {
-                id: 6,
-                name: "مقهى النخبة",
-                address: "حي العقيق، الرياض",
-                lat: 24.7216,
-                lng: 46.6553,
-                rating: 4.4,
-                distance: 2.7,
-                open: true,
-                features: ["wifi", "snacks"],
-                image: "https://images.unsplash.com/photo-1511537190424-bbbab87ac5eb?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80"
-            },
-            {
-                id: 7,
-                name: "كافيه ريش",
-                address: "حي الياسمين، الرياض",
-                lat: 24.7812,
-                lng: 46.6912,
-                rating: 4.8,
-                distance: 0.9,
-                open: true,
-                features: ["wifi", "outdoor", "parking", "snacks"],
-                image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80"
-            },
-            {
-                id: 8,
-                name: "مقهى السكرية",
-                address: "حي الربيع، الرياض",
-                lat: 24.8012,
-                lng: 46.6315,
-                rating: 4.1,
-                distance: 3.5,
-                open: false,
-                features: ["wifi", "snacks"],
-                image: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80"
-            }
-        ];
+<div class="container">
+  <div id="map"></div>
+  <h4>Results</h4>
+  <div id="cafeList"></div>
+</div>
 
-        // تهيئة الخريطة
-        let map, markers = [];
-        
-        function initMap() {
-            // إحداثيات مركز المملكة العربية السعودية
-            const saudiCenter = [24.7136, 46.6753];
-            
-            // إنشاء الخريطة
-            map = L.map('map', {
-                zoomControl: false,
-                attributionControl: false
-            }).setView(saudiCenter, 12);
-            
-            // إضافة طبقة الخريطة
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(map);
-            
-            // إضافة عناصر التحكم في الخريطة
-            L.control.zoom({ position: 'bottomright' }).addTo(map);
-            
-            // إضافة علامات للمقاهي
-            addMarkersToMap();
-            
-            return map;
-        }
-        
-        // إضافة علامات إلى الخريطة
-        function addMarkersToMap() {
-            // مسح العلامات القديمة
-            markers.forEach(marker => map.removeLayer(marker));
-            markers = [];
-            
-            // إضافة علامات جديدة
-            cafeData.forEach(cafe => {
-                // إنشاء أيقونة مخصصة
-                const icon = L.divIcon({
-                    className: 'custom-marker',
-                    html: `<div style="background: linear-gradient(135deg, ${cafe.open ? '#00ff8c' : '#ff6b6b'}, ${cafe.open ? '#00b36b' : '#cc5555'}); 
-                            width: 30px; height: 30px; border-radius: 50%; border: 3px solid white; 
-                            display: flex; align-items: center; justify-content: center; color: white;
-                            box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
-                            <i class="fas fa-coffee" style="font-size: 12px;"></i>
-                          </div>`,
-                    iconSize: [30, 30],
-                    iconAnchor: [15, 15]
-                });
-                
-                const marker = L.marker([cafe.lat, cafe.lng], { icon }).addTo(map);
-                
-                // إضافة نافذة منبثقة
-                marker.bindPopup(`
-                    <div style="text-align: right; direction: rtl; min-width: 250px;">
-                        <h4 style="margin-bottom: 10px; color: #333;">${cafe.name}</h4>
-                        <p style="margin: 5px 0; color: #666;">
-                            <i class="fas fa-map-marker-alt" style="color: #7158e2;"></i> 
-                            ${cafe.address}
-                        </p>
-                        <p style="margin: 5px 0; color: #666;">
-                            <i class="fas fa-star" style="color: #ffd166;"></i> 
-                            التقييم: ${cafe.rating}
-                        </p>
-                        <p style="margin: 5px 0; color: #666;">
-                            <i class="fas fa-road" style="color: #18dcff;"></i> 
-                            المسافة: ${cafe.distance} كم
-                        </p>
-                        <p style="margin: 5px 0; color: ${cafe.open ? '#00ff8c' : '#ff6b6b'};">
-                            <i class="fas fa-clock"></i> 
-                            ${cafe.open ? 'مفتوح الآن' : 'مغلق حالياً'}
-                        </p>
-                        <div style="margin-top: 15px;">
-                            <button onclick="showDirections(${cafe.lat}, ${cafe.lng})" 
-                                    style="background: linear-gradient(135deg, #18dcff, #7158e2); 
-                                           border: none; padding: 8px 15px; border-radius: 5px; 
-                                           color: white; cursor: pointer; width: 100%;">
-                                <i class="fas fa-route"></i> عرض الاتجاهات
-                            </button>
-                        </div>
-                    </div>
-                `);
-                
-                markers.push(marker);
-            });
-        }
-        
-        // عرض الاتجاهات
-        function showDirections(lat, lng) {
-            // افتح تطبيق الخرائط الافتراضي
-            window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank');
-        }
-        
-        // البحث عن المدن
-        function searchCity(query) {
-            if (!query) return;
-            
-            // محاكاة البحث عن مدينة (في التطبيق الحقيقي، سيتم استخدام API)
-            const cities = {
-                "الرياض": { lat: 24.7136, lng: 46.6753, zoom: 12 },
-                "جدة": { lat: 21.4858, lng: 39.1925, zoom: 12 },
-                "الدمام": { lat: 26.4207, lng: 50.0888, zoom: 12 },
-                "مكة": { lat: 21.3891, lng: 39.8579, zoom: 12 },
-                "المدينة": { lat: 24.5247, lng: 39.5692, zoom: 12 },
-                "الخبر": { lat: 26.2172, lng: 50.1971, zoom: 13 },
-                "الطائف": { lat: 21.4373, lng: 40.5127, zoom: 12 },
-                "تبوك": { lat: 28.3835, lng: 36.5662, zoom: 12 },
-                "أبها": { lat: 18.2465, lng: 42.5117, zoom: 12 },
-                "حائل": { lat: 27.5219, lng: 41.6906, zoom: 12 }
-            };
-            
-            const cityKeys = Object.keys(cities);
-            const foundCity = cityKeys.find(city => city.includes(query));
-            
-            if (foundCity) {
-                const { lat, lng, zoom } = cities[foundCity];
-                map.setView([lat, lng], zoom);
-                
-                // عرض رسالة نجاح
-                showNotification(`تم العثور على ${foundCity}`, 'success');
-            } else {
-                // عرض رسالة خطأ
-                showNotification('لم يتم العثور على المدينة المطلوبة', 'error');
-            }
-        }
-        
-        // عرض الإشعارات
-        function showNotification(message, type = 'info') {
-            // إنشاء عنصر الإشعار
-            const notification = document.createElement('div');
-            notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                padding: 15px 20px;
-                border-radius: 10px;
-                color: white;
-                font-weight: 600;
-                z-index: 10000;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-                transition: all 0.3s ease;
-                transform: translateX(100%);
-            `;
-            
-            // تخصيص النمط حسب النوع
-            if (type === 'success') {
-                notification.style.background = 'linear-gradient(135deg, #00ff8c, #00b36b)';
-            } else if (type === 'error') {
-                notification.style.background = 'linear-gradient(135deg, #ff6b6b, #cc5555)';
-            } else {
-                notification.style.background = 'linear-gradient(135deg, #18dcff, #7158e2)';
-            }
-            
-            notification.textContent = message;
-            document.body.appendChild(notification);
-            
-            // عرض الإشعار
-            setTimeout(() => {
-                notification.style.transform = 'translateX(0)';
-            }, 100);
-            
-            // إخفاء الإشعار بعد 3 ثوان
-            setTimeout(() => {
-                notification.style.transform = 'translateX(100%)';
-                setTimeout(() => {
-                    document.body.removeChild(notification);
-                }, 300);
-            }, 3000);
-        }
-        
-        // عرض قائمة المقاهي
-        function renderCafeList() {
-            const cafeList = document.getElementById('cafeList');
-            cafeList.innerHTML = '';
-            
-            cafeData.forEach(cafe => {
-                const cafeCard = document.createElement('div');
-                cafeCard.className = 'cafe-card';
-                cafeCard.innerHTML = `
-                    <div class="cafe-image">
-                        <img src="${cafe.image}" alt="${cafe.name}">
-                    </div>
-                    <div class="cafe-info">
-                        <h3 class="cafe-name">${cafe.name}</h3>
-                        <div class="cafe-meta">
-                            <span><i class="fas fa-map-marker-alt"></i> ${cafe.distance} كم</span>
-                            <span class="rating"><i class="fas fa-star"></i> ${cafe.rating}</span>
-                            <span><i class="fas fa-clock"></i> ${cafe.open ? 'مفتوح' : 'مغلق'}</span>
-                        </div>
-                        <div class="cafe-features">
-                            ${cafe.features.includes('wifi') ? '<span class="feature-tag wifi"><i class="fas fa-wifi"></i> واي فاي</span>' : ''}
-                            ${cafe.features.includes('outdoor') ? '<span class="feature-tag outdoor"><i class="fas fa-umbrella-beach"></i> خارجي</span>' : ''}
-                            ${cafe.features.includes('parking') ? '<span class="feature-tag"><i class="fas fa-car"></i> موقف سيارات</span>' : ''}
-                            ${cafe.features.includes('snacks') ? '<span class="feature-tag"><i class="fas fa-utensils"></i> وجبات خفيفة</span>' : ''}
-                        </div>
-                        <div class="cafe-actions">
-                            <button class="action-btn directions" onclick="showDirections(${cafe.lat}, ${cafe.lng})">
-                                <i class="fas fa-route"></i> اتجاهات
-                            </button>
-                            <button class="action-btn details" onclick="alert('تفاصيل عن ${cafe.name}')">
-                                <i class="fas fa-info-circle"></i> تفاصيل
-                            </button>
-                        </div>
-                    </div>
-                `;
-                
-                cafeList.appendChild(cafeCard);
-            });
-            
-            // تأثير الظهور المتتالي للبطاقات
-            setTimeout(() => {
-                document.querySelectorAll('.cafe-card').forEach((card, index) => {
-                    setTimeout(() => {
-                        card.style.opacity = '1';
-                        card.style.transform = 'translateY(0)';
-                    }, index * 100);
-                });
-            }, 100);
-        }
-        
-        // تهيئة التطبيق عند تحميل الصفحة
-        document.addEventListener('DOMContentLoaded', function() {
-            // تهيئة الخريطة
-            initMap();
-            
-            // عرض قائمة المقاهي
-            renderCafeList();
-            
-            // إضافة أحداث للأزرار
-            document.getElementById('searchBtn').addEventListener('click', function() {
-                const searchText = document.getElementById('searchInput').value;
-                if (searchText) {
-                    searchCity(searchText);
-                }
-            });
-            
-            document.getElementById('locateBtn').addEventListener('click', function() {
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(function(position) {
-                        const { latitude, longitude } = position.coords;
-                        map.setView([latitude, longitude], 14);
-                    }, function(error) {
-                        showNotification('تعذر الحصول على الموقع', 'error');
-                    });
-                } else {
-                    showNotification('المتصفح لا يدعم تحديد الموقع', 'error');
-                }
-            });
-            
-            document.getElementById('fullscreenBtn').addEventListener('click', function() {
-                const mapContainer = document.querySelector('.map-container');
-                if (!document.fullscreenElement) {
-                    if (mapContainer.requestFullscreen) {
-                        mapContainer.requestFullscreen();
-                    }
-                } else {
-                    if (document.exitFullscreen) {
-                        document.exitFullscreen();
-                    }
-                }
-            });
-            
-            // أحداث الشات بوت
-            document.getElementById('chatbotToggle').addEventListener('click', function() {
-                const chatbotWindow = document.getElementById('chatbotWindow');
-                chatbotWindow.style.display = chatbotWindow.style.display === 'flex' ? 'none' : 'flex';
-            });
-            
-            document.getElementById('closeChatbot').addEventListener('click', function() {
-                document.getElementById('chatbotWindow').style.display = 'none';
-            });
-            
-            document.getElementById('sendMessage').addEventListener('click', function() {
-                const input = document.getElementById('chatbotInput');
-                const message = input.value.trim();
-                
-                if (message) {
-                    // إضافة رسالة المستخدم
-                    addChatMessage(message, 'user');
-                    input.value = '';
-                    
-                    // محاكاة رد المساعد
-                    setTimeout(() => {
-                        const responses = [
-                            "أهلاً بك! كيف يمكنني مساعدتك في العثور على أفضل المقاهي؟",
-                            "هل تبحث عن مقهى قريب من موقعك الحالي؟",
-                            "يمكنني مساعدتك في العثور على مقاهي توفر خدمة الواي فاي أو جلسات خارجية",
-                            "ما هي المدينة التي تبحث فيها عن مقاهي؟",
-                            "هل تفضل مقهى هادئ للعمل أو مقهى صاخب للاجتماعات؟"
-                        ];
-                        
-                        const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-                        addChatMessage(randomResponse, 'bot');
-                    }, 1000);
-                }
-            });
-            
-            // أحداث تغيير المظهر
-            document.querySelectorAll('.theme-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const theme = this.dataset.theme;
-                    document.body.setAttribute('data-theme', theme);
-                    
-                    // إضافة تأثير الفضاء للمظهر الفضائي
-                    if (theme === 'space') {
-                        document.body.classList.add('space-theme');
-                    } else {
-                        document.body.classList.remove('space-theme');
-                    }
-                    
-                    // حفظ التفضيل
-                    localStorage.setItem('theme', theme);
-                });
-            });
-            
-            // تحميل التفضيلات المحفوظة
-            const savedTheme = localStorage.getItem('theme') || 'space';
-            document.body.setAttribute('data-theme', savedTheme);
-            
-            if (savedTheme === 'space') {
-                document.body.classList.add('space-theme');
-            }
-        });
-        
-        // إضافة رسالة إلى الشات بوت
-        function addChatMessage(text, sender) {
-            const messagesContainer = document.getElementById('chatbotMessages');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${sender}`;
-            messageDiv.textContent = text;
-            
-            messagesContainer.appendChild(messageDiv);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
-    </script>
+<!-- إشعار -->
+<div id="notification" class="notification"></div>
+
+<!-- Chatbot -->
+<button class="chatbot-toggle" id="chatbotToggle"><i class="fas fa-robot"></i></button>
+<div class="chatbot-window" id="chatbotWindow">
+  <div class="chatbot-messages" id="chatbotMessages">
+    <div class="text-light">🤖 Hello! I can help you find cafes. Type a city name.</div>
+  </div>
+  <div class="chatbot-input">
+    <input type="text" id="chatbotInput" placeholder="Ask me...">
+    <button id="sendMessage" class="btn btn-sm btn-primary"><i class="fas fa-paper-plane"></i></button>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+let map = L.map('map').setView([24.7136, 46.6753], 12);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OSM contributors'
+}).addTo(map);
+
+// إشعارات
+function showNotification(msg) {
+  const note = document.getElementById("notification");
+  note.textContent = msg;
+  note.classList.add("show");
+  setTimeout(()=>note.classList.remove("show"),3000);
+}
+
+// البحث بالمدينة (Nominatim)
+async function searchCity(query) {
+  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ", Saudi Arabia")}`;
+  const res = await fetch(url); const results = await res.json();
+  if(results.length>0) {
+    const {lat,lon} = results[0];
+    map.setView([lat,lon],13);
+    fetchCafes(lat, lon, document.getElementById("radius").value);
+    showNotification("✅ Found city: "+results[0].display_name);
+  } else showNotification("❌ City not found");
+}
+
+// جلب المقاهي من OSM (Overpass)
+async function fetchCafes(lat, lon, radius) {
+  const url = `https://overpass-api.de/api/interpreter?data=[out:json];node["amenity"="cafe"](around:${radius},${lat},${lon});out;`;
+  const res = await fetch(url); const data = await res.json();
+  renderCafeList(data.elements);
+}
+
+// عرض النتائج
+function renderCafeList(cafes) {
+  const list = document.getElementById("cafeList");
+  list.innerHTML = "";
+  cafes.forEach((cafe,i)=>{
+    const name = cafe.tags.name || "Unnamed Cafe";
+    const addr = cafe.tags["addr:street"] || "No Address";
+    const div = document.createElement("div");
+    div.className="cafe-card"; div.style.opacity=0;
+    div.innerHTML = `
+      <h5>☕ ${name}</h5>
+      <p><i class="fas fa-map-marker-alt"></i> ${addr}</p>
+      <button class="btn btn-sm btn-outline-light" onclick="openInMaps(${cafe.lat},${cafe.lon})"><i class="fas fa-route"></i> Directions</button>
+      <button class="btn btn-sm btn-outline-danger" onclick="addFavorite('${name}')"><i class="fas fa-heart"></i> Favorite</button>
+    `;
+    list.appendChild(div);
+    setTimeout(()=>{div.style.opacity=1;}, i*100);
+    // Marker
+    const marker = L.marker([cafe.lat,cafe.lon]).addTo(map);
+    marker.bindPopup(`<b>${name}</b><br>${addr}`);
+  });
+}
+
+// فتح الموقع في Google Maps
+function openInMaps(lat,lon){
+  window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`,"_blank");
+}
+
+// المفضلة
+function addFavorite(name){
+  let favs = JSON.parse(localStorage.getItem("favorites")||"[]");
+  favs.push(name); localStorage.setItem("favorites",JSON.stringify(favs));
+  showNotification("❤️ Added to favorites: "+name);
+}
+
+// Events
+document.getElementById("searchBtn").addEventListener("click",()=>searchCity(document.getElementById("searchInput").value));
+document.getElementById("searchInput").addEventListener("keypress",e=>{if(e.key==="Enter") searchCity(e.target.value);});
+
+// Chatbot
+document.getElementById("chatbotToggle").addEventListener("click",()=>{
+  const w=document.getElementById("chatbotWindow");
+  w.style.display=w.style.display==="flex"?"none":"flex";
+});
+document.getElementById("sendMessage").addEventListener("click",()=>{
+  const input=document.getElementById("chatbotInput");
+  if(input.value.trim()){
+    addChatMessage(input.value,"user");
+    setTimeout(()=>addChatMessage("🤖 Searching for: "+input.value,"bot"),800);
+    searchCity(input.value);
+    input.value="";
+  }
+});
+function addChatMessage(text,sender){
+  const msg=document.createElement("div");
+  msg.textContent=text; msg.style.padding="5px"; msg.style.borderRadius="8px";
+  msg.style.margin="5px 0"; msg.style.background=sender==="user"?"#18dcff":"#7158e2";
+  msg.style.color="white"; msg.style.alignSelf=sender==="user"?"flex-end":"flex-start";
+  document.getElementById("chatbotMessages").appendChild(msg);
+}
+fetchCafes(24.7136, 46.6753, 3000); // Load default (Riyadh)
+</script>
 </body>
 </html>
