@@ -51,7 +51,79 @@
         radial-gradient(circle at 15% 50%, rgba(24,220,255,0.05) 0%, transparent 25%),
         radial-gradient(circle at 85% 30%, rgba(113,88,226,0.05) 0%, transparent 25%),
         radial-gradient(circle at 50% 80%, rgba(255,77,141,0.05) 0%, transparent 25%);
- 
+    }
+
+    /* خلفية فضائية */
+    body.space-theme {
+      background-image: url("https://www.transparenttextures.com/patterns/stardust.png"),
+        radial-gradient(circle at 15% 50%, rgba(24,220,255,0.1) 0%, transparent 25%),
+        radial-gradient(circle at 85% 30%, rgba(113,88,226,0.1) 0%, transparent 25%),
+        radial-gradient(circle at 50% 80%, rgba(255,77,141,0.1) 0%, transparent 25%);
+    }
+
+    /* =============================
+       🛰️ الثيمات
+    ============================== */
+    [data-theme="light"] {
+      --bg-primary: #f8f9fa;
+      --bg-secondary: #ffffff;
+      --text-primary: #212529;
+      --text-secondary: #495057;
+      --card-bg: #ffffff;
+      --border-color: #dee2e6;
+      --header-bg: linear-gradient(135deg, var(--primary), var(--secondary));
+    }
+
+    [data-theme="dark"] {
+      --bg-primary: #0a1929;
+      --bg-secondary: #0f253d;
+      --text-primary: #e9ecef;
+      --text-secondary: #adb5bd;
+      --card-bg: #132238;
+      --border-color: #2a3e5a;
+      --header-bg: linear-gradient(135deg, #132238, #1e3a5f);
+    }
+
+    [data-theme="space"] {
+      --bg-primary: #0a0e17;
+      --bg-secondary: #0f1525;
+      --text-primary: #e9ecef;
+      --text-secondary: #8b9bb4;
+      --card-bg: #131c2f;
+      --border-color: #24334d;
+      --header-bg: linear-gradient(135deg, #131c2f, #1e2f4f);
+    }
+
+    [data-theme="neon"] {
+      --bg-primary: #0a0a0a;
+      --bg-secondary: #111;
+      --text-primary: #18dcff;
+      --text-secondary: #ff4d8d;
+      --card-bg: #1a1a1a;
+      --border-color: #333;
+      --header-bg: linear-gradient(135deg, #18dcff, #7158e2);
+    }
+
+    [data-theme="energy"] {
+      --bg-primary: #fffdf5;
+      --bg-secondary: #fdf2d5;
+      --text-primary: #222;
+      --text-secondary: #555;
+      --card-bg: #fff9e6;
+      --border-color: #f0d9b5;
+      --header-bg: linear-gradient(135deg, #ffd166, #ff4d8d);
+    }
+
+    [data-theme="sleep"] {
+      --bg-primary: #001f3f;
+      --bg-secondary: #012a4a;
+      --text-primary: #cce7ff;
+      --text-secondary: #8aaacb;
+      --card-bg: #013a63;
+      --border-color: #01497c;
+      --header-bg: linear-gradient(135deg, #001f3f, #013a63);
+    }
+
     /* =============================
        🌟 الهيدر + بخار الكوب
     ============================== */
@@ -191,10 +263,6 @@
   </style>
 </head>
 <body data-theme="space" class="space-theme">
-  <!-- 🗺️ الخريطة الآن أول الصفحة -->
-  <section class="map-container">
-    <div id="map"></div>
-  </section>
 
   <!-- 🌌 الهيدر -->
   <header>
@@ -232,7 +300,10 @@
     </div>
   </section>
 
-
+  <!-- 🗺️ الخريطة -->
+  <section class="map-container">
+    <div id="map"></div>
+  </section>
   <!-- ☕ نتائج المقاهي -->
   <section class="results-section container">
     <div class="results-header d-flex justify-content-between align-items-center mb-4 p-3"
@@ -541,7 +612,155 @@
       setTimeout(()=> { n.style.opacity=0; setTimeout(()=>n.remove(),500); }, 3000);
     }
 
-     <!-- 🌐 مبدل اللغة -->
+    // =============================
+    // 🤖 Chatbot
+    // =============================
+    function addChatMessage(text, sender="bot") {
+      const messages = document.getElementById("chatbotMessages");
+      const div = document.createElement("div");
+      div.className = "message " + sender;
+      div.style.cssText = `
+        padding:10px 15px;
+        border-radius:15px;
+        max-width:80%;
+        line-height:1.4;
+      `;
+      if(sender==="bot"){
+        div.style.background="var(--bg-secondary)";
+        div.style.alignSelf="flex-start";
+        div.style.color="var(--text-primary)";
+      } else {
+        div.style.background="linear-gradient(135deg,var(--neon-blue),var(--space-purple))";
+        div.style.color="white";
+        div.style.alignSelf="flex-end";
+      }
+      div.textContent = text;
+      messages.appendChild(div);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    const botResponses = [
+      "Hello! How can I help you find coffee?",
+      "Looking for Wi-Fi or outdoor seating?",
+      "I can recommend top rated cafes nearby.",
+      "Would you like espresso or latte style places?",
+      "Searching... give me a second!"
+    ];
+
+    document.getElementById("chatbotToggle").addEventListener("click", ()=>{
+      const w = document.getElementById("chatbotWindow");
+      w.style.display = w.style.display==="flex" ? "none":"flex";
+    });
+    document.getElementById("closeChatbot").addEventListener("click", ()=>{
+      document.getElementById("chatbotWindow").style.display="none";
+    });
+    document.getElementById("sendMessage").addEventListener("click", ()=>{
+      const input = document.getElementById("chatbotInput");
+      const msg = input.value.trim();
+      if(!msg) return;
+      addChatMessage(msg,"user");
+      input.value="";
+      setTimeout(()=>{
+        const r = botResponses[Math.floor(Math.random()*botResponses.length)];
+        addChatMessage(r,"bot");
+      },800);
+    });
+
+    // =============================
+    // 🎮 Gamification + Confetti
+    // =============================
+    let points = 0;
+    function addPoints(p=10) {
+      points += p;
+      if(points % 50 === 0) {
+        showNotification(`Level Up! 🌟 You now have ${points} points!`,"success");
+        launchConfetti();
+      } else {
+        showNotification(`+${p} points! Total: ${points}`,"info");
+      }
+    }
+
+    function launchConfetti() {
+      const duration = 2 * 1000;
+      const end = Date.now() + duration;
+      (function frame() {
+        const confetti = document.createElement("div");
+        confetti.style.position="fixed";
+        confetti.style.left=Math.random()*100+"vw";
+        confetti.style.top="0px";
+        confetti.style.width="10px";
+        confetti.style.height="10px";
+        confetti.style.borderRadius="50%";
+        confetti.style.background=`hsl(${Math.random()*360},100%,50%)`;
+        confetti.style.opacity=0.8;
+        confetti.style.zIndex=3000;
+        document.body.appendChild(confetti);
+        const fall = setInterval(()=>{
+          const top = parseFloat(confetti.style.top);
+          if(top > window.innerHeight) { confetti.remove(); clearInterval(fall);}
+          confetti.style.top = top+5+"px";
+        },30);
+        if(Date.now()<end) requestAnimationFrame(frame);
+      })();
+    }
+
+    // ربط المفضلة مع النقاط
+    document.addEventListener("click",(e)=>{
+      if(e.target.closest(".action-btn.favorite")){
+        addPoints(20);
+        showNotification("Added to favorites ❤️","success");
+      }
+    });
+  </script>
+
+  <!-- 🌌 مؤثرات إضافية -->
+  <style>
+    .neon-text {
+      text-shadow: 0 0 5px var(--neon-blue),
+                   0 0 10px var(--neon-pink),
+                   0 0 15px var(--neon-blue),
+                   0 0 20px var(--space-purple);
+    }
+    .glitch {
+      position: relative;
+      color: white;
+      font-size: 2rem;
+      font-weight: bold;
+    }
+    .glitch::before,
+    .glitch::after {
+      content: attr(data-text);
+      position: absolute;
+      left: 0; top: 0;
+      width: 100%; overflow: hidden;
+    }
+    .glitch::before {
+      left: 2px; text-shadow: -2px 0 red; animation: glitch 2s infinite linear alternate-reverse;
+    }
+    .glitch::after {
+      left: -2px; text-shadow: -2px 0 blue; animation: glitch 1.5s infinite linear alternate-reverse;
+    }
+    @keyframes glitch {
+      0% { clip: rect(44px,9999px,56px,0); }
+      20% { clip: rect(12px,9999px,80px,0); }
+      40% { clip: rect(85px,9999px,140px,0); }
+      60% { clip: rect(24px,9999px,70px,0); }
+      80% { clip: rect(50px,9999px,90px,0); }
+      100% { clip: rect(10px,9999px,130px,0); }
+    }
+  </style>
+  <!-- 🌡️ الطقس -->
+  <section class="weather-widget container mb-4 p-3"
+           style="background:var(--card-bg); border-radius:12px; border:1px solid var(--border-color); max-width:400px;">
+    <h4><i class="fas fa-cloud-sun"></i> Weather</h4>
+    <p id="weatherInfo">Select a city to see the weather...</p>
+  </section>
+
+  <!-- ⚡ شريط الطاقة -->
+  <div class="energy-bar" style="position:fixed; top:0; left:0; width:0%; height:5px; 
+       background:linear-gradient(90deg,var(--neon-blue),var(--neon-pink)); z-index:3000;"></div>
+
+  <!-- 🌐 مبدل اللغة -->
   <div class="language-switcher" style="position:fixed; top:20px; right:20px; z-index:2000;">
     <button id="langToggle"
             style="padding:8px 14px; border:none; border-radius:20px; background:rgba(255,255,255,0.2);
@@ -758,6 +977,255 @@
 <!-- Cosmic Stars Background -->
 <canvas id="starsCanvas"></canvas>
 
+<!-- Background Music Player -->
+<div class="music-player" id="musicPlayer">
+  <button id="playMusic"><i class="fas fa-play"></i></button>
+  <button id="pauseMusic"><i class="fas fa-pause"></i></button>
+  <button id="nextMusic"><i class="fas fa-forward"></i></button>
+  <span id="musicTitle">🎶 Background Music</span>
+</div>
+
+<!-- Dashboard Section -->
+<section class="dashboard">
+  <h2 class="dashboard-title">📊 Coffee Finder Stats</h2>
+  <div class="dashboard-grid">
+    <div class="dashboard-card">
+      <h3 id="statsCafes">0</h3>
+      <p>Total Cafes</p>
+    </div>
+    <div class="dashboard-card">
+      <h3 id="statsUsers">0</h3>
+      <p>Active Users</p>
+    </div>
+    <div class="dashboard-card">
+      <h3 id="statsVisits">0</h3>
+      <p>Visits Today</p>
+    </div>
+    <div class="dashboard-card">
+      <h3 id="statsGames">0</h3>
+      <p>Games Played</p>
+    </div>
+  </div>
+</section>
+
+<!-- Coffee Game -->
+<section class="coffee-game">
+  <h2 class="game-title">☕ Coffee Beans Game</h2>
+  <canvas id="gameCanvas" width="600" height="400"></canvas>
+  <div class="game-controls">
+    <button id="startGame">Start Game</button>
+    <p>Score: <span id="gameScore">0</span></p>
+  </div>
+</section>
+
+<style>
+/* Stars Background */
+#starsCanvas {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: -2;
+  background: #000;
+}
+
+/* Music Player */
+.music-player {
+  position: fixed;
+  bottom: 100px; left: 30px;
+  background: rgba(20,20,30,0.8);
+  padding: 12px 18px;
+  border-radius: 12px;
+  display: flex; align-items: center;
+  gap: 10px;
+  color: white;
+  box-shadow: 0 0 15px rgba(255,255,255,0.2);
+}
+.music-player button {
+  background: transparent;
+  border: none; color: #18dcff;
+  font-size: 20px; cursor: pointer;
+  transition: transform 0.2s;
+}
+.music-player button:hover { transform: scale(1.2); }
+#musicTitle { font-size: 0.9rem; }
+
+/* Dashboard */
+.dashboard {
+  margin: 60px 0;
+  padding: 20px;
+  background: var(--card-bg);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+}
+.dashboard-title {
+  text-align: center;
+  margin-bottom: 25px;
+  color: var(--neon-blue);
+}
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill,minmax(200px,1fr));
+  gap: 20px;
+}
+.dashboard-card {
+  background: var(--bg-secondary);
+  padding: 20px;
+  text-align: center;
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+.dashboard-card h3 { font-size: 2rem; color: var(--neon-pink); }
+
+/* Coffee Game */
+.coffee-game {
+  margin: 60px 0;
+  padding: 20px;
+  background: var(--card-bg);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+#gameCanvas {
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  background: #1b1b2f;
+  display: block;
+  margin: 0 auto;
+}
+.game-controls {
+  margin-top: 15px;
+}
+.game-controls button {
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(135deg,#18dcff,#7158e2);
+  color: white; font-weight: bold;
+  cursor: pointer;
+}
+.game-controls button:hover { opacity: 0.8; }
+</style>
+
+<script>
+// ================= Stars Background =================
+const canvas = document.getElementById("starsCanvas");
+const ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let stars = [];
+for (let i=0;i<150;i++){
+  stars.push({
+    x: Math.random()*canvas.width,
+    y: Math.random()*canvas.height,
+    radius: Math.random()*1.5,
+    speed: Math.random()*0.5+0.2
+  });
+}
+function animateStars(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle="white";
+  stars.forEach(star=>{
+    ctx.beginPath();
+    ctx.arc(star.x,star.y,star.radius,0,Math.PI*2);
+    ctx.fill();
+    star.y += star.speed;
+    if(star.y>canvas.height){ star.y=0; star.x=Math.random()*canvas.width; }
+  });
+  requestAnimationFrame(animateStars);
+}
+animateStars();
+
+// ================= Music Player =================
+const songs = [
+  "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+  "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
+  "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3"
+];
+let currentSong = 0;
+const audio = new Audio(songs[currentSong]);
+document.getElementById("playMusic").onclick=()=>audio.play();
+document.getElementById("pauseMusic").onclick=()=>audio.pause();
+document.getElementById("nextMusic").onclick=()=>{
+  currentSong=(currentSong+1)%songs.length;
+  audio.src=songs[currentSong];
+  audio.play();
+};
+document.getElementById("musicTitle").textContent="🎶 Free Cosmic Beats";
+
+// ================= Dashboard Stats =================
+let cafes=12,users=523,visits=87,games=0;
+function updateStats(){
+  document.getElementById("statsCafes").textContent=cafes;
+  document.getElementById("statsUsers").textContent=users;
+  document.getElementById("statsVisits").textContent=visits;
+  document.getElementById("statsGames").textContent=games;
+}
+setInterval(()=>{
+  visits+=Math.floor(Math.random()*3);
+  users+=Math.floor(Math.random()*2);
+  updateStats();
+},3000);
+updateStats();
+
+// ================= Coffee Game =================
+const gameCanvas=document.getElementById("gameCanvas");
+const gctx=gameCanvas.getContext("2d");
+let player={x:280,y:350,w:40,h:40,color:"#18dcff"};
+let beans=[],score=0,gameRunning=false;
+
+function spawnBean(){
+  beans.push({x:Math.random()*560,y:0,w:20,h:20,speed:2+Math.random()*2});
+}
+function drawPlayer(){
+  gctx.fillStyle=player.color;
+  gctx.fillRect(player.x,player.y,player.w,player.h);
+}
+function drawBeans(){
+  beans.forEach(bean=>{
+    gctx.fillStyle="#ffdd57";
+    gctx.beginPath();
+    gctx.arc(bean.x,bean.y,bean.w/2,0,Math.PI*2);
+    gctx.fill();
+  });
+}
+function updateBeans(){
+  beans.forEach((bean,i)=>{
+    bean.y+=bean.speed;
+    if(bean.y>400) beans.splice(i,1);
+    if(bean.x<player.x+player.w && bean.x+bean.w>player.x &&
+       bean.y<player.y+player.h && bean.y+bean.h>player.y){
+      beans.splice(i,1); score+=10;
+      document.getElementById("gameScore").textContent=score;
+    }
+  });
+}
+function gameLoop(){
+  if(!gameRunning) return;
+  gctx.clearRect(0,0,600,400);
+  drawPlayer();
+  drawBeans();
+  updateBeans();
+  requestAnimationFrame(gameLoop);
+}
+document.getElementById("startGame").onclick=()=>{
+  score=0; beans=[]; gameRunning=true; games++;
+  setInterval(spawnBean,1000);
+  gameLoop();
+  updateStats();
+};
+document.addEventListener("keydown",e=>{
+  if(e.key==="ArrowLeft" && player.x>0) player.x-=20;
+  if(e.key==="ArrowRight" && player.x<560) player.x+=20;
+});
+</script>
+<!-- ====================== PART 5 END ====================== -->
+<!-- ====================== PART 6 START ====================== -->
+<!-- Advanced Chatbot + Parallax + Dynamic Background + Coffee Store + Achievements -->
+
+<!-- Dynamic Background -->
+<div id="dynamicBackground"></div>
+
 <!-- Coffee Store -->
 <section class="coffee-store">
   <h2 class="store-title">🛒 Virtual Coffee Store</h2>
@@ -807,6 +1275,30 @@
     <p>Scroll down to enjoy the parallax effect and immersive design.</p>
   </div>
 </section>
+
+<!-- Upgraded Chatbot -->
+<div class="chatbot-advanced" id="chatbotAdvanced">
+  <div class="chat-header">
+    <h4>AI Coffee Assistant 🤖</h4>
+    <button id="closeAdvChat">×</button>
+  </div>
+  <div class="chat-body" id="chatBody"></div>
+  <div class="chat-input">
+    <input type="text" id="chatInput" placeholder="Ask me anything about coffee...">
+    <button id="sendChat"><i class="fas fa-paper-plane"></i></button>
+  </div>
+</div>
+<button class="chat-open" id="openAdvChat"><i class="fas fa-comments"></i></button>
+
+<style>
+/* Dynamic Background */
+#dynamicBackground {
+  position: fixed; top:0; left:0;
+  width:100%; height:100%;
+  z-index:-3;
+  background: linear-gradient(to bottom, #ffe29f, #ffa99f);
+  transition: background 1s ease;
+}
 
 /* Store */
 .coffee-store {
@@ -1649,6 +2141,7 @@ document.getElementById("immersiveBtn").onclick=()=>{
             <a href="https://twitter.com" target="_blank" class="social-btn twitter"><i class="fab fa-twitter"></i></a>
             <a href="https://facebook.com" target="_blank" class="social-btn facebook"><i class="fab fa-facebook-f"></i></a>
             <a href="https://instagram.com" target="_blank" class="social-btn instagram"><i class="fab fa-instagram"></i></a>
+            <a href="https://github.com" target="_blank" class="social-btn github"><i class="fab fa-github"></i></a>
         </div>
 
         <style>
@@ -1832,6 +2325,19 @@ document.getElementById("immersiveBtn").onclick=()=>{
             }
         </style>
 
+        <script>
+            // Free API for quotes
+            async function loadQuote() {
+                try {
+                    const res = await fetch("https://type.fit/api/quotes");
+                    const quotes = await res.json();
+                    const random = quotes[Math.floor(Math.random() * quotes.length)];
+                    document.getElementById("daily-quote").textContent = random.text;
+                } catch {
+                    document.getElementById("daily-quote").textContent = "Stay positive, drink coffee ☕";
+                }
+            }
+            loadQuote();
         </script>
 
         <!-- Animated Neon Border for Header -->
@@ -1882,7 +2388,137 @@ document.getElementById("immersiveBtn").onclick=()=>{
         </script>
 
         <!-- ================= END EXTRA FEATURES PART 2 ================= -->
-              <!-- User Visit Counter -->
+        <!-- ================= EXTRA FEATURES PART 3 ================= -->
+        <!-- Music Player Widget -->
+        <div id="music-player" class="music-player">
+            <h4><i class="fas fa-music"></i> Chill Coffee Beats</h4>
+            <audio id="player" controls loop>
+                <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
+                Your browser does not support the audio element.
+            </audio>
+        </div>
+
+        <style>
+            .music-player {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                background: var(--card-bg);
+                padding: 15px;
+                border-radius: 12px;
+                box-shadow: var(--shadow);
+                border: 1px solid var(--border-color);
+                z-index: 1500;
+                width: 260px;
+                text-align: center;
+            }
+            .music-player h4 {
+                margin-bottom: 10px;
+                font-weight: 700;
+            }
+            .music-player audio {
+                width: 100%;
+                outline: none;
+            }
+        </style>
+
+        <!-- Notification Bell -->
+        <div id="notif-bell" class="notif-bell">
+            <i class="fas fa-bell"></i>
+            <span id="notif-count">0</span>
+        </div>
+
+        <style>
+            .notif-bell {
+                position: fixed;
+                top: 100px;
+                right: 30px;
+                background: linear-gradient(135deg, var(--neon-pink), var(--space-purple));
+                color: white;
+                width: 55px;
+                height: 55px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 20px;
+                cursor: pointer;
+                z-index: 1200;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            }
+            .notif-bell span {
+                position: absolute;
+                top: 5px;
+                right: 5px;
+                background: red;
+                color: white;
+                font-size: 12px;
+                padding: 2px 6px;
+                border-radius: 12px;
+            }
+        </style>
+
+        <script>
+            let notifCount = 0;
+            const notifBell = document.getElementById("notif-bell");
+            notifBell.addEventListener("click", () => {
+                notifCount = 0;
+                document.getElementById("notif-count").textContent = notifCount;
+                showNotification("No new notifications", "info");
+            });
+
+            // simulate random notifications
+            setInterval(() => {
+                notifCount++;
+                document.getElementById("notif-count").textContent = notifCount;
+                showNotification("New coffee offer nearby! ☕", "success");
+            }, 20000);
+        </script>
+
+        <!-- Easter Egg (Konami Code) -->
+        <script>
+            let konami = [];
+            const secret = "38384040373937396665"; // up up down down left right left right b a
+            document.addEventListener("keydown", (e) => {
+                konami.push(e.keyCode);
+                if (konami.join("").includes(secret)) {
+                    showNotification("🎉 Secret Unlocked: Cosmic Coffee Mode!", "success");
+                    document.body.style.background = "linear-gradient(45deg, #ff4d8d, #18dcff, #ffd166)";
+                }
+            });
+        </script>
+
+        <!-- Floating Clock -->
+        <div id="floating-clock"></div>
+
+        <style>
+            #floating-clock {
+                position: fixed;
+                top: 20px;
+                right: 50%;
+                transform: translateX(50%);
+                background: rgba(0,0,0,0.6);
+                color: white;
+                padding: 8px 15px;
+                border-radius: 20px;
+                font-weight: 600;
+                font-size: 0.95rem;
+                z-index: 1500;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            }
+        </style>
+
+        <script>
+            function updateClock() {
+                const now = new Date();
+                document.getElementById("floating-clock").textContent =
+                    now.toLocaleTimeString();
+            }
+            setInterval(updateClock, 1000);
+            updateClock();
+        </script>
+
+        <!-- User Visit Counter -->
         <div id="visit-counter" class="visit-counter">
             <i class="fas fa-user"></i> Visits: <span id="visit-count">0</span>
         </div>
@@ -1912,8 +2548,561 @@ document.getElementById("immersiveBtn").onclick=()=>{
 
         <!-- ================= END EXTRA FEATURES PART 3 ================= -->
         <!-- ================= EXTRA FEATURES PART 4 ================= -->
-              <!-- ================= EXTRA FEATURES PART 6 ================= -->
-              <!-- ================= NEW FEATURE: 3D COFFEE CUP ================= -->
+        <!-- Reading Mode -->
+        <button id="readingModeBtn" class="reading-mode-btn">
+            <i class="fas fa-book-reader"></i>
+        </button>
+
+        <style>
+            .reading-mode-btn {
+                position: fixed;
+                bottom: 160px;
+                right: 30px;
+                width: 55px;
+                height: 55px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #00ff8c, #00b36b);
+                color: white;
+                border: none;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 20px;
+                z-index: 1400;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            }
+            body.reading-mode {
+                background: #fefae0 !important;
+                color: #222 !important;
+                line-height: 1.9;
+                font-size: 1.15rem;
+            }
+        </style>
+
+        <script>
+            document.getElementById("readingModeBtn").addEventListener("click", () => {
+                document.body.classList.toggle("reading-mode");
+                showNotification("Reading Mode toggled", "info");
+            });
+        </script>
+
+        <!-- Wave Animation Background -->
+        <canvas id="waveCanvas"></canvas>
+
+        <style>
+            #waveCanvas {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                height: 200px;
+                z-index: -1;
+            }
+        </style>
+
+        <script>
+            const waveCanvas = document.getElementById("waveCanvas");
+            const waveCtx = waveCanvas.getContext("2d");
+            waveCanvas.width = window.innerWidth;
+            waveCanvas.height = 200;
+
+            function drawWaves() {
+                waveCtx.clearRect(0, 0, waveCanvas.width, waveCanvas.height);
+                waveCtx.fillStyle = "rgba(113,88,226,0.3)";
+                waveCtx.beginPath();
+                for (let x = 0; x < waveCanvas.width; x++) {
+                    const y = 100 + Math.sin(x * 0.02 + Date.now() * 0.002) * 20;
+                    waveCtx.lineTo(x, y);
+                }
+                waveCtx.lineTo(waveCanvas.width, waveCanvas.height);
+                waveCtx.lineTo(0, waveCanvas.height);
+                waveCtx.closePath();
+                waveCtx.fill();
+            }
+            setInterval(drawWaves, 30);
+        </script>
+
+        <!-- Control Panel -->
+        <div id="control-panel" class="control-panel">
+            <h4><i class="fas fa-cogs"></i> Control Panel</h4>
+            <button onclick="document.body.setAttribute('data-theme','light')">Light</button>
+            <button onclick="document.body.setAttribute('data-theme','dark')">Dark</button>
+            <button onclick="document.body.setAttribute('data-theme','space')">Space</button>
+            <button onclick="toggleSteam()">☕ Toggle Steam</button>
+        </div>
+
+        <style>
+            .control-panel {
+                position: fixed;
+                top: 200px;
+                left: -220px;
+                width: 200px;
+                background: var(--card-bg);
+                border: 1px solid var(--border-color);
+                padding: 15px;
+                border-radius: 12px;
+                box-shadow: var(--shadow);
+                transition: left 0.4s;
+                z-index: 1600;
+            }
+            .control-panel:hover {
+                left: 20px;
+            }
+            .control-panel h4 {
+                font-size: 1rem;
+                margin-bottom: 10px;
+            }
+            .control-panel button {
+                display: block;
+                margin: 8px 0;
+                padding: 6px 12px;
+                border: none;
+                border-radius: 6px;
+                cursor: pointer;
+                width: 100%;
+                font-size: 0.9rem;
+                background: linear-gradient(135deg, var(--neon-blue), var(--space-purple));
+                color: white;
+            }
+        </style>
+
+        <script>
+            function toggleSteam() {
+                const steam = document.querySelectorAll(".steam");
+                steam.forEach(s => {
+                    if (s.style.display === "none") {
+                        s.style.display = "block";
+                    } else {
+                        s.style.display = "none";
+                    }
+                });
+                showNotification("Steam toggled", "info");
+            }
+        </script>
+
+        <!-- Keyboard Sound Effect -->
+        <audio id="key-sound" src="https://freesound.org/data/previews/256/256113_3263906-lq.mp3"></audio>
+
+        <script>
+            document.addEventListener("keypress", () => {
+                const sound = document.getElementById("key-sound");
+                sound.currentTime = 0;
+                sound.play();
+            });
+        </script>
+
+        <!-- Glow Cursor -->
+        <div id="cursor-glow"></div>
+
+        <style>
+            #cursor-glow {
+                position: fixed;
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                background: radial-gradient(circle, rgba(24,220,255,0.6), transparent 70%);
+                pointer-events: none;
+                mix-blend-mode: screen;
+                z-index: 2000;
+                transform: translate(-50%, -50%);
+            }
+        </style>
+
+        <script>
+            const glow = document.getElementById("cursor-glow");
+            document.addEventListener("mousemove", (e) => {
+                glow.style.top = e.clientY + "px";
+                glow.style.left = e.clientX + "px";
+            });
+        </script>
+
+        <!-- ================= END EXTRA FEATURES PART 4 ================= -->
+        <!-- ================= EXTRA FEATURES PART 5 ================= -->
+        <!-- Rain Effect -->
+        <canvas id="rainCanvas"></canvas>
+
+        <style>
+            #rainCanvas {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                z-index: -3;
+                pointer-events: none;
+            }
+        </style>
+
+        <script>
+            const rainCanvas = document.getElementById("rainCanvas");
+            const rainCtx = rainCanvas.getContext("2d");
+            rainCanvas.width = window.innerWidth;
+            rainCanvas.height = window.innerHeight;
+
+            const drops = [];
+            for (let i = 0; i < 150; i++) {
+                drops.push({
+                    x: Math.random() * rainCanvas.width,
+                    y: Math.random() * rainCanvas.height,
+                    length: Math.random() * 20 + 10,
+                    speed: Math.random() * 4 + 2
+                });
+            }
+
+            function drawRain() {
+                rainCtx.clearRect(0, 0, rainCanvas.width, rainCanvas.height);
+                rainCtx.strokeStyle = "rgba(24,220,255,0.5)";
+                rainCtx.lineWidth = 1;
+                for (let d of drops) {
+                    rainCtx.beginPath();
+                    rainCtx.moveTo(d.x, d.y);
+                    rainCtx.lineTo(d.x, d.y + d.length);
+                    rainCtx.stroke();
+                    d.y += d.speed;
+                    if (d.y > rainCanvas.height) d.y = -20;
+                }
+            }
+            setInterval(drawRain, 30);
+        </script>
+
+        <!-- Matrix Effect -->
+        <canvas id="matrixCanvas"></canvas>
+
+        <style>
+            #matrixCanvas {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                z-index: -4;
+                pointer-events: none;
+                opacity: 0.3;
+            }
+        </style>
+
+        <script>
+            const matrixCanvas = document.getElementById("matrixCanvas");
+            const matrixCtx = matrixCanvas.getContext("2d");
+            matrixCanvas.width = window.innerWidth;
+            matrixCanvas.height = window.innerHeight;
+
+            const letters = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            const fontSize = 14;
+            const columns = matrixCanvas.width / fontSize;
+            const dropsM = [];
+            for (let i = 0; i < columns; i++) dropsM[i] = 1;
+
+            function drawMatrix() {
+                matrixCtx.fillStyle = "rgba(0, 0, 0, 0.05)";
+                matrixCtx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
+                matrixCtx.fillStyle = "#0f0";
+                matrixCtx.font = fontSize + "px monospace";
+                for (let i = 0; i < dropsM.length; i++) {
+                    const text = letters[Math.floor(Math.random() * letters.length)];
+                    matrixCtx.fillText(text, i * fontSize, dropsM[i] * fontSize);
+                    if (dropsM[i] * fontSize > matrixCanvas.height && Math.random() > 0.975) {
+                        dropsM[i] = 0;
+                    }
+                    dropsM[i]++;
+                }
+            }
+            setInterval(drawMatrix, 50);
+        </script>
+
+        <!-- Typing Counter -->
+        <div id="typing-counter" class="typing-counter">
+            Keys typed: <span id="keys-count">0</span>
+        </div>
+
+        <style>
+            .typing-counter {
+                position: fixed;
+                bottom: 20px;
+                right: 300px;
+                background: var(--card-bg);
+                border: 1px solid var(--border-color);
+                border-radius: 12px;
+                padding: 8px 15px;
+                box-shadow: var(--shadow);
+                font-size: 0.9rem;
+                color: var(--text-primary);
+                z-index: 1100;
+            }
+        </style>
+
+        <script>
+            let keyCount = 0;
+            document.addEventListener("keydown", () => {
+                keyCount++;
+                document.getElementById("keys-count").textContent = keyCount;
+            });
+        </script>
+
+        <!-- Zen Mode -->
+        <button id="zenBtn" class="zen-btn"><i class="fas fa-yin-yang"></i></button>
+
+        <style>
+            .zen-btn {
+                position: fixed;
+                bottom: 230px;
+                right: 30px;
+                width: 55px;
+                height: 55px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #18dcff, #7158e2);
+                color: white;
+                border: none;
+                font-size: 20px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                z-index: 1300;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            }
+            body.zen-mode {
+                background: radial-gradient(circle, #222 0%, #000 100%) !important;
+                color: #eee !important;
+                font-size: 1.2rem;
+                line-height: 2;
+            }
+        </style>
+
+        <script>
+            document.getElementById("zenBtn").addEventListener("click", () => {
+                document.body.classList.toggle("zen-mode");
+                showNotification("Zen Mode toggled 🧘", "info");
+            });
+        </script>
+
+        <!-- ================= END EXTRA FEATURES PART 5 ================= -->
+        <!-- ================= EXTRA FEATURES PART 6 ================= -->
+        <!-- Neon Background Animation -->
+        <div id="neon-bg"></div>
+
+        <style>
+            #neon-bg {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                z-index: -5;
+                background: linear-gradient(270deg, #18dcff, #ff4d8d, #ffd166, #7158e2);
+                background-size: 800% 800%;
+                animation: neonBG 20s ease infinite;
+                opacity: 0.2;
+            }
+            @keyframes neonBG {
+                0% { background-position: 0% 50%; }
+                50% { background-position: 100% 50%; }
+                100% { background-position: 0% 50%; }
+            }
+        </style>
+
+        <!-- Session Timer -->
+        <div id="session-timer" class="session-timer">
+            Session Time: <span id="session-time">0</span> mins
+        </div>
+
+        <style>
+            .session-timer {
+                position: fixed;
+                top: 60px;
+                right: 20px;
+                background: var(--card-bg);
+                padding: 8px 15px;
+                border-radius: 12px;
+                border: 1px solid var(--border-color);
+                font-size: 0.9rem;
+                font-weight: 600;
+                box-shadow: var(--shadow);
+                color: var(--text-primary);
+                z-index: 1200;
+            }
+        </style>
+
+        <script>
+            let minutes = 0;
+            setInterval(() => {
+                minutes++;
+                document.getElementById("session-time").textContent = minutes;
+            }, 60000);
+        </script>
+
+        <!-- Daily Coffee Counter -->
+        <div id="coffee-counter" class="coffee-counter">
+            ☕ Coffees Today: <span id="coffee-count">0</span>
+            <button onclick="addCoffee()">+1</button>
+        </div>
+
+        <style>
+            .coffee-counter {
+                position: fixed;
+                bottom: 300px;
+                left: 20px;
+                background: var(--card-bg);
+                padding: 10px 15px;
+                border-radius: 12px;
+                box-shadow: var(--shadow);
+                border: 1px solid var(--border-color);
+                font-size: 0.95rem;
+                color: var(--text-primary);
+                z-index: 1100;
+            }
+            .coffee-counter button {
+                margin-left: 10px;
+                border: none;
+                border-radius: 8px;
+                padding: 4px 10px;
+                background: linear-gradient(135deg, var(--neon-blue), var(--space-purple));
+                color: white;
+                cursor: pointer;
+            }
+        </style>
+
+        <script>
+            let todayCoffee = localStorage.getItem("coffeeCount") || 0;
+            document.getElementById("coffee-count").textContent = todayCoffee;
+            function addCoffee() {
+                todayCoffee++;
+                localStorage.setItem("coffeeCount", todayCoffee);
+                document.getElementById("coffee-count").textContent = todayCoffee;
+                showNotification("Coffee added! ☕ Total: " + todayCoffee, "success");
+            }
+        </script>
+
+        <!-- Party Mode -->
+        <button id="partyBtn" class="party-btn"><i class="fas fa-bolt"></i></button>
+
+        <style>
+            .party-btn {
+                position: fixed;
+                bottom: 370px;
+                right: 30px;
+                width: 55px;
+                height: 55px;
+                border-radius: 50%;
+                border: none;
+                background: linear-gradient(135deg, #ff6b6b, #ffd166);
+                color: white;
+                font-size: 20px;
+                cursor: pointer;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 1300;
+            }
+        </style>
+
+        <script>
+            document.getElementById("partyBtn").addEventListener("click", () => {
+                for (let i = 0; i < 30; i++) {
+                    const confetti = document.createElement("div");
+                    confetti.style.position = "fixed";
+                    confetti.style.top = Math.random() * window.innerHeight + "px";
+                    confetti.style.left = Math.random() * window.innerWidth + "px";
+                    confetti.style.width = "8px";
+                    confetti.style.height = "8px";
+                    confetti.style.background = ["#ff4d8d","#18dcff","#ffd166","#00ff8c"][Math.floor(Math.random()*4)];
+                    confetti.style.opacity = 0.8;
+                    confetti.style.borderRadius = "50%";
+                    confetti.style.zIndex = 2000;
+                    confetti.style.animation = "fall 3s linear forwards";
+                    document.body.appendChild(confetti);
+                    setTimeout(()=>confetti.remove(), 3000);
+                }
+                showNotification("Party Mode Activated 🎉", "success");
+            });
+
+            const style = document.createElement("style");
+            style.textContent = `
+                @keyframes fall {
+                    to { transform: translateY(500px) rotate(360deg); opacity: 0; }
+                }
+            `;
+            document.head.appendChild(style);
+        </script>
+
+        <!-- ================= END EXTRA FEATURES PART 6 ================= -->
+        <!-- ================= NEW FEATURE: ADVANCED AI CHATBOT ================= -->
+        <script>
+            const chatbotInput = document.getElementById("chatbotInput");
+            const chatbotMessages = document.getElementById("chatbotMessages");
+            const sendMessageBtn = document.getElementById("sendMessage");
+
+            function addMessage(text, sender = "bot") {
+                const msg = document.createElement("div");
+                msg.className = "message " + sender;
+                chatbotMessages.appendChild(msg);
+
+                // Typewriter effect for bot
+                if (sender === "bot") {
+                    let i = 0;
+                    function typing() {
+                        if (i < text.length) {
+                            msg.textContent += text.charAt(i);
+                            i++;
+                            setTimeout(typing, 40);
+                        }
+                    }
+                    typing();
+                } else {
+                    msg.textContent = text;
+                }
+
+                chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+            }
+
+            function getBotResponse(userMsg) {
+                const msg = userMsg.toLowerCase();
+                if (msg.includes("help")) {
+                    return "🤖 Available commands:\n- 'coffee' → Random coffee fact\n- 'joke' → Coffee joke\n- 'quote' → Daily quote\n- 'location' → Riyadh, Saudi Arabia\n- 'time' → Current time";
+                }
+                if (msg.includes("coffee")) {
+                    const facts = [
+                        "☕ Did you know? Coffee is the second most traded commodity after oil.",
+                        "☕ The word 'coffee' comes from the Arabic word 'qahwa'.",
+                        "☕ Coffee can improve your energy levels and brain function."
+                    ];
+                    return facts[Math.floor(Math.random() * facts.length)];
+                }
+                if (msg.includes("joke")) {
+                    return "😂 Why don't coffee beans ever gossip? Because they don’t want to espresso too much!";
+                }
+                if (msg.includes("quote")) {
+                    return "✨ 'Life happens, coffee helps.' – Anonymous";
+                }
+                if (msg.includes("location")) {
+                    return "📍 Riyadh, Saudi Arabia 🌍";
+                }
+                if (msg.includes("time")) {
+                    return "⏰ Current time: " + new Date().toLocaleTimeString();
+                }
+                return "🤖 Interesting! Tell me more...";
+            }
+
+            sendMessageBtn.addEventListener("click", () => {
+                const text = chatbotInput.value.trim();
+                if (!text) return;
+                addMessage(text, "user");
+                chatbotInput.value = "";
+
+                setTimeout(() => {
+                    const reply = getBotResponse(text);
+                    addMessage(reply, "bot");
+                }, 600);
+            });
+
+            chatbotInput.addEventListener("keypress", (e) => {
+                if (e.key === "Enter") sendMessageBtn.click();
+            });
+        </script>
+        <!-- ================= END ADVANCED AI CHATBOT ================= -->
+        <!-- ================= NEW FEATURE: 3D COFFEE CUP ================= -->
         <section id="coffee-3d" style="margin:60px 0; text-align:center;">
             <h2 style="color:var(--text-primary); margin-bottom:20px;">☕ 3D Coffee Cup</h2>
             <div id="three-container" style="width:100%; height:500px;"></div>
