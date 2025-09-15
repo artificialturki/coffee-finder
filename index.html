@@ -11,6 +11,236 @@
   <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet" />
 
   <style>
+
+    <!-- === Leaflet CSS/JS === -->
+<link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+/* ============================
+   🗺️ MAP CORE — Leaflet Setup
+============================ */
+let map, cafesLayer;
+
+/* أيقونة كوب أبيض مع قهوة + بخار (SVG مضمّن) */
+function makeCoffeeIcon() {
+  const svg = `
+  <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+    <defs>
+      <filter id="s" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="0.8"/>
+      </filter>
+    </defs>
+    <!-- بخار -->
+    <path d="M25 12c0-4 6-4 6-8" stroke="#18dcff" stroke-width="2" fill="none" filter="url(#s)"/>
+    <path d="M33 14c0-4 6-4 6-8" stroke="#18dcff" stroke-width="2" fill="none" filter="url(#s)"/>
+    <!-- كوب -->
+    <rect x="10" y="22" rx="6" ry="6" width="36" height="26" fill="#ffffff" stroke="#e8e8e8" stroke-width="2"/>
+    <!-- يد الكوب -->
+    <path d="M46 26c8 0 8 12 0 12" fill="none" stroke="#ffffff" stroke-width="6"/>
+    <path d="M46 27.5c6 0 6 9 0 9" fill="none" stroke="#cfcfcf" stroke-width="2"/>
+    <!-- سطح القهوة -->
+    <ellipse cx="28" cy="28" rx="16" ry="5" fill="#6f4e37"/>
+    <!-- قاعدة -->
+    <rect x="16" y="48" width="24" height="3" rx="2" fill="#dcdcdc"/>
+    <!-- ظل -->
+    <ellipse cx="32" cy="58" rx="18" ry="3" fill="rgba(0,0,0,0.2)"/>
+  </svg>`;
+  return L.icon({
+    iconUrl: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
+    iconSize: [36, 44],
+    iconAnchor: [18, 42],
+    popupAnchor: [0, -36],
+    className: 'coffee-marker'
+  });
+}
+const coffeeIcon = makeCoffeeIcon();
+
+function initMap() {
+  // أنشئ الخريطة
+  map = L.map('map', { zoomControl: false, minZoom: 3 }).setView([24.7136, 46.6753], 12);
+
+  // طبقات أساس (مع تبديل)
+  const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '© OpenStreetMap'
+  }).addTo(map);
+
+  const cartoDark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; Carto'
+  });
+
+  L.control.layers(
+    { 'OSM': osm, 'Carto Dark': cartoDark },
+    {},
+    { position: 'topleft' }
+  ).addTo(map);
+
+  // أزرار تكبير/تصغير أسفل يمين
+  L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+  // طبقة المقاهي
+  cafesLayer = L.layerGroup().addTo(map);
+
+  // كنترول "بالقرب مني"
+  addNearbyControl();
+
+  // معالجة عدم ظهور الخريطة عند التحميل الأول
+  setTimeout(() => map.invalidateSize(), 300);
+
+  // أربط أزرار البحث الخارجية الموجودة عندك
+  const btn = document.getElementById('searchBtn');
+  const input = document.getElementById('searchInput');
+  if (btn && input) {
+    btn.addEventListener('click', () => {
+      const q = input.value.trim();
+      if (q) searchCity(q);
+    });
+    input.addEventListener('keypress', e => {
+      if (e.key === 'Enter') {
+        const q = input.value.trim();
+        if (q) searchCity(q);
+      }
+    });
+  }
+
+  // زر خارجي "بالقرب مني"
+  const nearbyBtn = document.getElementById('nearbyBtn');
+  if (nearbyBtn) nearbyBtn.addEventListener('click', goNearby);
+}
+
+// كنترول زر "بالقرب مني"
+function addNearbyControl() {
+  const NearMe = L.Control.extend({
+    position: 'topright',
+    onAdd: function () {
+      const btn = L.DomUtil.create('button', '');
+      btn.innerHTML = '📍 Near Me';
+      btn.title = 'ابحث حول موقعي';
+      btn.style.cssText = 'background:#fff;padding:6px 10px;border:1px solid #ddd;border-radius:8px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.2);';
+      L.DomEvent.on(btn, 'click', function (e) {
+        L.DomEvent.stopPropagation(e);
+        goNearby();
+      });
+      return btn;
+    }
+  });
+  map.addControl(new NearMe());
+}
+
+// تنفيذ تحديد الموقع ثم جلب المقاهي
+function goNearby() {
+  if (!navigator.geolocation) {
+    showNotification && showNotification('المتصفح لا يدعم تحديد الموقع', 'error');
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(pos => {
+    const { latitude, longitude } = pos.coords;
+    map.setView([latitude, longitude], 14);
+    L.circle([latitude, longitude], { radius: 60, color: '#18dcff', fillColor: '#18dcff', fillOpacity: .2 }).addTo(map);
+    const r = document.getElementById('radius')?.value || 3000;
+    fetchCafes(latitude, longitude, r);
+  }, () => {
+    showNotification && showNotification('تعذّر تحديد موقعك', 'error');
+  }, { enableHighAccuracy: true, timeout: 8000 });
+}
+
+/* ============================
+   🔎 Search & Cafes (تستخدم دوالّك مع تحسينات طفيفة)
+============================ */
+// ابحث بالمدينة (Nominatim) — تبقى دالتك كما هي، فقط أضفت accept-language
+async function searchCity(query) {
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&accept-language=ar&q=${encodeURIComponent(query + ', Saudi Arabia')}`;
+    const res = await fetch(url);
+    const results = await res.json();
+    if (results.length > 0) {
+      const { lat, lon, display_name } = results[0];
+      map.setView([lat, lon], 13);
+      fetchCafes(lat, lon, document.getElementById('radius')?.value || 3000);
+      showNotification && showNotification('✅ تم العثور على: ' + display_name, 'success');
+    } else {
+      showNotification && showNotification('❌ لم يتم العثور على المدينة', 'error');
+    }
+  } catch (e) {
+    showNotification && showNotification('خطأ في البحث', 'error');
+  }
+}
+
+// جلب مقاهي من Overpass (كما لديك)
+async function fetchCafes(lat, lon, radius = 3000) {
+  try {
+    const url = `https://overpass-api.de/api/interpreter?data=[out:json];node["amenity"="cafe"](around:${radius},${lat},${lon});out;`;
+    const res = await fetch(url);
+    const data = await res.json();
+    renderCafeList(data.elements || []);
+  } catch (e) {
+    showNotification && showNotification('تعذّر تحميل المقاهي', 'error');
+  }
+}
+
+/* ============================
+   🧾 Render Cafes (استبدل دالتك بهذه)
+============================ */
+function renderCafeList(cafes) {
+  // قائمة HTML
+  const list = document.getElementById('cafeList');
+  if (list) list.innerHTML = '';
+
+  // امسح العلامات القديمة من الطبقة
+  cafesLayer && cafesLayer.clearLayers();
+
+  // عدّاد إن وجد
+  const counter = document.getElementById('resultsNumber');
+  if (counter) counter.textContent = cafes.length;
+
+  cafes.forEach((cafe, i) => {
+    const name = (cafe.tags && cafe.tags.name) || 'Unnamed Cafe';
+    const addr = (cafe.tags && cafe.tags['addr:street']) || 'No Address';
+
+    // بطاقة
+    if (list) {
+      const div = document.createElement('div');
+      div.className = 'cafe-card';
+      div.style.opacity = 0;
+      div.innerHTML = `
+        <h5>☕ ${name}</h5>
+        <p><i class="fas fa-map-marker-alt"></i> ${addr}</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-sm btn-outline-light" onclick="openInMaps(${cafe.lat},${cafe.lon})">
+            <i class="fas fa-route"></i> Directions
+          </button>
+          <button class="btn btn-sm btn-outline-danger" onclick="addFavorite && addFavorite('${name.replace(/'/g,"\\'")}')">
+            <i class="fas fa-heart"></i> Favorite
+          </button>
+        </div>
+      `;
+      list.appendChild(div);
+      setTimeout(() => { div.style.opacity = 1; }, i * 80);
+    }
+
+    // ماركر على الخريطة بأيقونة الكوب
+    if (cafesLayer) {
+      const m = L.marker([cafe.lat, cafe.lon], { icon: coffeeIcon });
+      m.bindPopup(`<b>${name}</b><br>${addr}`);
+      cafesLayer.addLayer(m);
+    }
+  });
+
+  // ضمنيًا: إن لم يكن هناك مقاهي
+  if (cafes.length === 0) {
+    showNotification && showNotification('لا توجد نتائج في هذه المنطقة', 'info');
+  }
+}
+
+// فتح الاتجاهات في Google Maps
+function openInMaps(lat, lon) {
+  window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`, '_blank');
+}
+
+// ابدأ الخريطة عند تحميل الـ DOM
+document.addEventListener('DOMContentLoaded', initMap);
+</script>
+
     /* =============================
        🌌 الأساسيات + المتغيرات
     ============================== */
@@ -51,7 +281,29 @@
         radial-gradient(circle at 15% 50%, rgba(24,220,255,0.05) 0%, transparent 25%),
         radial-gradient(circle at 85% 30%, rgba(113,88,226,0.05) 0%, transparent 25%),
         radial-gradient(circle at 50% 80%, rgba(255,77,141,0.05) 0%, transparent 25%);
-    }
+    } 
+    <!-- ====== MAP SECTION (Top of page) ====== -->
+<section style="max-width:1200px;margin:20px auto;">
+  <div id="map" style="height:520px;border-radius:12px;overflow:hidden;"></div>
+  <div style="display:flex;gap:10px;align-items:center;margin-top:12px;">
+    <input id="searchInput" type="text" placeholder="ابحث عن مدينة داخل السعودية..." 
+           style="flex:1;padding:12px 14px;border-radius:10px;border:1px solid #2a3e5a;background:#0f1525;color:#e9ecef;">
+    <select id="radius" style="padding:10px 12px;border-radius:10px;border:1px solid #2a3e5a;background:#0f1525;color:#e9ecef;">
+      <option value="1000">1 كم</option>
+      <option value="3000" selected>3 كم</option>
+      <option value="5000">5 كم</option>
+      <option value="10000">10 كم</option>
+    </select>
+    <button id="searchBtn" class="btn btn-primary" style="padding:12px 18px;border:none;border-radius:10px;background:linear-gradient(135deg,#18dcff,#7158e2);">
+      <i class="fas fa-search"></i> بحث
+    </button>
+    <!-- زر «بالقرب مني» موجود ككنترول على الخريطة أيضًا، لكن وفرته هنا لمن يفضّل زرًا خارجيًا -->
+    <button id="nearbyBtn" style="padding:12px 18px;border:none;border-radius:10px;background:#18dcff;color:#000;font-weight:700;">
+      📍 بالقرب مني
+    </button>
+  </div>
+</section>
+
 // البحث بالمدينة (Nominatim)
 async function searchCity(query) {
   const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ", Saudi Arabia")}`;
