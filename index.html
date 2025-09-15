@@ -52,7 +52,52 @@
         radial-gradient(circle at 85% 30%, rgba(113,88,226,0.05) 0%, transparent 25%),
         radial-gradient(circle at 50% 80%, rgba(255,77,141,0.05) 0%, transparent 25%);
     }
+// البحث بالمدينة (Nominatim)
+async function searchCity(query) {
+  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ", Saudi Arabia")}`;
+  const res = await fetch(url); const results = await res.json();
+  if(results.length>0) {
+    const {lat,lon} = results[0];
+    map.setView([lat,lon],13);
+    fetchCafes(lat, lon, document.getElementById("radius").value);
+    showNotification("✅ Found city: "+results[0].display_name);
+  } else showNotification("❌ City not found");
+}
 
+// جلب المقاهي من OSM (Overpass)
+async function fetchCafes(lat, lon, radius) {
+  const url = `https://overpass-api.de/api/interpreter?data=[out:json];node["amenity"="cafe"](around:${radius},${lat},${lon});out;`;
+  const res = await fetch(url); const data = await res.json();
+  renderCafeList(data.elements);
+}
+
+// عرض النتائج
+function renderCafeList(cafes) {
+  const list = document.getElementById("cafeList");
+  list.innerHTML = "";
+  cafes.forEach((cafe,i)=>{
+    const name = cafe.tags.name || "Unnamed Cafe";
+    const addr = cafe.tags["addr:street"] || "No Address";
+    const div = document.createElement("div");
+    div.className="cafe-card"; div.style.opacity=0;
+    div.innerHTML = `
+      <h5>☕ ${name}</h5>
+      <p><i class="fas fa-map-marker-alt"></i> ${addr}</p>
+      <button class="btn btn-sm btn-outline-light" onclick="openInMaps(${cafe.lat},${cafe.lon})"><i class="fas fa-route"></i> Directions</button>
+      <button class="btn btn-sm btn-outline-danger" onclick="addFavorite('${name}')"><i class="fas fa-heart"></i> Favorite</button>
+    `;
+    list.appendChild(div);
+    setTimeout(()=>{div.style.opacity=1;}, i*100);
+    // Marker
+    const marker = L.marker([cafe.lat,cafe.lon]).addTo(map);
+    marker.bindPopup(`<b>${name}</b><br>${addr}`);
+  });
+}
+
+// فتح الموقع في Google Maps
+function openInMaps(lat,lon){
+  window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`,"_blank");
+}
     /* خلفية فضائية */
     body.space-theme {
       background-image: url("https://www.transparenttextures.com/patterns/stardust.png"),
@@ -60,7 +105,34 @@
         radial-gradient(circle at 85% 30%, rgba(113,88,226,0.1) 0%, transparent 25%),
         radial-gradient(circle at 50% 80%, rgba(255,77,141,0.1) 0%, transparent 25%);
     }
+ /* بخار القهوة */
+    .coffee-steam { position: relative; display: inline-block; }
+    .steam {
+      position: absolute; width: 15px; height: 15px;
+      border-radius: 50%; background: rgba(255,255,255,0.6);
+      animation: rise 4s ease-in-out infinite;
+      opacity: 0;
+    } 
+     .steam.one { left: -10px; animation-delay: 0s; }
+    .steam.two { left: 0px; animation-delay: 1s; }
+    .steam.three { left: 10px; animation-delay: 2s; }
+    @keyframes rise {
+      0% { transform: translateY(0) scale(0.4); opacity: 0.7; }
+      100% { transform: translateY(-60px) scale(1.2); opacity: 0; }
+    }
 
+    #map { height: 500px; border-radius: 12px; margin: 20px 0; }
+
+    .cafe-card {
+      background: #131c2f;
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 15px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      transition: transform 0.3s;
+    }
+    .cafe-card:hover { transform: translateY(-5px); border:1px solid var(--neon-blue); }
+    .cafe-card h5 { margin-bottom: 8px; }
     /* =============================
        🛰️ الثيمات
     ============================== */
